@@ -2,18 +2,30 @@
 
 import { useMemo, useState } from "react";
 import { monthEndStates, tasks as allTasks } from "@/lib/dummy-data";
-import { daysBetween, formatMd, isSameMonth, monthKeyOf, monthLabel, todayStr } from "@/lib/date";
+import {
+  dayOfMonth,
+  daysBetween,
+  daysInMonth,
+  formatMd,
+  isSameMonth,
+  monthKeyOf,
+  monthLabel,
+  todayStr,
+} from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
-import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
+import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import type { Area, Priority, Task, TaskStatus } from "@/lib/types";
 
 const today = todayStr();
 
-type FilterKey = "全部" | "未着手" | "進行中" | "AI担当" | Area;
+type QuickFilter = "全部" | "未着手" | "進行中" | "AI";
 
-const FILTERS: FilterKey[] = ["全部", "未着手", "進行中", "AI担当", "営業代行", "RIALA", "GENESIS", "その他"];
+const QUICK_FILTERS: QuickFilter[] = ["全部", "未着手", "進行中", "AI"];
+
+const AREAS: Area[] = ["営業代行", "RIALA", "GENESIS", "その他"];
+const PRIORITIES: Priority[] = ["高", "中", "低"];
 
 type SortKey = "期限順" | "重要度" | "緊急度";
 
@@ -28,6 +40,13 @@ const areaStyle: Record<Area, string> = {
   その他: "bg-stone-100 text-stone-500",
 };
 
+const areaDotColor: Record<Area, string> = {
+  営業代行: "#0284c7",
+  RIALA: "#7c3aed",
+  GENESIS: "#0d9488",
+  その他: "#a8a29e",
+};
+
 const statusDot: Record<TaskStatus, string> = {
   未着手: "bg-stone-300",
   進行中: "bg-accent",
@@ -38,7 +57,12 @@ const statusDot: Record<TaskStatus, string> = {
 
 export default function TaskMapPage() {
   const [monthOffset, setMonthOffset] = useState(0);
-  const [filter, setFilter] = useState<FilterKey>("未着手");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("未着手");
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [areaFilter, setAreaFilter] = useState<Area | "全部">("全部");
+  const [capFilter, setCapFilter] = useState<CapabilityGroup | "全部">("全部");
+  const [importanceFilter, setImportanceFilter] = useState<Priority | "全部">("全部");
+  const [urgencyFilter, setUrgencyFilter] = useState<Priority | "全部">("全部");
   const [sort, setSort] = useState<SortKey>("期限順");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -65,21 +89,58 @@ export default function TaskMapPage() {
     return { inProgress, notStarted, aiOwned, overdue, within7 };
   }, [monthTasks]);
 
+  const weekBuckets = useMemo(() => {
+    const total = daysInMonth(monthKey);
+    const boundaries = [1, 8, 15, 22, total + 1];
+    const buckets: Area[][] = [[], [], [], []];
+    for (const t of monthTasks) {
+      const day = dayOfMonth(t.deadline);
+      let idx = boundaries.findIndex((b, i) => day >= b && day < boundaries[i + 1]);
+      if (idx === -1) idx = 3;
+      buckets[idx].push(t.area);
+    }
+    return buckets;
+  }, [monthTasks, monthKey]);
+
+  const todayBucketIndex = useMemo(() => {
+    if (monthOffset !== 0) return null;
+    const total = daysInMonth(monthKey);
+    const boundaries = [1, 8, 15, 22, total + 1];
+    const day = dayOfMonth(today);
+    const idx = boundaries.findIndex((b, i) => day >= b && day < boundaries[i + 1]);
+    return idx === -1 ? 3 : idx;
+  }, [monthOffset, monthKey]);
+
+  const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
+    (v) => v !== "全部"
+  ).length;
+
   const visibleTasks = useMemo(() => {
     let list = monthTasks;
-    if (filter === "未着手") list = list.filter((t) => t.status === "未着手");
-    else if (filter === "進行中") list = list.filter((t) => t.status === "進行中");
-    else if (filter === "AI担当") list = list.filter((t) => t.aiCapability !== "HUMAN");
-    else if (filter !== "全部") list = list.filter((t) => t.area === filter);
+    if (quickFilter === "未着手") list = list.filter((t) => t.status === "未着手");
+    else if (quickFilter === "進行中") list = list.filter((t) => t.status === "進行中");
+    else if (quickFilter === "AI") list = list.filter((t) => t.aiCapability !== "HUMAN");
+
+    if (areaFilter !== "全部") list = list.filter((t) => t.area === areaFilter);
+    if (capFilter !== "全部") list = list.filter((t) => capabilityGroup(t.aiCapability) === capFilter);
+    if (importanceFilter !== "全部") list = list.filter((t) => t.importance === importanceFilter);
+    if (urgencyFilter !== "全部") list = list.filter((t) => t.urgency === urgencyFilter);
 
     const sorted = [...list];
     if (sort === "期限順") sorted.sort((a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : 0));
     else if (sort === "重要度") sorted.sort((a, b) => priorityRank[b.importance] - priorityRank[a.importance]);
     else sorted.sort((a, b) => priorityRank[b.urgency] - priorityRank[a.urgency]);
     return sorted;
-  }, [monthTasks, filter, sort]);
+  }, [monthTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
 
   const endStates = monthEndStates.filter((s) => s.monthKey === monthKey);
+
+  function resetRefine() {
+    setAreaFilter("全部");
+    setCapFilter("全部");
+    setImportanceFilter("全部");
+    setUrgencyFilter("全部");
+  }
 
   return (
     <div className="flex flex-col">
@@ -110,6 +171,33 @@ export default function TaskMapPage() {
       </header>
 
       <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
+        <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切分布</p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {weekBuckets.map((bucket, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5 rounded-xl bg-stone-50 py-2">
+              <p className="text-[10px] font-bold text-stone-400">{i + 1}週目</p>
+              <div className="flex min-h-[16px] flex-wrap items-center justify-center gap-0.5 px-1">
+                {bucket.length === 0 ? (
+                  <span className="h-1 w-1 rounded-full bg-stone-200" />
+                ) : (
+                  bucket.map((area, j) => (
+                    <span
+                      key={j}
+                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: areaDotColor[area] }}
+                    />
+                  ))
+                )}
+              </div>
+              <span className={`text-[9px] font-bold text-accent-dark ${todayBucketIndex === i ? "" : "invisible"}`}>
+                ▲今日
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-bold text-stone-800">今月の前進</p>
           <p className="tabular-nums text-xs font-bold text-stone-400">
@@ -137,14 +225,14 @@ export default function TaskMapPage() {
       </section>
 
       <section className="mt-4 px-5">
-        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {FILTERS.map((f) => (
+        <div className="flex items-center gap-1.5">
+          {QUICK_FILTERS.map((f) => (
             <button
               key={f}
               type="button"
-              onClick={() => setFilter(f)}
+              onClick={() => setQuickFilter(f)}
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
-                filter === f
+                quickFilter === f
                   ? "bg-accent text-white shadow-[0_4px_12px_-4px_rgba(234,91,12,0.6)]"
                   : "bg-white text-stone-500 shadow-sm"
               }`}
@@ -152,9 +240,37 @@ export default function TaskMapPage() {
               {f}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setRefineOpen((v) => !v)}
+            className={`ml-auto flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+              activeRefineCount > 0 ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
+            }`}
+          >
+            絞り込み{activeRefineCount > 0 ? ` ${activeRefineCount}` : ""}
+            <span className={`text-[9px] transition-transform ${refineOpen ? "rotate-180" : ""}`}>▾</span>
+          </button>
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
+        {refineOpen && (
+          <div className="mt-2.5 flex flex-col gap-3 rounded-2xl bg-white p-3.5 shadow-sm">
+            <RefineGroup label="Area" options={["全部", ...AREAS]} value={areaFilter} onChange={setAreaFilter} />
+            <RefineGroup label="担当" options={["全部", ...CAPABILITY_GROUPS]} value={capFilter} onChange={setCapFilter} />
+            <RefineGroup label="重要度" options={["全部", ...PRIORITIES]} value={importanceFilter} onChange={setImportanceFilter} />
+            <RefineGroup label="緊急度" options={["全部", ...PRIORITIES]} value={urgencyFilter} onChange={setUrgencyFilter} />
+            {activeRefineCount > 0 && (
+              <button
+                type="button"
+                onClick={resetRefine}
+                className="self-start text-[11px] font-bold text-stone-400"
+              >
+                絞り込みをクリア
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="mt-2.5 flex items-center gap-2">
           <span className="text-[11px] font-medium text-stone-400">並び替え</span>
           <div className="flex gap-1 rounded-full bg-stone-100 p-1">
             {SORTS.map((s) => (
@@ -203,6 +319,38 @@ export default function TaskMapPage() {
       </section>
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+    </div>
+  );
+}
+
+function RefineGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: T[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-[10px] font-bold text-stone-400">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+              value === opt ? "bg-accent text-white" : "bg-stone-100 text-stone-500"
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

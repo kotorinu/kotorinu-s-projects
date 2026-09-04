@@ -7,14 +7,24 @@ import { capabilityBadge } from "@/lib/capability";
 import type { Task } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
+import Confetti from "@/components/Confetti";
 
 const today = todayStr();
 const weekday = ["日", "月", "火", "水", "木", "金", "土"][new Date().getDay()];
 
 type Celebration =
   | { kind: "simple" }
-  | { kind: "goal"; goalTitle: string; goalState: string; done: number; total: number; pct: number }
-  | { kind: "recurring"; total: number };
+  | {
+      kind: "goal";
+      goalTitle: string;
+      desiredState: string;
+      achievementCriteria: string;
+      done: number;
+      total: number;
+      pct: number;
+    }
+  | { kind: "recurring"; total: number }
+  | { kind: "today" };
 
 function isOpen(t: Task) {
   return t.status !== "完了" && t.status !== "Archive";
@@ -70,6 +80,11 @@ export default function TodayPage() {
     });
     if (!completing) return;
 
+    if (totalCount > 0 && doneCount + 1 === totalCount) {
+      fireCelebration({ kind: "today" }, 1100);
+      return;
+    }
+
     const goal = task.goalId ? goals.find((g) => g.id === task.goalId) : null;
     if (goal) {
       const linked = allTasks.filter((t) => t.goalId === goal.id);
@@ -77,7 +92,15 @@ export default function TodayPage() {
       const total = linked.length;
       const goalPct = total === 0 ? 0 : Math.round((doneAmongLinked / total) * 100);
       fireCelebration(
-        { kind: "goal", goalTitle: goal.title, goalState: goal.desiredState, done: doneAmongLinked, total, pct: goalPct },
+        {
+          kind: "goal",
+          goalTitle: goal.title,
+          desiredState: goal.desiredState,
+          achievementCriteria: goal.achievementCriteria,
+          done: doneAmongLinked,
+          total,
+          pct: goalPct,
+        },
         2600
       );
     } else {
@@ -294,13 +317,14 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
       )}
 
       {celebration?.kind === "goal" && (
-        <div className="w-full max-w-xs rounded-2xl bg-stone-900 px-4 py-3.5 text-white shadow-xl">
+        <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-stone-900 px-4 py-3.5 text-white shadow-xl">
           {celebration.pct >= 100 ? (
             <>
+              <Confetti count={14} />
               <p className="text-center text-lg">🎉</p>
-              <p className="mt-1 text-center text-[13px] font-black">{celebration.goalTitle} 完了</p>
+              <p className="mt-1 text-center text-[13px] font-black">{celebration.goalTitle} 達成</p>
               <p className="mt-1 text-center text-[11px] leading-relaxed text-stone-300">
-                「{celebration.goalState}」を達成しました。今日も一歩前進。
+                「{celebration.achievementCriteria}」の達成基準を満たしました。
               </p>
             </>
           ) : (
@@ -312,7 +336,7 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
                 <ProgressBar pct={celebration.pct} size="sm" />
               </div>
               <p className="mt-2 text-center text-[11px] text-stone-300">
-                あと{celebration.total - celebration.done}つで「{celebration.goalState}」
+                あと{celebration.total - celebration.done}つで「{celebration.desiredState}」
               </p>
             </>
           )}
@@ -320,12 +344,22 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
       )}
 
       {celebration?.kind === "recurring" && (
-        <div className="w-full max-w-xs rounded-2xl bg-stone-900 px-4 py-3.5 text-center text-white shadow-xl">
+        <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-stone-900 px-4 py-3.5 text-center text-white shadow-xl">
+          <Confetti count={12} />
           <p className="text-lg">🎉</p>
           <p className="mt-1 text-[13px] font-black">
             今日の積み上げ {celebration.total} / {celebration.total}
           </p>
           <p className="mt-1 text-[11px] text-stone-300">今日も継続できました。</p>
+        </div>
+      )}
+
+      {celebration?.kind === "today" && (
+        <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-accent px-5 py-4 text-center text-white shadow-xl">
+          <Confetti count={18} />
+          <p className="text-2xl">🎉</p>
+          <p className="mt-1 text-[15px] font-black">今日のタスク 100%</p>
+          <p className="mt-1 text-[11px] text-white/80">今日もやりきりました。</p>
         </div>
       )}
     </div>

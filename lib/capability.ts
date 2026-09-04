@@ -1,5 +1,24 @@
 import type { AiCapability } from "./types";
 
+export type CapabilityGroup = "Human" | "AI" | "Hybrid" | "Blocked";
+
+export const CAPABILITY_GROUPS: CapabilityGroup[] = ["Human", "AI", "Hybrid", "Blocked"];
+
+export function capabilityGroup(cap: AiCapability): CapabilityGroup {
+  switch (cap) {
+    case "AI_EXECUTE":
+    case "AI_DRAFT":
+      return "AI";
+    case "HYBRID":
+    case "DECISION":
+      return "Hybrid";
+    case "BLOCKED":
+      return "Blocked";
+    default:
+      return "Human";
+  }
+}
+
 // Compact badge shown in TODAY / TASK MAP task rows.
 export function capabilityBadge(cap: AiCapability): { label: string; tone: "accent" | "warning" | null } {
   switch (cap) {

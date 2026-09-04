@@ -41,3 +41,14 @@ body {
     opacity: 0;
   }
 }
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 60px))) rotate(var(--cr, 180deg));
+  }
+}

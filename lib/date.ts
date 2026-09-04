@@ -47,3 +47,12 @@ export function monthLabel(monthKey: string): string {
 export function isSameMonth(ymd: string, monthKey: string): boolean {
   return ymd.startsWith(monthKey);
 }
+
+export function daysInMonth(monthKey: string): number {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+export function dayOfMonth(ymd: string): number {
+  return parseInt(ymd.split("-")[2], 10);
+}

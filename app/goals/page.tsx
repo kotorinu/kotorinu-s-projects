@@ -60,7 +60,7 @@ function GoalTreeContent() {
   useEffect(() => {
     if (!linkedFocusId) return;
     const el = nodeRefs.current.get(linkedFocusId);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [linkedFocusId]);
 
   function toggle(id: string) {
@@ -81,10 +81,11 @@ function GoalTreeContent() {
       </header>
 
       <div className="mt-4 px-5">
-        <p className="mb-4 text-[11px] font-medium text-stone-300">※ 目標の文言は仮データです</p>
+        <p className="mb-4 text-[11px] font-medium text-stone-400">※ 目標の文言は仮データです</p>
         {chain.map((goal, i) => (
           <div
             key={goal.id}
+            className="scroll-mt-28"
             ref={(el) => {
               if (el) nodeRefs.current.set(goal.id, el);
               else nodeRefs.current.delete(goal.id);
@@ -143,7 +144,7 @@ function TimelineRow({
           <p className="truncate text-[14px] font-bold text-stone-800">{goal.title}</p>
           <span className="flex shrink-0 items-baseline gap-1.5">
             {goal.targetDate && (
-              <span className="text-[11px] font-bold text-stone-400">{formatMd(goal.targetDate)}</span>
+              <span className="text-[11px] font-bold text-stone-500">{formatMd(goal.targetDate)}</span>
             )}
             <span
               className={`inline-block text-[9px] text-stone-300 transition-transform duration-200 ${
@@ -156,11 +157,11 @@ function TimelineRow({
         </div>
 
         {!expanded && linkedTasks > 0 && (
-          <p className="mt-0.5 text-[11px] font-medium text-stone-300">タスク {linkedTasks}件</p>
+          <p className="mt-0.5 text-[11px] font-medium text-stone-400">タスク {linkedTasks}件</p>
         )}
 
         {expanded && (
-          <div className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-white p-3 text-[12px] leading-relaxed text-stone-500 shadow-sm">
+          <div className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-white p-3 text-[12px] leading-relaxed text-stone-700 shadow-sm">
             <p>
               <span className="font-bold text-stone-400">理想　</span>
               {goal.desiredState}
@@ -170,7 +171,7 @@ function TimelineRow({
               {goal.achievementCriteria}
             </p>
             {linkedTasks > 0 && (
-              <p className="text-stone-400">
+              <p className="text-stone-500">
                 <span className="font-bold">紐づくタスク　</span>
                 {linkedTasks}件
               </p>
