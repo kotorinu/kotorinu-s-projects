@@ -64,8 +64,47 @@ export interface MonthEndState {
   state: string;
 }
 
-export interface RecurringTask {
+export type OutcomeStatus = "ACTIVE" | "PROVISIONAL" | "COMPLETE";
+
+// An area-level outcome that recurring practice (not a dated Task) works
+// toward — e.g. GENESIS's 60-day challenge. Deliberately separate from Goal:
+// this is a standing behavior/practice target, not a point on the life timeline.
+export interface Outcome {
+  id: string;
+  area: Area;
+  title: string;
+  desiredState: string;
+  why: string;
+  achievementCriteria: string[];
+  status: OutcomeStatus;
+}
+
+export type RecurringFrequency = "DAILY";
+
+export interface RecurringRule {
   id: string;
   title: string;
+  frequency: RecurringFrequency;
+  area: Area;
+  estimateMinutes: number | null;
+  aiCapability: AiCapability;
+  description: string;
+  definitionOfDone: string[];
+  allowedMedium: string[];
+  why: string;
+  outcomeId: string | null;
   streakDays: number; // consecutive days completed before today
+}
+
+// One day's actual execution of a RecurringRule. Phase 1 defines the shape
+// only — nothing persists it yet (no DB), so today's UI has no real history
+// to read from here.
+export interface DailyOccurrence {
+  date: string; // YYYY-MM-DD
+  recurringRuleId: string;
+  status: TaskStatus;
+  actualMinutes: number | null;
+  completedAt: string | null;
+  overrunReason: string | null;
+  note: string | null;
 }

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { goals, recurringTasks, tasks as allTasks } from "@/lib/dummy-data";
+import { goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
 import { daysBetween, formatMd, todayStr } from "@/lib/date";
 import { capabilityBadge } from "@/lib/capability";
-import type { Task } from "@/lib/types";
+import type { RecurringRule, Task } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
+import RecurringDetailSheet from "@/components/RecurringDetailSheet";
+import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import Confetti from "@/components/Confetti";
 
 const today = todayStr();
@@ -23,7 +25,7 @@ type Celebration =
       total: number;
       pct: number;
     }
-  | { kind: "recurring"; total: number }
+  | { kind: "recurring"; total: number; label: string }
   | { kind: "today" };
 
 function isOpen(t: Task) {
@@ -37,6 +39,8 @@ export default function TodayPage() {
   const [effectsOn, setEffectsOn] = useState(true);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedRecurring, setSelectedRecurring] = useState<RecurringRule | null>(null);
+  const [outcomeSheetId, setOutcomeSheetId] = useState<string | null>(null);
   const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function fireCelebration(c: Celebration, durationMs: number) {
@@ -68,7 +72,7 @@ export default function TodayPage() {
   const doneCount = todayTasks.filter((t) => done.has(t.id)).length;
   const totalCount = todayTasks.length;
   const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
-  const recurringDoneCount = recurringTasks.filter((r) => recurringDone.has(r.id)).length;
+  const recurringDoneCount = recurringRules.filter((r) => recurringDone.has(r.id)).length;
 
   function toggle(task: Task) {
     const completing = !done.has(task.id);
@@ -115,12 +119,17 @@ export default function TodayPage() {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      willAllBeDone = recurringTasks.every((r) => next.has(r.id));
+      willAllBeDone = recurringRules.every((r) => next.has(r.id));
       return next;
     });
     if (!completing) return;
-    if (willAllBeDone) fireCelebration({ kind: "recurring", total: recurringTasks.length }, 2200);
-    else fireCelebration({ kind: "simple" }, 1000);
+    if (willAllBeDone) {
+      const areas = new Set(recurringRules.map((r) => r.area));
+      const label = areas.size === 1 ? `今日の${[...areas][0]}習慣を完了しました` : "今日の積み上げを完了しました";
+      fireCelebration({ kind: "recurring", total: recurringRules.length, label }, 2200);
+    } else {
+      fireCelebration({ kind: "simple" }, 1000);
+    }
   }
 
   return (
@@ -168,36 +177,39 @@ export default function TodayPage() {
         )}
       </section>
 
-      {recurringTasks.length > 0 && (
+      {recurringRules.length > 0 && (
         <section className="mx-5 mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-stone-500">毎日の積み上げ</p>
             <p className="tabular-nums text-xs font-bold text-stone-400">
-              {recurringDoneCount} / {recurringTasks.length}
+              {recurringDoneCount} / {recurringRules.length}
             </p>
           </div>
           <ul className="mt-2 flex flex-col gap-1">
-            {recurringTasks.map((r) => {
+            {recurringRules.map((r) => {
               const checked = recurringDone.has(r.id);
               return (
-                <li key={r.id}>
+                <li key={r.id} className="flex items-center gap-2 py-1">
                   <button
                     type="button"
                     onClick={() => toggleRecurring(r.id)}
-                    className="flex w-full items-center gap-2 rounded-lg py-1 text-left"
+                    aria-label="完了にする"
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] transition-colors ${
+                      checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent"
+                    }`}
                   >
-                    <span
-                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] transition-colors ${
-                        checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent"
-                      }`}
-                    >
-                      ✓
-                    </span>
-                    <span className={`text-[13px] font-medium ${checked ? "text-stone-300 line-through" : "text-stone-600"}`}>
+                    ✓
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecurring(r)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <span className={`truncate text-[13px] font-medium ${checked ? "text-stone-300 line-through" : "text-stone-600"}`}>
                       {r.title}
                     </span>
                     {checked && r.streakDays > 0 && (
-                      <span className="ml-auto text-[10px] font-bold text-accent-dark">{r.streakDays + 1}日連続</span>
+                      <span className="ml-auto shrink-0 text-[10px] font-bold text-accent-dark">{r.streakDays + 1}日連続</span>
                     )}
                   </button>
                 </li>
@@ -299,6 +311,24 @@ export default function TodayPage() {
       <CelebrationToast celebration={celebration} />
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+
+      {selectedRecurring && (
+        <RecurringDetailSheet
+          rule={selectedRecurring}
+          streak={selectedRecurring.streakDays + (recurringDone.has(selectedRecurring.id) ? 1 : 0)}
+          onClose={() => setSelectedRecurring(null)}
+          onViewOutcome={() => {
+            if (selectedRecurring.outcomeId) setOutcomeSheetId(selectedRecurring.outcomeId);
+            setSelectedRecurring(null);
+          }}
+        />
+      )}
+
+      {outcomeSheetId &&
+        (() => {
+          const outcome = outcomes.find((o) => o.id === outcomeSheetId);
+          return outcome ? <OutcomeDetailSheet outcome={outcome} onClose={() => setOutcomeSheetId(null)} /> : null;
+        })()}
     </div>
   );
 }
@@ -347,10 +377,10 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
         <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-stone-900 px-4 py-3.5 text-center text-white shadow-xl">
           <Confetti count={12} />
           <p className="text-lg">🎉</p>
-          <p className="mt-1 text-[13px] font-black">
-            今日の積み上げ {celebration.total} / {celebration.total}
+          <p className="mt-1 text-[13px] font-black">{celebration.label}</p>
+          <p className="mt-1 text-[11px] text-stone-300">
+            毎日の積み上げ {celebration.total} / {celebration.total}
           </p>
-          <p className="mt-1 text-[11px] text-stone-300">今日も継続できました。</p>
         </div>
       )}
 
