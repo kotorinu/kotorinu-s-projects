@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { monthEndStates, tasks as allTasks } from "@/lib/dummy-data";
+import { monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
 import {
   dayOfMonth,
   daysBetween,
@@ -13,10 +13,11 @@ import {
   todayStr,
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
-import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
+import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
-import type { Area, Priority, Task, TaskStatus } from "@/lib/types";
+import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
+import type { Area, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
 
 const today = todayStr();
 
@@ -65,13 +66,19 @@ export default function TaskMapPage() {
   const [urgencyFilter, setUrgencyFilter] = useState<Priority | "全部">("全部");
   const [sort, setSort] = useState<SortKey>("期限順");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>(null);
 
   const monthKey = monthKeyOf(monthOffset);
 
   const monthTasks = useMemo(
-    () => allTasks.filter((t) => isSameMonth(t.deadline, monthKey)),
+    () =>
+      allTasks.filter(
+        (t): t is Task & { deadline: string } => t.deadline !== null && isSameMonth(t.deadline, monthKey)
+      ),
     [monthKey]
   );
+
+  const undatedTasks = useMemo(() => allTasks.filter((t) => t.deadline === null), []);
 
   const progress = useMemo(() => computeProgress(monthTasks), [monthTasks]);
 
@@ -115,23 +122,36 @@ export default function TaskMapPage() {
     (v) => v !== "全部"
   ).length;
 
+  function applyFilters<T extends Task>(list: T[]): T[] {
+    let out = list;
+    if (quickFilter === "未着手") out = out.filter((t) => t.status === "未着手");
+    else if (quickFilter === "進行中") out = out.filter((t) => t.status === "進行中");
+    else if (quickFilter === "AI") out = out.filter((t) => t.aiCapability !== "HUMAN");
+
+    if (areaFilter !== "全部") out = out.filter((t) => t.area === areaFilter);
+    if (capFilter !== "全部") out = out.filter((t) => capabilityGroup(t.aiCapability) === capFilter);
+    if (importanceFilter !== "全部") out = out.filter((t) => t.importance === importanceFilter);
+    if (urgencyFilter !== "全部") out = out.filter((t) => t.urgency === urgencyFilter);
+    return out;
+  }
+
   const visibleTasks = useMemo(() => {
-    let list = monthTasks;
-    if (quickFilter === "未着手") list = list.filter((t) => t.status === "未着手");
-    else if (quickFilter === "進行中") list = list.filter((t) => t.status === "進行中");
-    else if (quickFilter === "AI") list = list.filter((t) => t.aiCapability !== "HUMAN");
-
-    if (areaFilter !== "全部") list = list.filter((t) => t.area === areaFilter);
-    if (capFilter !== "全部") list = list.filter((t) => capabilityGroup(t.aiCapability) === capFilter);
-    if (importanceFilter !== "全部") list = list.filter((t) => t.importance === importanceFilter);
-    if (urgencyFilter !== "全部") list = list.filter((t) => t.urgency === urgencyFilter);
-
+    const list = applyFilters(monthTasks);
     const sorted = [...list];
     if (sort === "期限順") sorted.sort((a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : 0));
     else if (sort === "重要度") sorted.sort((a, b) => priorityRank[b.importance] - priorityRank[a.importance]);
     else sorted.sort((a, b) => priorityRank[b.urgency] - priorityRank[a.urgency]);
     return sorted;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
+
+  const visibleUndatedTasks = useMemo(() => {
+    const list = applyFilters(undatedTasks);
+    if (sort === "重要度") return [...list].sort((a, b) => priorityRank[b.importance] - priorityRank[a.importance]);
+    if (sort === "緊急度") return [...list].sort((a, b) => priorityRank[b.urgency] - priorityRank[a.urgency]);
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undatedTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
 
   const endStates = monthEndStates.filter((s) => s.monthKey === monthKey);
 
@@ -300,25 +320,53 @@ export default function TaskMapPage() {
         )}
       </section>
 
+      {visibleUndatedTasks.length > 0 && (
+        <section className="mt-5 px-5">
+          <h2 className="mb-2 text-xs font-bold text-stone-400">期限未設定（{visibleUndatedTasks.length}）</h2>
+          <div className="flex flex-col gap-1.5">
+            {visibleUndatedTasks.map((t) => (
+              <TaskListRow key={t.id} task={t} onOpen={() => setSelectedTask(t)} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="mt-6 px-5 pb-4">
         <h2 className="mb-2.5 text-sm font-bold text-stone-800">{monthLabel(monthKey)}末、こうなっていたい</h2>
         <div className="flex flex-col gap-2">
-          {endStates.length === 0 ? (
+          {endStates.length === 0 && outcomes.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-4 text-center text-xs text-stone-400">
               この月の月末目標はまだ設定されていません
             </p>
           ) : (
-            endStates.map((s) => (
-              <div key={s.area} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-                <p className="text-[11px] font-bold text-accent-dark">{s.area}</p>
-                <p className="mt-0.5 text-sm font-medium text-stone-700">{s.state}</p>
-              </div>
-            ))
+            <>
+              {endStates.map((s) => (
+                <div key={s.area} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                  <p className="text-[11px] font-bold text-accent-dark">{s.area}</p>
+                  <p className="mt-0.5 text-sm font-medium text-stone-700">{s.state}</p>
+                </div>
+              ))}
+              {outcomes.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setSelectedOutcome(o)}
+                  className="rounded-2xl bg-white px-4 py-3 text-left shadow-sm"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[11px] font-bold text-accent-dark">{o.area}</p>
+                    <span className="text-[10px] font-bold text-stone-300">詳しく見る ＞</span>
+                  </div>
+                  <p className="mt-0.5 text-sm font-medium text-stone-700">{o.title}</p>
+                </button>
+              ))}
+            </>
           )}
         </div>
       </section>
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+      {selectedOutcome && <OutcomeDetailSheet outcome={selectedOutcome} onClose={() => setSelectedOutcome(null)} />}
     </div>
   );
 }
@@ -366,7 +414,10 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 
 function TaskListRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const overdue =
-    task.status !== "完了" && task.status !== "Archive" && daysBetween(today, task.deadline) < 0;
+    task.deadline !== null &&
+    task.status !== "完了" &&
+    task.status !== "Archive" &&
+    daysBetween(today, task.deadline) < 0;
   const done = task.status === "完了";
   const badge = capabilityBadge(task.aiCapability);
   return (
@@ -397,6 +448,17 @@ function TaskListRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
           {badge.tone === "warning" && (
             <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-bold text-danger">
               ⚠ Blocked
+            </span>
+          )}
+          {task.deliveryStatus && task.deliveryStatus !== "BLOCKED" && (
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                deliveryStatusLabel(task.deliveryStatus).tone === "accent"
+                  ? "bg-accent-soft text-accent-dark"
+                  : "bg-stone-100 text-stone-500"
+              }`}
+            >
+              {deliveryStatusLabel(task.deliveryStatus).label}
             </span>
           )}
         </div>

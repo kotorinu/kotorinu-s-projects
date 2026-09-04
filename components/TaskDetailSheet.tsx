@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, tasks as allTasks } from "@/lib/dummy-data";
+import { goals, monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
-import { capabilityAction, capabilityOwnerLabel } from "@/lib/capability";
+import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
 import ProgressBar from "@/components/ProgressBar";
+import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import type { Task } from "@/lib/types";
+
+const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
+  MESSAGE_DRAFT: "メッセージ下書き",
+  EVENT_REMINDER: "イベントリマインド",
+  MEMBER_STATUS_LIST: "メンバー状況一覧",
+  OPERATION_DOC: "運営ドキュメント",
+  OTHER: "その他",
+};
 
 export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose: () => void }) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [requested, setRequested] = useState(false);
+  const [outcomeSheetOpen, setOutcomeSheetOpen] = useState(false);
 
   useEffect(() => {
     const mainEl = document.querySelector("main");
@@ -24,9 +34,11 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
 
   const goal = task.goalId ? goals.find((g) => g.id === task.goalId) ?? null : null;
   const goalProgress = goal ? computeGoalProgress(allTasks, goal.id) : null;
-  const areaOutcome = !goal
-    ? monthEndStates.find((s) => s.area === task.area && s.monthKey === monthKeyOf(0)) ?? null
-    : null;
+  const outcome = task.outcomeId ? outcomes.find((o) => o.id === task.outcomeId) ?? null : null;
+  const areaOutcome =
+    !goal && !outcome
+      ? monthEndStates.find((s) => s.area === task.area && s.monthKey === monthKeyOf(0)) ?? null
+      : null;
 
   const action = capabilityAction(task.aiCapability);
 
@@ -94,7 +106,7 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
             <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
           </Section>
 
-          {(goal || areaOutcome) && (
+          {(goal || outcome || areaOutcome) && (
             <Section title="上位成果">
               {goal && goalProgress ? (
                 <div>
@@ -112,6 +124,18 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
                   >
                     ＞ 上位Goalを見る
                   </Link>
+                </div>
+              ) : outcome ? (
+                <div>
+                  <p className="text-[13px] font-bold text-stone-700">{outcome.title}</p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-stone-600">{outcome.desiredState}</p>
+                  <button
+                    type="button"
+                    onClick={() => setOutcomeSheetOpen(true)}
+                    className="mt-2 text-[12px] font-bold text-accent-dark"
+                  >
+                    ＞ 上位Outcomeを見る
+                  </button>
                 </div>
               ) : (
                 areaOutcome && (
@@ -194,6 +218,39 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
             )}
           </Section>
 
+          {task.outputType && (
+            <Section title="納品情報">
+              <dl className="flex flex-col gap-1.5 text-[13px]">
+                <Row label="成果物の種類" value={outputTypeLabel[task.outputType]} />
+                <Row label="保存先" value={task.outputDestination ?? "未設定"} />
+                <Row label="送信先" value={task.deliveryChannel ?? "未設定"} />
+                {task.deliveryStatus && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-stone-500">状態</dt>
+                    <dd>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                          deliveryStatusLabel(task.deliveryStatus).tone === "accent"
+                            ? "bg-accent-soft text-accent-dark"
+                            : deliveryStatusLabel(task.deliveryStatus).tone === "warning"
+                              ? "bg-danger-soft text-danger"
+                              : "bg-stone-100 text-stone-500"
+                        }`}
+                      >
+                        {deliveryStatusLabel(task.deliveryStatus).label}
+                      </span>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {task.automationCandidate && (
+                <p className="mt-2 text-[10px] text-stone-400">
+                  🔁 将来の自動化候補（Phase1では実行しません）
+                </p>
+              )}
+            </Section>
+          )}
+
           <Section title="予定・実績">
             <dl className="flex flex-col gap-1.5 text-[13px]">
               <Row label="予定時間" value={`${task.estimateMinutes}分`} />
@@ -208,6 +265,10 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
           </Section>
         </div>
       </div>
+
+      {outcomeSheetOpen && outcome && (
+        <OutcomeDetailSheet outcome={outcome} onClose={() => setOutcomeSheetOpen(false)} />
+      )}
     </div>
   );
 }

@@ -16,13 +16,26 @@ export type AiCapability =
   | "DECISION" // AIが案を作り、人間が意思決定
   | "BLOCKED"; // AIで可能だが、情報・権限不足
 
+// A Task's finished output, when it produces one. RIALA-shaped for now but
+// deliberately on the shared Task type — any area's tasks can use it.
+export type OutputType = "MESSAGE_DRAFT" | "EVENT_REMINDER" | "MEMBER_STATUS_LIST" | "OPERATION_DOC" | "OTHER";
+
+export type DeliveryChannel = "RIALA App" | "DM" | "Slack" | "Email" | "Other";
+
+// DRAFT: being worked on. READY_TO_SEND: a human could send this as-is.
+// SCHEDULED/SENT: future states once real delivery exists (Phase 1: mock
+// only). BLOCKED: AI could produce this but required input is missing.
+export type DeliveryStatus = "DRAFT" | "READY_TO_SEND" | "SCHEDULED" | "SENT" | "BLOCKED";
+
+export type AutomationType = "SCHEDULED_POST" | "AUTO_MESSAGE" | "REMINDER_GENERATION" | "STATUS_CLASSIFICATION" | "NONE";
+
 export interface Task {
   id: string;
   title: string;
   description: string;
   why: string;
   area: Area;
-  deadline: string; // YYYY-MM-DD
+  deadline: string | null; // YYYY-MM-DD — null when genuinely unscheduled (see PRD.md 22)
   workDate: string | null; // YYYY-MM-DD
   estimateMinutes: number;
   actualMinutes: number | null;
@@ -38,7 +51,14 @@ export interface Task {
   steps: string[];
   overrunReason: string | null;
   nextImprovement: string | null;
-  goalId: string | null;
+  goalId: string | null; // life-timeline Goal (GOAL TREE)
+  outcomeId: string | null; // area-level Outcome (e.g. RIALA's AI-ops outcome)
+  outputType: OutputType | null;
+  outputDestination: string | null;
+  deliveryChannel: DeliveryChannel | null;
+  deliveryStatus: DeliveryStatus | null;
+  automationCandidate: boolean;
+  automationType: AutomationType | null;
   source: string;
   createdAt: string;
   updatedAt: string;

@@ -1,4 +1,19 @@
-import type { AiCapability } from "./types";
+import type { AiCapability, DeliveryStatus } from "./types";
+
+export function deliveryStatusLabel(status: DeliveryStatus): { label: string; tone: "accent" | "warning" | "neutral" } {
+  switch (status) {
+    case "READY_TO_SEND":
+      return { label: "READY", tone: "accent" };
+    case "SCHEDULED":
+      return { label: "予約済", tone: "accent" };
+    case "SENT":
+      return { label: "送信済", tone: "neutral" };
+    case "BLOCKED":
+      return { label: "不足", tone: "warning" };
+    default:
+      return { label: "下書き", tone: "neutral" };
+  }
+}
 
 export type CapabilityGroup = "Human" | "AI" | "Hybrid" | "Blocked";
 

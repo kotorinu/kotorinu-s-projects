@@ -25,7 +25,8 @@ export function daysBetween(fromYmd: string, toYmdStr: string): number {
   return Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function formatMd(ymd: string): string {
+export function formatMd(ymd: string | null): string {
+  if (!ymd) return "期限未設定";
   const [, m, d] = ymd.split("-");
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }

@@ -56,14 +56,14 @@ export default function TodayPage() {
   );
 
   const overdueTasks = useMemo(
-    () => allTasks.filter((t) => isOpen(t) && daysBetween(today, t.deadline) < 0),
+    () => allTasks.filter((t) => isOpen(t) && t.deadline !== null && daysBetween(today, t.deadline) < 0),
     []
   );
 
   const upcomingTasks = useMemo(() => {
     const todayIds = new Set(todayTasks.map((t) => t.id));
     return allTasks.filter((t) => {
-      if (!isOpen(t) || todayIds.has(t.id)) return false;
+      if (!isOpen(t) || todayIds.has(t.id) || t.deadline === null) return false;
       const diff = daysBetween(today, t.deadline);
       return diff >= 1 && diff <= 2;
     });
@@ -416,7 +416,7 @@ function TaskRow({
   onToggle: () => void;
   onOpen: () => void;
 }) {
-  const overdue = daysBetween(today, task.deadline) < 0;
+  const overdue = task.deadline !== null && daysBetween(today, task.deadline) < 0;
   const [burst, setBurst] = useState(false);
   const [prevChecked, setPrevChecked] = useState(checked);
   const badge = capabilityBadge(task.aiCapability);
