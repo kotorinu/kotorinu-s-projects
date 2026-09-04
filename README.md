@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Work OS — Phase 1
 
-## Getting Started
+自分専用の AI Work OS。人生の目標から今日の行動までをつなぎ、
+Human と AI が役割分担して実行できる状態を作るためのアプリ。
+詳細な要件は [PRD.md](./PRD.md) を参照。
 
-First, run the development server:
+Phase 1 はダミーデータのみのスマホUIプロトタイプ（DB接続なし）。
+まずはスマホで実際に触って「毎日これを見るか」を確認するのが目的。
+
+## 起動方法
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで [http://localhost:3000](http://localhost:3000) を開く（`/` は自動的に `/today` へリダイレクト）。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+スマホ実機で確認する場合は、同じWi-Fiに繋いだ端末から `http://<このPCのIPアドレス>:3000` を開く。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+このリポジトリを Claude Code のワークスペースから開いている場合、
+`.claude/launch.json` に `ai-work-os`（ポート4620）が登録済みなので、
+Preview から直接起動できる。
 
-## Learn More
+## 画面構成（Phase 1）
 
-To learn more about Next.js, take a look at the following resources:
+- `/today` — TODAY：今日やるタスクのみ表示。期限超過件数と「2日以内」の折りたたみ表示付き
+- `/tasks` — TASK MAP：月切り替え・集計（全タスク/完了/進行/未着手/AI担当/期限超過/7日以内）・フィルター・並び替え・月末の状態
+- `/goals` — GOAL TREE：人生の目的から具体タスクまでの階層を開閉式で表示
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+下部ナビゲーションで3画面を行き来する。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## データ
 
-## Deploy on Vercel
+`lib/dummy-data.ts` にタスク・ゴール・月末状態のダミーデータを定義。
+日付は起動時点の「今日」からの相対オフセットで生成しているため、
+いつ開いても期限超過・今日・2日以内・7日以内などの表示が破綻しない。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Phase 2（Supabase接続）以降、このダミーデータ層を実データに差し替える想定。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 技術構成
+
+- Next.js (App Router) / TypeScript / Tailwind CSS v4
+- 状態はすべてクライアント側のダミーデータ・ローカルstateのみ（永続化なし）
