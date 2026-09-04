@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { goals, tasks } from "@/lib/dummy-data";
 import { formatMd, todayStr } from "@/lib/date";
@@ -23,7 +23,6 @@ function GoalTreeContent() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(linkedFocusId ? [linkedFocusId] : [])
   );
-  const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const chain = useMemo(() => {
     const byParent = new Map<string | null, Goal>();
@@ -59,8 +58,7 @@ function GoalTreeContent() {
 
   useEffect(() => {
     if (!linkedFocusId) return;
-    const el = nodeRefs.current.get(linkedFocusId);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(`goal-${linkedFocusId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [linkedFocusId]);
 
   function toggle(id: string) {
@@ -81,27 +79,30 @@ function GoalTreeContent() {
       </header>
 
       <div className="mt-4 px-5">
-        <p className="mb-4 text-[11px] font-medium text-stone-400">※ 目標の文言は仮データです</p>
-        {chain.map((goal, i) => (
-          <div
-            key={goal.id}
-            className="scroll-mt-28"
-            ref={(el) => {
-              if (el) nodeRefs.current.set(goal.id, el);
-              else nodeRefs.current.delete(goal.id);
-            }}
-          >
-            <TimelineRow
-              goal={goal}
-              isLast={i === chain.length - 1}
-              isFocus={goal.id === focusId}
-              isLinked={goal.id === linkedFocusId}
-              linkedTasks={tasksOf.get(goal.id) ?? 0}
-              expanded={expandedIds.has(goal.id)}
-              onToggle={() => toggle(goal.id)}
-            />
+        {chain.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-stone-200 py-14 text-center">
+            <span className="text-3xl">🌱</span>
+            <p className="text-sm text-stone-400">
+              まだGoalは登録されていません
+              <br />
+              確定した目標が決まり次第、ここに表示されます
+            </p>
           </div>
-        ))}
+        ) : (
+          chain.map((goal, i) => (
+            <div key={goal.id} id={`goal-${goal.id}`} className="scroll-mt-28">
+              <TimelineRow
+                goal={goal}
+                isLast={i === chain.length - 1}
+                isFocus={goal.id === focusId}
+                isLinked={goal.id === linkedFocusId}
+                linkedTasks={tasksOf.get(goal.id) ?? 0}
+                expanded={expandedIds.has(goal.id)}
+                onToggle={() => toggle(goal.id)}
+              />
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

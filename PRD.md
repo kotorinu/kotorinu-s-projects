@@ -698,3 +698,37 @@ READMEに起動方法を書く。
 
 まずスマホで触って、
 「毎日これを見るか」を確認する。
+
+---
+
+# 22. Data Integrity Rule（2026-09-05追加・恒久ルール）
+
+実データ運用へ移行して以降、必ず守ること。
+
+NEVER invent:
+- user goals
+- task titles
+- deadlines
+- KPIs
+- training dates
+- project requirements
+
+不明な期限・数値・課題名・目標は勝手に作らない。
+不明な値は null / TBD / PROVISIONAL のまま扱う。
+
+Dummy/fixture data must never appear in production once real-data
+operation begins for that Area.
+
+Fixtureを実データに置き換えるときは、
+古いFixtureを追記の上に残さず、DELETEしてから実データを入れる。
+併存させない。
+
+実データがまだ投入されていないAreaやMonthは、
+「準備中」のような偽の説明文を表示せず、
+空状態（未設定であることが分かる表示）のままにする。
+
+現状（2026-09-05時点）：
+- GENESIS：60日チャレンジOutcome・Recurring Rule 3件は実データ
+- 営業代行・RIALA・GOAL TREE・Task一覧：実データ投入前のため空。
+  過去のPhase1用ダミー（研修動画・契約書確認・DM対応テンプレ等、
+  5年後/3年後/1年後などの仮Goal）は削除済み。実データが確定次第、追加する。
