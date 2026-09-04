@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { monthEndStates, tasks as allTasks } from "@/lib/dummy-data";
 import { daysBetween, formatMd, isSameMonth, monthKeyOf, monthLabel, todayStr } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
+import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import ProgressBar from "@/components/ProgressBar";
+import TaskDetailSheet from "@/components/TaskDetailSheet";
 import type { Area, Priority, Task, TaskStatus } from "@/lib/types";
 
 const today = todayStr();
@@ -38,6 +40,7 @@ export default function TaskMapPage() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [filter, setFilter] = useState<FilterKey>("未着手");
   const [sort, setSort] = useState<SortKey>("期限順");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const monthKey = monthKeyOf(monthOffset);
 
@@ -51,7 +54,7 @@ export default function TaskMapPage() {
   const stats = useMemo(() => {
     const inProgress = monthTasks.filter((t) => t.status === "進行中").length;
     const notStarted = monthTasks.filter((t) => t.status === "未着手").length;
-    const aiOwned = monthTasks.filter((t) => t.owner !== "Human").length;
+    const aiOwned = monthTasks.filter((t) => t.aiCapability !== "HUMAN").length;
     const overdue = monthTasks.filter(
       (t) => t.status !== "完了" && t.status !== "Archive" && daysBetween(today, t.deadline) < 0
     ).length;
@@ -66,7 +69,7 @@ export default function TaskMapPage() {
     let list = monthTasks;
     if (filter === "未着手") list = list.filter((t) => t.status === "未着手");
     else if (filter === "進行中") list = list.filter((t) => t.status === "進行中");
-    else if (filter === "AI担当") list = list.filter((t) => t.owner !== "Human");
+    else if (filter === "AI担当") list = list.filter((t) => t.aiCapability !== "HUMAN");
     else if (filter !== "全部") list = list.filter((t) => t.area === filter);
 
     const sorted = [...list];
@@ -177,7 +180,7 @@ export default function TaskMapPage() {
             <p className="text-sm text-stone-400">該当するタスクはありません</p>
           </div>
         ) : (
-          visibleTasks.map((t) => <TaskListRow key={t.id} task={t} />)
+          visibleTasks.map((t) => <TaskListRow key={t.id} task={t} onOpen={() => setSelectedTask(t)} />)
         )}
       </section>
 
@@ -198,6 +201,8 @@ export default function TaskMapPage() {
           )}
         </div>
       </section>
+
+      {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
     </div>
   );
 }
@@ -211,13 +216,16 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   );
 }
 
-function TaskListRow({ task }: { task: Task }) {
+function TaskListRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const overdue =
     task.status !== "完了" && task.status !== "Archive" && daysBetween(today, task.deadline) < 0;
   const done = task.status === "完了";
+  const badge = capabilityBadge(task.aiCapability);
   return (
-    <div
-      className="flex items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_10px_-8px_rgba(0,0,0,0.15)]"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_10px_-8px_rgba(0,0,0,0.15)]"
       style={{ opacity: done ? 0.55 : 1 }}
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot[task.status]}`} />
@@ -237,11 +245,14 @@ function TaskListRow({ task }: { task: Task }) {
           {task.importance === "高" && (
             <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black text-white">MAX</span>
           )}
-          <span className="text-[10px] font-medium text-stone-400">
-            {task.owner === "Human" ? "Human" : task.owner === "AI" ? "AI" : "Hybrid"}
-          </span>
+          <span className="text-[10px] font-medium text-stone-400">{capabilityOwnerLabel(task.aiCapability)}</span>
+          {badge.tone === "warning" && (
+            <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-bold text-danger">
+              ⚠ Blocked
+            </span>
+          )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

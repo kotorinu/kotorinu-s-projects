@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { goals, tasks } from "@/lib/dummy-data";
 import { formatMd, todayStr } from "@/lib/date";
 import type { Goal } from "@/lib/types";
@@ -8,7 +9,21 @@ import type { Goal } from "@/lib/types";
 const todayMs = new Date(todayStr()).getTime();
 
 export default function GoalTreePage() {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  return (
+    <Suspense fallback={null}>
+      <GoalTreeContent />
+    </Suspense>
+  );
+}
+
+function GoalTreeContent() {
+  const searchParams = useSearchParams();
+  const linkedFocusId = searchParams.get("focus");
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(linkedFocusId ? [linkedFocusId] : [])
+  );
+  const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const chain = useMemo(() => {
     const byParent = new Map<string | null, Goal>();
@@ -42,6 +57,12 @@ export default function GoalTreePage() {
     return best?.id ?? null;
   }, [chain]);
 
+  useEffect(() => {
+    if (!linkedFocusId) return;
+    const el = nodeRefs.current.get(linkedFocusId);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [linkedFocusId]);
+
   function toggle(id: string) {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -62,15 +83,23 @@ export default function GoalTreePage() {
       <div className="mt-4 px-5">
         <p className="mb-4 text-[11px] font-medium text-stone-300">※ 目標の文言は仮データです</p>
         {chain.map((goal, i) => (
-          <TimelineRow
+          <div
             key={goal.id}
-            goal={goal}
-            isLast={i === chain.length - 1}
-            isFocus={goal.id === focusId}
-            linkedTasks={tasksOf.get(goal.id) ?? 0}
-            expanded={expandedIds.has(goal.id)}
-            onToggle={() => toggle(goal.id)}
-          />
+            ref={(el) => {
+              if (el) nodeRefs.current.set(goal.id, el);
+              else nodeRefs.current.delete(goal.id);
+            }}
+          >
+            <TimelineRow
+              goal={goal}
+              isLast={i === chain.length - 1}
+              isFocus={goal.id === focusId}
+              isLinked={goal.id === linkedFocusId}
+              linkedTasks={tasksOf.get(goal.id) ?? 0}
+              expanded={expandedIds.has(goal.id)}
+              onToggle={() => toggle(goal.id)}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -81,6 +110,7 @@ function TimelineRow({
   goal,
   isLast,
   isFocus,
+  isLinked,
   linkedTasks,
   expanded,
   onToggle,
@@ -88,6 +118,7 @@ function TimelineRow({
   goal: Goal;
   isLast: boolean;
   isFocus: boolean;
+  isLinked: boolean;
   linkedTasks: number;
   expanded: boolean;
   onToggle: () => void;
@@ -103,7 +134,11 @@ function TimelineRow({
         {!isLast && <span className="mt-1 w-px flex-1 bg-stone-200" />}
       </div>
 
-      <button type="button" onClick={onToggle} className="min-w-0 flex-1 pb-5 text-left">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`min-w-0 flex-1 rounded-2xl pb-5 text-left ${isLinked ? "ring-2 ring-accent-soft" : ""}`}
+      >
         <div className="flex items-baseline justify-between gap-2">
           <p className="truncate text-[14px] font-bold text-stone-800">{goal.title}</p>
           <span className="flex shrink-0 items-baseline gap-1.5">

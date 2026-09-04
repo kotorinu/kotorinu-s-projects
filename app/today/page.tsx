@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { recurringTasks, tasks as allTasks } from "@/lib/dummy-data";
+import { goals, recurringTasks, tasks as allTasks } from "@/lib/dummy-data";
 import { daysBetween, formatMd, todayStr } from "@/lib/date";
+import { capabilityBadge } from "@/lib/capability";
 import type { Task } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
+import TaskDetailSheet from "@/components/TaskDetailSheet";
 
 const today = todayStr();
 const weekday = ["日", "月", "火", "水", "木", "金", "土"][new Date().getDay()];
+
+type Celebration =
+  | { kind: "simple" }
+  | { kind: "goal"; goalTitle: string; goalState: string; done: number; total: number; pct: number }
+  | { kind: "recurring"; total: number };
 
 function isOpen(t: Task) {
   return t.status !== "完了" && t.status !== "Archive";
@@ -18,14 +25,15 @@ export default function TodayPage() {
   const [recurringDone, setRecurringDone] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
   const [effectsOn, setEffectsOn] = useState(true);
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function celebrate() {
+  function fireCelebration(c: Celebration, durationMs: number) {
     if (!effectsOn) return;
-    setToast("完了！今日も1つ前進");
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 1000);
+    setCelebration(c);
+    if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+    celebrationTimer.current = setTimeout(() => setCelebration(null), durationMs);
   }
 
   const todayTasks = useMemo(
@@ -52,26 +60,44 @@ export default function TodayPage() {
   const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
   const recurringDoneCount = recurringTasks.filter((r) => recurringDone.has(r.id)).length;
 
-  function toggle(id: string) {
-    const completing = !done.has(id);
+  function toggle(task: Task) {
+    const completing = !done.has(task.id);
     setDone((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(task.id)) next.delete(task.id);
+      else next.add(task.id);
       return next;
     });
-    if (completing) celebrate();
+    if (!completing) return;
+
+    const goal = task.goalId ? goals.find((g) => g.id === task.goalId) : null;
+    if (goal) {
+      const linked = allTasks.filter((t) => t.goalId === goal.id);
+      const doneAmongLinked = linked.filter((t) => t.status === "完了" || t.id === task.id || done.has(t.id)).length;
+      const total = linked.length;
+      const goalPct = total === 0 ? 0 : Math.round((doneAmongLinked / total) * 100);
+      fireCelebration(
+        { kind: "goal", goalTitle: goal.title, goalState: goal.desiredState, done: doneAmongLinked, total, pct: goalPct },
+        2600
+      );
+    } else {
+      fireCelebration({ kind: "simple" }, 1000);
+    }
   }
 
   function toggleRecurring(id: string) {
     const completing = !recurringDone.has(id);
+    let willAllBeDone = false;
     setRecurringDone((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      willAllBeDone = recurringTasks.every((r) => next.has(r.id));
       return next;
     });
-    if (completing) celebrate();
+    if (!completing) return;
+    if (willAllBeDone) fireCelebration({ kind: "recurring", total: recurringTasks.length }, 2200);
+    else fireCelebration({ kind: "simple" }, 1000);
   }
 
   return (
@@ -147,6 +173,9 @@ export default function TodayPage() {
                     <span className={`text-[13px] font-medium ${checked ? "text-stone-300 line-through" : "text-stone-600"}`}>
                       {r.title}
                     </span>
+                    {checked && r.streakDays > 0 && (
+                      <span className="ml-auto text-[10px] font-bold text-accent-dark">{r.streakDays + 1}日連続</span>
+                    )}
                   </button>
                 </li>
               );
@@ -165,7 +194,13 @@ export default function TodayPage() {
         ) : (
           <ul className="flex flex-col gap-2.5">
             {todayTasks.map((t) => (
-              <TaskRow key={t.id} task={t} checked={done.has(t.id)} onToggle={() => toggle(t.id)} />
+              <TaskRow
+                key={t.id}
+                task={t}
+                checked={done.has(t.id)}
+                onToggle={() => toggle(t)}
+                onOpen={() => setSelectedTask(t)}
+              />
             ))}
           </ul>
         )}
@@ -238,15 +273,61 @@ export default function TodayPage() {
         )}
       </section>
 
-      <div
-        className={`pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-6 transition-opacity duration-300 ${
-          toast ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        {toast && (
-          <div className="rounded-full bg-stone-900 px-4 py-2 text-xs font-bold text-white shadow-lg">{toast}</div>
-        )}
-      </div>
+      <CelebrationToast celebration={celebration} />
+
+      {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+    </div>
+  );
+}
+
+function CelebrationToast({ celebration }: { celebration: Celebration | null }) {
+  return (
+    <div
+      className={`pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-6 transition-opacity duration-300 ${
+        celebration ? "opacity-100" : "opacity-0"
+      }`}
+    >
+      {celebration?.kind === "simple" && (
+        <div className="rounded-full bg-stone-900 px-4 py-2 text-xs font-bold text-white shadow-lg">
+          完了！今日も1つ前進
+        </div>
+      )}
+
+      {celebration?.kind === "goal" && (
+        <div className="w-full max-w-xs rounded-2xl bg-stone-900 px-4 py-3.5 text-white shadow-xl">
+          {celebration.pct >= 100 ? (
+            <>
+              <p className="text-center text-lg">🎉</p>
+              <p className="mt-1 text-center text-[13px] font-black">{celebration.goalTitle} 完了</p>
+              <p className="mt-1 text-center text-[11px] leading-relaxed text-stone-300">
+                「{celebration.goalState}」を達成しました。今日も一歩前進。
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-center text-[13px] font-bold">
+                「{celebration.goalTitle}」が {celebration.done} / {celebration.total} まで進みました
+              </p>
+              <div className="mt-2">
+                <ProgressBar pct={celebration.pct} size="sm" />
+              </div>
+              <p className="mt-2 text-center text-[11px] text-stone-300">
+                あと{celebration.total - celebration.done}つで「{celebration.goalState}」
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {celebration?.kind === "recurring" && (
+        <div className="w-full max-w-xs rounded-2xl bg-stone-900 px-4 py-3.5 text-center text-white shadow-xl">
+          <p className="text-lg">🎉</p>
+          <p className="mt-1 text-[13px] font-black">
+            今日の積み上げ {celebration.total} / {celebration.total}
+          </p>
+          <p className="mt-1 text-[11px] text-stone-300">今日も継続できました。</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,14 +345,17 @@ function TaskRow({
   task,
   checked,
   onToggle,
+  onOpen,
 }: {
   task: Task;
   checked: boolean;
   onToggle: () => void;
+  onOpen: () => void;
 }) {
   const overdue = daysBetween(today, task.deadline) < 0;
   const [burst, setBurst] = useState(false);
   const [prevChecked, setPrevChecked] = useState(checked);
+  const badge = capabilityBadge(task.aiCapability);
 
   if (checked !== prevChecked) {
     setPrevChecked(checked);
@@ -315,23 +399,27 @@ function TaskRow({
           </span>
         )}
       </button>
-      <div className="min-w-0 flex-1">
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
         <p className={`text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
           {task.title}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
           <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
           <span className="text-stone-400">{task.estimateMinutes}分</span>
-          {task.owner !== "Human" && (
-            <span className="rounded-full bg-accent-soft px-2 py-0.5 font-bold text-accent-dark">
-              {task.owner === "AI" ? "AI" : "Hybrid"}
+          {badge.tone && (
+            <span
+              className={`rounded-full px-2 py-0.5 font-bold ${
+                badge.tone === "warning" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-dark"
+              }`}
+            >
+              {badge.label}
             </span>
           )}
           <span className={`ml-auto font-bold ${overdue ? "text-danger" : "text-stone-400"}`}>
             期限 {formatMd(task.deadline)}
           </span>
         </div>
-      </div>
+      </button>
     </li>
   );
 }

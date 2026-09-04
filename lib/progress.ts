@@ -18,3 +18,8 @@ export function computeProgress(tasks: Task[], mode: ProgressMode = "count"): Pr
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   return { done, total, pct };
 }
+
+// Progress toward a single Goal, derived from the tasks linked to it via goalId.
+export function computeGoalProgress(allTasks: Task[], goalId: string): ProgressResult {
+  return computeProgress(allTasks.filter((t) => t.goalId === goalId));
+}
