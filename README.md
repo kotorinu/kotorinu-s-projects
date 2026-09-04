@@ -6,8 +6,14 @@
 Human と AI が役割分担して実行できる状態を作るためのアプリ。
 詳細な要件は [PRD.md](./PRD.md) を参照。
 
-Phase 1 はダミーデータのみのスマホUIプロトタイプ（DB接続なし）。
-まずはスマホで実際に触って「毎日これを見るか」を確認するのが目的。
+Phase 1 はスマホUIプロトタイプ（DB接続なし）。
+GENESISの60日チャレンジは実データ、それ以外（営業代行/RIALA/その他）はまだダミーデータ。
+
+## デプロイ
+
+Production: https://kotorinu-s-projects.vercel.app
+
+GitHub (`kotorinu/kotorinu-s-projects`, `main`) への push で Vercel が自動デプロイする。
 
 ## 起動方法
 
@@ -34,11 +40,12 @@ Preview から直接起動できる。
 
 ## データ
 
-`lib/dummy-data.ts` にタスク・ゴール・月末状態のダミーデータを定義。
+`lib/dummy-data.ts` にタスク・ゴール・月末状態・Outcome・Recurring Ruleを定義。
 日付は起動時点の「今日」からの相対オフセットで生成しているため、
 いつ開いても期限超過・今日・2日以内・7日以内などの表示が破綻しない。
 
-Phase 2（Supabase接続）以降、このダミーデータ層を実データに差し替える想定。
+GENESISの `outcomes`（60日チャレンジ）と `recurringRules`（3つの日次習慣）は実データ。
+それ以外のタスク・ゴールはまだダミーデータで、Phase 2（Supabase接続）以降に実データへ差し替える想定。
 
 ## 技術構成
 
