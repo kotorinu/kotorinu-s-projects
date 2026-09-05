@@ -328,13 +328,14 @@ export default function TodayPage() {
             {timeline.length > 0 && (
               <ul className="flex flex-col gap-2">
                 {timeline.map((item, i) => (
-                  <FragmentWithIndicator key={itemKey(item)} showIndicator={i === nowIndicatorIndex}>
+                  <FragmentWithIndicator key={itemKey(item)} showIndicator={i === nowIndicatorIndex} nowHmValue={nowHmValue}>
                     {item.kind === "task" ? (
                       <TimelineTaskCard
                         item={item}
                         checked={done.has(item.task.id)}
                         started={taskStartedAt.has(item.task.id)}
                         actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
+                        nowHmValue={nowHmValue}
                         onStart={() => startTask(item.task.id)}
                         onComplete={() => completeNowTask(item.task)}
                         onToggle={() => toggle(item.task)}
@@ -356,7 +357,7 @@ export default function TodayPage() {
                     )}
                   </FragmentWithIndicator>
                 ))}
-                {nowIndicatorIndex === timeline.length && <NowIndicator />}
+                {nowIndicatorIndex === timeline.length && <NowIndicator nowHmValue={nowHmValue} />}
               </ul>
             )}
 
@@ -568,20 +569,33 @@ function itemKey(item: TimelineItem): string {
   return item.kind === "fixed" ? item.event.id : item.timeBlock.id;
 }
 
-function FragmentWithIndicator({ showIndicator, children }: { showIndicator: boolean; children: React.ReactNode }) {
+function FragmentWithIndicator({
+  showIndicator,
+  nowHmValue,
+  children,
+}: {
+  showIndicator: boolean;
+  nowHmValue: string;
+  children: React.ReactNode;
+}) {
   return (
     <>
-      {showIndicator && <NowIndicator />}
+      {showIndicator && <NowIndicator nowHmValue={nowHmValue} />}
       {children}
     </>
   );
 }
 
-function NowIndicator() {
+// nowHmValue is passed in (from the page's hydration-safe state) rather
+// than calling nowHm() here — this component renders during the server's
+// static prerender too, and calling a wall-clock function directly in JSX
+// would bake in the build-time clock, mismatching the client's real clock
+// on hydration (the same class of bug fixed for nowHmValue's own useState).
+function NowIndicator({ nowHmValue }: { nowHmValue: string }) {
   return (
     <li aria-hidden className="flex items-center gap-2 px-0.5 py-0.5 text-[10px] font-black text-accent-dark">
       <span className="h-px flex-1 bg-accent" />
-      NOW {nowHm()}
+      NOW {nowHmValue}
       <span className="h-px flex-1 bg-accent" />
     </li>
   );
@@ -592,6 +606,7 @@ function TimelineTaskCard({
   checked,
   started,
   actualMinutes,
+  nowHmValue,
   onStart,
   onComplete,
   onToggle,
@@ -603,6 +618,7 @@ function TimelineTaskCard({
   checked: boolean;
   started: boolean;
   actualMinutes: number | null;
+  nowHmValue: string;
   onStart: () => void;
   onComplete: () => void;
   onToggle: () => void;
@@ -614,7 +630,9 @@ function TimelineTaskCard({
   const isNow = status === "NOW";
   const isPast = status === "PAST";
   const badge = capabilityBadge(task.aiCapability);
-  const remaining = isNow ? minutesUntil(endTime, nowHm()) : null;
+  // nowHmValue comes from the page's hydration-safe state, not a direct
+  // nowHm() call here — see NowIndicator's comment for why that matters.
+  const remaining = isNow ? minutesUntil(endTime, nowHmValue) : null;
 
   return (
     <li
