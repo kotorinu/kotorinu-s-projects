@@ -60,6 +60,10 @@ export interface Task {
   automationCandidate: boolean;
   automationType: AutomationType | null;
   linkedSalesMaster: boolean; // true → TaskDetailSheet offers "＞ 営業Masterを見る"
+  parentOperationId: string | null; // OperationCategory (RIALA Operations Master, LEVEL 1)
+  workflowId: string | null; // Workflow this was generated from (LEVEL 2), if any
+  requiredInputs: string[]; // what had to be known/true before this could exist
+  notes: string | null;
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -213,4 +217,66 @@ export interface SalesSprint {
   checkpointLabel: string;
   checkpointDate: string | null;
   deliverables: SalesSprintDeliverable[];
+}
+
+// --- RIALA Operations Master (3-layer model) ---
+// LEVEL 1: "what operations exist" (never invented/added without the user
+// naming them). LEVEL 2 (Workflow): "how that operation is processed when it
+// occurs" — a template, not a scheduled task. LEVEL 3 (Task, via
+// parentOperationId/workflowId): "what to actually do, by when" — TASK MAP
+// only ever shows LEVEL 3, and only when currentStatus is ACTIVE.
+export interface OperationCategory {
+  id: string;
+  categoryNumber: number;
+  area: Area;
+  title: string;
+  purpose: string;
+}
+
+export interface Workflow {
+  id: string;
+  categoryId: string;
+  title: string;
+  description: string;
+  steps: string[];
+  aiCapability: AiCapability;
+  outputType: OutputType | null;
+  requiredInputs: string[];
+}
+
+// Never set ACTIVE or DONE on inference alone — ACTIVE needs a concrete
+// current subject (an actual event/member/thread), DONE needs evidence the
+// completion condition is met *now*, not just that something happened once.
+export type AuditStatus = "ACTIVE" | "DONE" | "NOT_NEEDED_NOW" | "UNKNOWN" | "BLOCKED";
+
+export interface OperationalAudit {
+  id: string;
+  categoryId: string;
+  title: string;
+  currentStatus: AuditStatus;
+  evidence: string | null;
+  requiredAction: string | null;
+  missingInputs: string[];
+  actualTaskId: string | null;
+  notes: string | null;
+}
+
+export type AutomationStatus = "CANDIDATE" | "CONFIRMED" | "NOT_APPLICABLE";
+
+// A candidate handoff mapping, not a confirmed one — see automationStatus.
+export interface AiOperationMatrixEntry {
+  id: string;
+  operation: string;
+  categoryId: string;
+  frequency: string | null;
+  trigger: string | null;
+  requiredInputs: string[];
+  aiCapability: AiCapability;
+  aiProcess: string[];
+  humanAction: string[];
+  outputType: OutputType | null;
+  outputDestination: string | null;
+  completionCondition: string | null;
+  automationStatus: AutomationStatus;
+  missingInputs: string[];
 }

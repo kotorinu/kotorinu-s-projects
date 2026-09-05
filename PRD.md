@@ -729,6 +729,34 @@ Fixtureを実データに置き換えるときは、
 
 現状（2026-09-05時点）：
 - GENESIS：60日チャレンジOutcome・Recurring Rule 3件は実データ
-- 営業代行・RIALA・GOAL TREE・Task一覧：実データ投入前のため空。
-  過去のPhase1用ダミー（研修動画・契約書確認・DM対応テンプレ等、
-  5年後/3年後/1年後などの仮Goal）は削除済み。実データが確定次第、追加する。
+- 営業代行：Sales Master（17フェーズ）＋実行Task8件は実データ。
+  ただし①基礎（PDFワークシートの実内容）は本人未提供のため空
+- RIALA：Operations Master（7カテゴリ）・Workflow・AI Operation Matrix
+  （candidate）・Current Audit（ほぼUNKNOWN）は実データ。
+  Actual TaskはACTIVEと確認できた1件のみ
+- GOAL TREE：実データ投入前のため空
+
+---
+
+# 23. Permanent Data Rule（2026-09-05追加・恒久ルール）
+
+Master ≠ Workflow ≠ Actual Task。
+
+Templateは、具体的な対象（実在するイベント・メンバー・問い合わせ等）と
+実行の必要性が確認できない限り、Actual TaskとしてTASK MAPへ出さない。
+
+Never invent：
+- goals
+- tasks
+- deadlines
+- events
+- people
+- URLs
+- completion state
+
+不明な場合は UNKNOWN / BLOCKED / PROVISIONAL のまま保持する。
+
+「過去にやっていた記録がある」だけで DONE にしない。
+現在の完了条件を満たした根拠が必要。
+逆に、記録があるからといって ACTIVE にもしない
+（現在の対象・必要性が確認できて初めてACTIVE）。

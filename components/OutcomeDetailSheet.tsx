@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { recurringRules, tasks } from "@/lib/dummy-data";
 import { computeProgress } from "@/lib/progress";
 import ProgressBar from "@/components/ProgressBar";
@@ -77,6 +78,11 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <Section title="目指す状態">
             <p className="text-[13px] leading-relaxed text-stone-700">{outcome.desiredState}</p>
+            {outcome.id === "o-riala-ai-ops" && (
+              <Link href="/riala-master" className="mt-2 inline-block text-[12px] font-bold text-accent-dark">
+                ＞ RIALA運営を見る
+              </Link>
+            )}
           </Section>
 
           <Section title="なぜ？">
