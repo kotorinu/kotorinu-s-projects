@@ -47,6 +47,11 @@ interface RolloverState {
   startedTaskDate: string | null; // the date startedTaskId's actualStartedAt belongs to — differs from current.date once a day has rolled over underneath it
   carryover: Record<string, CarryoverRecord>; // key: `${fromDate}:${taskId}`
   workDateOverrides: Record<string, string>; // taskId -> the date it's now effectively placed on
+  // Google Calendar PLANNED_WORK sync (2026-09-06, §18-23): the user's own
+  // per-TimeBlock decision that it's "worth putting on Calendar" — overlays
+  // the fixture's static calendarSyncEnabled default (which starts false
+  // for everything; nothing is pre-confirmed on the user's behalf).
+  calendarSyncOverrides: Record<string, boolean>; // timeBlockId -> enabled
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
@@ -75,6 +80,7 @@ function emptyRolloverState(): RolloverState {
     startedTaskDate: null,
     carryover: {},
     workDateOverrides: {},
+    calendarSyncOverrides: {},
   };
 }
 
@@ -134,6 +140,7 @@ interface TodayExecutionApi {
   startedTaskDate: string | null;
   carryover: Record<string, CarryoverRecord>;
   workDateOverrides: Record<string, string>;
+  calendarSyncOverrides: Record<string, boolean>;
   history: Record<string, DayRecord>;
 
   setDone: (updater: SetUpdater<Set<string>>) => void;
@@ -151,6 +158,7 @@ interface TodayExecutionApi {
   // "昨日から実行中" banner clears without touching actualStartedAt itself.
   continueStartedTaskToday: () => void;
   recordCarryover: (fromDate: string, taskId: string, disposition: CarryoverDisposition, toDate: string | null) => void;
+  setCalendarSyncEnabled: (timeBlockId: string, enabled: boolean) => void;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -168,6 +176,7 @@ interface PersistedShape {
   startedTaskDate: string | null;
   carryover: Record<string, CarryoverRecord>;
   workDateOverrides: Record<string, string>;
+  calendarSyncOverrides: Record<string, boolean>;
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -184,6 +193,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     startedTaskDate: state.startedTaskDate,
     carryover: state.carryover,
     workDateOverrides: state.workDateOverrides,
+    calendarSyncOverrides: state.calendarSyncOverrides,
   };
 }
 
@@ -203,6 +213,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     startedTaskDate: parsed.startedTaskDate ?? null,
     carryover: parsed.carryover ?? {},
     workDateOverrides: parsed.workDateOverrides ?? {},
+    calendarSyncOverrides: parsed.calendarSyncOverrides ?? {},
   };
 }
 
@@ -299,6 +310,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     startedTaskDate: state.startedTaskDate,
     carryover: state.carryover,
     workDateOverrides: state.workDateOverrides,
+    calendarSyncOverrides: state.calendarSyncOverrides,
     history: state.history,
 
     setDone: (updater) =>
@@ -337,6 +349,11 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
           workDateOverrides: nextOverrides,
         };
       }),
+    setCalendarSyncEnabled: (timeBlockId, enabled) =>
+      setState((s) => ({
+        ...s,
+        calendarSyncOverrides: { ...s.calendarSyncOverrides, [timeBlockId]: enabled },
+      })),
   };
 
   return <TodayExecutionContext.Provider value={api}>{children}</TodayExecutionContext.Provider>;

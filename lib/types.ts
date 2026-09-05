@@ -73,6 +73,26 @@ export interface Task {
   varianceReason: VarianceReason | null; // a category, picked only on a large overrun — not a prompt for prose
   nextEstimateMinutes: number | null; // AI-suggested next estimate, once same-type history exists (Phase 1: always null, no history yet)
   workContext: WorkContextTag | null; // which Work Principles (§26) apply to this Task, if any
+  // --- Task Series (2026-09-06) ---
+  // A real split of one body of work into several independently-completable
+  // Tasks (each with its own status/DoD/actualMinutes) — e.g. a book split
+  // into per-session reading Tasks. Distinct from TimeBlock: a Task in a
+  // Series is still "what to complete"; a TimeBlock is still "when to work
+  // on it" (one Series-Task can itself span several TimeBlocks). Never
+  // auto-split a Task into a Series without a real, already-confirmed basis
+  // (e.g. Calendar-confirmed session dates) — see PRD.md's Task Series
+  // section. null/null/null/null when a Task isn't part of any series.
+  seriesId: string | null;
+  seriesTitle: string | null; // the whole body of work's name, e.g. "『THE FORMAT』読了・実践化"
+  sequenceNumber: number | null; // 1-based position within the series
+  totalSteps: number | null; // how many Tasks make up the series
+  // Reading-specific optional fields (§16) — only ever set from a real
+  // confirmed page count/progress; never fabricated to make a book "feel"
+  // trackable.
+  totalPages: number | null;
+  pageFrom: number | null;
+  pageTo: number | null;
+  currentPage: number | null;
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -211,7 +231,14 @@ export interface WeeklyReading {
   calendarEventIds: string[];
   status: WeeklyReadingStatus;
   outcomeId: string | null;
-  taskId: string | null; // the Actual Task tracking this book (§28 — "1冊 = 1 Task", never 1冊 = 1 TimeBlock)
+  // §28 originally said "1冊 = 1 Task, never 1冊 = 1 TimeBlock" — refined
+  // 2026-09-06 by the Task Series section: a book with real confirmed
+  // multi-session Calendar data is "1冊 = 1 Series (one Task per real
+  // session)", not one Task per TimeBlock. taskId stays for a book that's
+  // still a single Task; seriesId is set instead once it's been split.
+  // Exactly one of the two is set, never both.
+  taskId: string | null;
+  seriesId: string | null;
   learningPoints: string[];
   personalExamples: string[];
   actionItems: string[];
@@ -344,6 +371,16 @@ export interface TimeBlock {
   startTime: string; // HH:mm
   endTime: string; // HH:mm
   status: TimeBlockStatus;
+  // Google Calendar PLANNED_WORK sync (2026-09-06). calendarSyncEnabled is
+  // the user's own decision that this block is "worth putting on Calendar"
+  // (§18: FIXED/DEADLINE/TRAVEL/BLOCKED already always belong there; a
+  // PLANNED_WORK TimeBlock needs this explicit opt-in — never sync
+  // everything by default). calendarEventId is set only once a sync has
+  // actually happened (this app has no server-side OAuth yet — Phase 1
+  // syncing is done by an operator with real Calendar access, e.g. via a
+  // Claude session with a Calendar connector; never claim "synced" without
+  // a real event id here).
+  calendarSyncEnabled: boolean;
   calendarEventId: string | null;
   source: TimeBlockSource;
 }

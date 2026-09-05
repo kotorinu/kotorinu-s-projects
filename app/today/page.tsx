@@ -356,7 +356,14 @@ export default function TodayPage() {
         </div>
       </header>
 
-      <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
+      {/* Desktop TODAY (2026-09-06): NOW/NEXT/Timeline stay left/main;
+          Daily Stack, Carryover, Yesterday Summary, and the Deadline Alert
+          move to a right rail — but only via lg:col-start on each section
+          below, never by reordering the DOM, so mobile's exact current
+          stacking order (今日の前進→毎日の積み上げ→Timeline→Carryover→
+          Yesterday→期限超過) is completely untouched. */}
+      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-x-6">
+      <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)] lg:col-start-1">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-bold text-stone-800">今日の前進</p>
           <p className="tabular-nums text-xs font-bold text-stone-400">
@@ -373,7 +380,7 @@ export default function TodayPage() {
       </section>
 
       {recurringRules.length > 0 && (
-        <section className="mx-5 mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+        <section className="mx-5 mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm lg:col-start-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-stone-500">毎日の積み上げ</p>
             <p className="tabular-nums text-xs font-bold text-stone-400">
@@ -414,7 +421,7 @@ export default function TodayPage() {
         </section>
       )}
 
-      <section className="px-5 pt-4">
+      <section className="px-5 pt-4 lg:col-start-1">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-bold text-stone-800">今日のTimeline</h2>
         </div>
@@ -550,7 +557,7 @@ export default function TodayPage() {
       </section>
 
       {carryoverPendingTasks.length > 0 && (
-        <section className="mx-5 mt-3">
+        <section className="mx-5 mt-3 lg:col-start-2">
           <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
             <p className="text-xs font-bold text-stone-500">
               昨日の未完了 <span className="text-stone-800">{carryoverPendingTasks.length}件</span>・行き先未決定
@@ -617,7 +624,7 @@ export default function TodayPage() {
       )}
 
       {yesterdayRecord && (
-        <section className="mx-5 mt-3">
+        <section className="mx-5 mt-3 lg:col-start-2">
           <button
             type="button"
             onClick={() => setYesterdaySummaryOpen((v) => !v)}
@@ -655,7 +662,7 @@ export default function TodayPage() {
         </section>
       )}
 
-      <section className="mx-5 mt-4">
+      <section className="mx-5 mt-4 lg:col-start-2">
         <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 shadow-sm">
           <button
             type="button"
@@ -704,6 +711,7 @@ export default function TodayPage() {
           </ul>
         )}
       </section>
+      </div>
 
       <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
 
@@ -717,6 +725,10 @@ export default function TodayPage() {
           onSetVarianceReason={(reason) =>
             setVarianceReasonByTaskId((prev) => new Map(prev).set(selectedTask.id, reason))
           }
+          onNavigateToTask={(taskId) => {
+            const t = allTasks.find((task) => task.id === taskId);
+            if (t) setSelectedTask(t);
+          }}
         />
       )}
 

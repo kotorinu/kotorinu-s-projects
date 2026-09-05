@@ -107,7 +107,10 @@ function GoalTreeContent() {
         <p className="mt-0.5 text-xs font-medium text-stone-400">何のためにやっているかを確認する</p>
       </header>
 
-      <div className="mt-4 px-5">
+      {/* Desktop (2026-09-06): cap the reading column so Goal text doesn't
+          stretch to an unreadable measure at 1280px — a wide shell doesn't
+          mean every line of prose should go edge to edge. */}
+      <div className="mt-4 px-5 lg:max-w-[720px]">
         {roots.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-stone-200 py-14 text-center">
             <span className="text-3xl">🌱</span>

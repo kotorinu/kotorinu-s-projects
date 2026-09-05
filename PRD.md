@@ -1528,13 +1528,69 @@ estimateMinutes=60分は実際のワークシート分量を確認せずに設�
 根拠不明な値だったため、鬼速PDCAと同じ扱いでnullへ変更し、理由を
 notesへ記録した。
 
-## Desktop表示について（今回のスコープ判断）
+## Desktop表示について（2026-09-06、対応済みへ更新）
 
-`app/layout.tsx`のルートシェルは元々全ページ共通で
-`max-w-[430px]`のスマホ幅に固定されている（過去ラウンドからの既存設計）。
-今回「PC表示ではWeek Viewを横幅いっぱいに使う」という要望があったが、
-アプリ全体のシェル幅戦略を変更するのは可読性修正の範囲を超える構造変更と
-判断し、今回は行っていない。そのためWeek Viewは現状、PC・モバイル問わず
-同じスマホ幅レイアウト内で横スクロールする形で動作する（モバイル要件は
-満たしている）。将来的に真のデスクトップ幅対応をする場合は、ルート
-シェルの幅戦略自体を見直す別ラウンドとして扱う。
+前ラウンドでは構造変更として見送ったが、本ラウンドで正式対応した。
+`app/layout.tsx`のルートシェルを`lg`（1024px）以上でレスポンシブ化：
+`max-w-[430px]`（mobile）→`md:max-w-[600px]`（tablet）→
+`lg:max-w-[1280px] lg:flex-row`（desktop、左サイドバー＋最大1280px幅）。
+Bottom Navigationは`lg:hidden`、代わりに`components/DesktopSidebar.tsx`
+（TODAY/TASK MAP/GOAL TREEへの左サイドバー）を`hidden lg:flex`で表示。
+1440px等それ以上の画面幅では1280pxを超えた分はグレー背景の余白として
+中央寄せされる（一般的なWebアプリの標準パターン）。
+
+**TODAY（Desktop）**: `lg:grid lg:grid-cols-[1fr_360px]`で2カラム化。
+NOW/NEXT/今日のTimelineは左（メイン）、毎日の積み上げ・昨日の未完了・
+昨日の頑張り・期限超過/2日以内は右レール。DOM順序は変更せず、各
+`<section>`へ`lg:col-start-1`/`lg:col-start-2`を付けるだけで実現して
+いるため、mobileの縦並び順序（今日の前進→毎日の積み上げ→Timeline→
+Carryover→Yesterday→期限超過）は完全に維持している。
+
+**TASK MAP（Desktop）**: Week Viewを`lg:grid lg:grid-cols-7`で7日を
+1画面に横並び表示（mobileの横スクロールカードのまま拡大しない）。
+Monthly Calendar Mapのセルも`lg:h-14 lg:w-14`で拡大。
+
+**GOAL TREE（Desktop）**: コンテンツ列を`lg:max-w-[720px]`に制限し、
+1280px幅で長文が読みにくくなるのを防いだ（幅を使うことと読みやすさは
+別）。
+
+**Task Detail（Desktop）**: `TaskDetailSheet`他4つのBottom Sheet系
+コンポーネント（Outcome/Recurring/RialaCategory/SalesPhase）を
+`lg:items-stretch lg:justify-end`＋`lg:h-full lg:w-[480px]
+lg:rounded-l-3xl`でmobileのBottom SheetからDesktopの右Side Panelへ
+切り替え。ドラッグハンドルの点線バーは`lg:hidden`。
+
+## Task Series（本当の分割Task）
+
+前ラウンドの「1 Task + 複数TimeBlock + 次はハイライト」を撤回し、
+`lib/taskSeries.ts`の`resolveSeries`による本当のTask Series（複数の
+独立したTask、`seriesId`/`sequenceNumber`/`totalSteps`で連結）へ
+作り直した。THE FORMAT・地頭力を鍛えるは、既存の確認済みTimeBlock
+（Calendar確認済みの日時・ラベル）をそのまま1 Task=1 TimeBlockへ
+再構成しただけで、新しいページ数等は一切捏造していない
+（`totalPages`/`pageFrom`/`pageTo`/`currentPage`はスキーマのみ用意し
+未確認のためnull）。営業17フェーズの全体像理解Taskも、既存の6項目DoD・
+4つのstepsをそのまま3セッションへ再配分し、新しい教材内容は作っていない
+（estimateMinutesは全セッションとも根拠が無いためnullのまま）。
+TaskDetailSheetに新設した「Task Series」セクションで前/現在/次と
+最終期限を表示し、Previous/Next行をタップすると`onNavigateToTask`
+経由で親（`selectedTask`とEstimate/Actualのセッション状態を持つ側）が
+実際にTaskを切り替える（Sheet内で別Task識別子を持たせないことで
+Estimate vs Actualの対応が壊れないようにしている）。
+
+## Google Calendar PLANNED_WORK（スキーマ+UIまで、実書き込みは保留）
+
+`TimeBlock`に`calendarSyncEnabled`（ユーザーがCalendar表示対象として
+確定したかどうか）を追加。デフォルトは全件false——本人が選んでいない
+ものを勝手に確定扱いにしない。`todayExecutionStore`に
+`calendarSyncOverrides`（TimeBlockId→確定有無）を追加し、
+TaskDetailSheetの各TimeBlock行に「確定する/確定済み」ボタンを実装
+（実際に動作確認済み）。
+
+**実際のGoogle Calendarへの書き込みは今回実施していない**。このアプリ
+自体はPhase1でDB/サーバー未接続のため、ブラウザ上のトグルだけでは
+本物のCalendar APIを呼べない。Google Calendarへの実書き込みは「予定の
+作成/変更」に相当する取り消しにくい実世界アクションのため、本人の
+明示的な許可を得てから実施する方針を取り、今回のセッションでは実行して
+いない（実行する場合の確認は最終報告を参照）。将来的にサーバー側の
+OAuth連携を実装すれば、アプリ単体からユーザーの操作なしに反映できる。

@@ -7,6 +7,7 @@ import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
 import { computeVariance, VARIANCE_REASONS, varianceReasonLabel } from "@/lib/execution";
+import { resolveSeries } from "@/lib/taskSeries";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } from "@/lib/workPrinciples";
 import ProgressBar from "@/components/ProgressBar";
@@ -28,6 +29,7 @@ export default function TaskDetailSheet({
   started = false,
   varianceReason = null,
   onSetVarianceReason,
+  onNavigateToTask,
 }: {
   task: Task;
   onClose: () => void;
@@ -38,6 +40,12 @@ export default function TaskDetailSheet({
   started?: boolean;
   varianceReason?: VarianceReason | null;
   onSetVarianceReason?: (reason: VarianceReason) => void;
+  // Task Series (2026-09-06): lets Previous/Next inside the sheet hand
+  // control back to the parent (which owns `selectedTask` and this Task's
+  // session-scoped actual/variance state) rather than the sheet trying to
+  // manage a second Task's identity internally — keeps Estimate vs Actual
+  // correctly correlated to whichever Task is actually showing.
+  onNavigateToTask?: (taskId: string) => void;
 }) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [requested, setRequested] = useState(false);
@@ -52,15 +60,11 @@ export default function TaskDetailSheet({
     };
   }, []);
 
-  const { currentDate: today } = useTodayExecution();
+  const { currentDate: today, calendarSyncOverrides, setCalendarSyncEnabled } = useTodayExecution();
   const linkedTimeBlocks = timeBlocks
     .filter((tb) => tb.taskId === task.id)
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
-  // Task Series (2026-09-06): for a Task split across several TimeBlocks
-  // (a book's several reading sessions, Skill Plus's several passes), the
-  // first one that isn't already past is "what's next" — never guessed,
-  // just the plain date/time comparison against today.
-  const nextTimeBlockIndex = linkedTimeBlocks.findIndex((tb) => tb.date >= today);
+  const series = resolveSeries(task, allTasks);
 
   const goal = task.goalId ? goals.find((g) => g.id === task.goalId) ?? null : null;
   const goalProgress = goal ? computeGoalProgress(allTasks, goal.id) : null;
@@ -82,7 +86,7 @@ export default function TaskDetailSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center">
+    <div className="fixed inset-0 z-40 flex items-end justify-center lg:items-stretch lg:justify-end">
       <button
         type="button"
         aria-label="閉じる"
@@ -90,8 +94,11 @@ export default function TaskDetailSheet({
         className="absolute inset-0 bg-stone-900/45"
       />
 
-      <div className="relative flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white shadow-2xl">
-        <div className="flex shrink-0 justify-center pt-2.5">
+      {/* Desktop Task Detail (2026-09-06): a bottom sheet doesn't make sense
+          on a wide screen — from lg up this becomes a full-height right
+          side panel instead, never the mobile sheet stretched wide. */}
+      <div className="relative flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white shadow-2xl lg:max-h-none lg:h-full lg:w-[480px] lg:max-w-[480px] lg:rounded-none lg:rounded-l-3xl">
+        <div className="flex shrink-0 justify-center pt-2.5 lg:hidden">
           <span className="h-1 w-9 rounded-full bg-stone-200" />
         </div>
 
@@ -359,36 +366,82 @@ export default function TaskDetailSheet({
             )}
           </Section>
 
+          {series && (
+            <Section title="Task Series">
+              <p className="mb-1.5 text-[11px] font-bold text-stone-500">
+                {series.seriesTitle}　全{series.totalSteps}回中{series.sequenceNumber}回目
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {series.previous && (
+                  <SeriesRow
+                    icon="✓"
+                    label="前"
+                    taskTitle={series.previous.title}
+                    onClick={onNavigateToTask ? () => onNavigateToTask(series.previous!.id) : undefined}
+                  />
+                )}
+                <SeriesRow icon="▶" label="現在" taskTitle={series.current.title} current />
+                {series.next && (
+                  <SeriesRow
+                    icon="○"
+                    label="次"
+                    taskTitle={series.next.title}
+                    subLabel={series.next.deadline ? formatMd(series.next.deadline) : null}
+                    onClick={onNavigateToTask ? () => onNavigateToTask(series.next!.id) : undefined}
+                  />
+                )}
+              </ul>
+              {series.finalDeadline && (
+                <p className="mt-2 text-[11px] font-bold text-stone-500">
+                  最終期限：<span className="text-stone-700">{formatMd(series.finalDeadline)}</span>
+                </p>
+              )}
+              <p className="mt-1.5 text-[10px] text-stone-400">
+                Task Series＝成果を分割した仕事単位。TimeBlock（下）＝その回に使う時間枠で、混同していません
+              </p>
+            </Section>
+          )}
+
           {linkedTimeBlocks.length > 0 && (
             <Section title="予定（Time Block）">
-              {linkedTimeBlocks.length > 1 && (
-                <Row label="最終期限" value={formatMd(task.deadline)} />
-              )}
-              <ul className="mt-1.5 flex flex-col gap-1.5">
-                {linkedTimeBlocks.map((tb, i) => {
-                  const isNext = i === nextTimeBlockIndex;
-                  const isPast = nextTimeBlockIndex !== -1 ? i < nextTimeBlockIndex : tb.date < today;
+              <ul className="flex flex-col gap-1.5">
+                {linkedTimeBlocks.map((tb) => {
+                  const isPast = tb.date < today;
+                  const syncEnabled = calendarSyncOverrides[tb.id] ?? tb.calendarSyncEnabled;
                   return (
                     <li
                       key={tb.id}
-                      className={`flex items-baseline justify-between gap-2 rounded-xl px-3 py-2 text-[12px] ${
-                        isNext ? "bg-accent-soft ring-1 ring-accent" : "bg-stone-50"
-                      }`}
-                      style={{ opacity: isPast && !isNext ? 0.55 : 1 }}
+                      className="rounded-xl bg-stone-50 px-3 py-2 text-[12px]"
+                      style={{ opacity: isPast ? 0.55 : 1 }}
                     >
-                      <span className={`font-bold ${isNext ? "text-accent-dark" : "text-stone-700"}`}>
-                        {isNext && "次は　"}
-                        {formatMd(tb.date)}
-                      </span>
-                      <span className={`font-medium ${isNext ? "text-accent-dark" : "text-stone-500"}`}>
-                        {tb.startTime}〜{tb.endTime}
-                      </span>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-stone-700">{formatMd(tb.date)}</span>
+                        <span className="font-medium text-stone-500">
+                          {tb.startTime}〜{tb.endTime}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-stone-200/70 pt-1.5">
+                        <span className="text-[10px] font-bold text-stone-400">
+                          {tb.calendarEventId ? "📅 Google Calendar同期済み" : "Google Calendarへ表示"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCalendarSyncEnabled(tb.id, !syncEnabled)}
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                            syncEnabled ? "bg-accent text-white" : "bg-stone-200 text-stone-500"
+                          }`}
+                        >
+                          {syncEnabled ? "確定済み" : "確定する"}
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
               </ul>
               <p className="mt-1.5 text-[10px] text-stone-400">
-                Task ≠ Time Block：1つのTaskを複数の予定に分けて実行できます
+                Task ≠ Time Block：1つのTaskを複数の予定に分けて実行できます。「確定する」はこの予定をGoogle
+                Calendarへ載せる対象にする印です（Phase1は実際の自動送信はまだ行わず、確定済みの一覧を人が
+                Calendarへ反映します）。
               </p>
             </Section>
           )}
@@ -417,5 +470,40 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="text-stone-500">{label}</dt>
       <dd className="text-right font-bold text-stone-700">{value}</dd>
     </div>
+  );
+}
+
+function SeriesRow({
+  icon,
+  label,
+  taskTitle,
+  subLabel,
+  current = false,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  taskTitle: string;
+  subLabel?: string | null;
+  current?: boolean;
+  onClick?: () => void;
+}) {
+  const content = (
+    <div className={`flex items-start gap-2 rounded-xl px-3 py-2 text-[12px] ${current ? "bg-accent-soft ring-1 ring-accent" : "bg-stone-50"}`}>
+      <span className={`mt-0.5 shrink-0 text-[11px] font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className={`text-[10px] font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
+        <p className={`truncate font-bold ${current ? "text-accent-dark" : "text-stone-700"}`}>{taskTitle}</p>
+        {subLabel && <p className="text-[10px] text-stone-400">{subLabel}予定</p>}
+      </div>
+    </div>
+  );
+  if (!onClick) return <li>{content}</li>;
+  return (
+    <li>
+      <button type="button" onClick={onClick} className="block w-full text-left">
+        {content}
+      </button>
+    </li>
   );
 }

@@ -31,11 +31,11 @@ export default function RecurringDetailSheet({
   const linkedKnowledge = problemDecompositionKnowledge.filter((k) => k.relatedRecurringRuleId === rule.id);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center">
+    <div className="fixed inset-0 z-40 flex items-end justify-center lg:items-stretch lg:justify-end">
       <button type="button" aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-stone-900/45" />
 
-      <div className="relative flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white shadow-2xl">
-        <div className="flex shrink-0 justify-center pt-2.5">
+      <div className="relative flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white shadow-2xl lg:max-h-none lg:h-full lg:w-[480px] lg:max-w-[480px] lg:rounded-none lg:rounded-l-3xl">
+        <div className="flex shrink-0 justify-center pt-2.5 lg:hidden">
           <span className="h-1 w-9 rounded-full bg-stone-200" />
         </div>
 

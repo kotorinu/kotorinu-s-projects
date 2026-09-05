@@ -246,7 +246,7 @@ export default function TaskMapPage() {
             ) : (
               <div
                 key={c.date}
-                className={`mx-auto flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg ${
+                className={`mx-auto flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg lg:h-14 lg:w-14 ${
                   c.date === today ? "bg-accent-soft ring-1 ring-accent" : ""
                 }`}
               >
@@ -483,7 +483,16 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+      {selectedTask && (
+        <TaskDetailSheet
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onNavigateToTask={(taskId) => {
+            const t = allTasks.find((task) => task.id === taskId);
+            if (t) setSelectedTask(t);
+          }}
+        />
+      )}
       {selectedOutcome && <OutcomeDetailSheet outcome={selectedOutcome} onClose={() => setSelectedOutcome(null)} />}
     </div>
   );
@@ -524,7 +533,13 @@ function WeekView({
           {formatMd(dates[0])}〜{formatMd(dates[6])}
         </span>
       </div>
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" style={{ scrollSnapType: "x proximity" }}>
+      {/* Desktop Week View (2026-09-06): 7 columns in one row via lg:grid,
+          not the mobile horizontal-scroll strip stretched wide — "見取り図"
+          at a glance, like a real week calendar. */}
+      <div
+        className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-7 lg:overflow-visible lg:px-0"
+        style={{ scrollSnapType: "x proximity" }}
+      >
         {dates.map((d) => {
           const isToday = d === today;
           const entries = entriesByDate.get(d) ?? [];
@@ -533,7 +548,7 @@ function WeekView({
             <div
               key={d}
               ref={isToday ? todayRef : undefined}
-              className={`w-[108px] shrink-0 rounded-2xl p-2.5 ${
+              className={`w-[108px] shrink-0 rounded-2xl p-2.5 lg:w-auto lg:shrink ${
                 isToday ? "bg-accent-soft ring-2 ring-accent" : "bg-white shadow-sm"
               }`}
               style={{ scrollSnapAlign: "start" }}
