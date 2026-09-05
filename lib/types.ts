@@ -159,6 +159,14 @@ export type FixedEventType = "MILESTONE" | "TRAVEL" | "FIXED_APPOINTMENT";
 // A period or moment sourced from Google Calendar that this app treats as a
 // hard constraint rather than a movable execution-plan block. Never invent
 // one — only what the user has explicitly confirmed on Calendar belongs here.
+//
+// Display rule (2026-09-05): TASK MAP is not the home for these — it shows
+// Task/Outcome progress first. An ordinary fixed event (e.g. a personal
+// appointment, relatedOutcomeId: null) doesn't appear on TASK MAP at all;
+// at most it's part of a collapsed "this month's fixed schedule" count.
+// Only an event that actually bears on a Goal/Outcome's execution
+// (relatedOutcomeId set) gets contextual display, and that's on the
+// Outcome/Goal side, not TASK MAP.
 export interface FixedCalendarEvent {
   id: string;
   title: string;
@@ -169,6 +177,7 @@ export interface FixedCalendarEvent {
   endTime: string | null;
   confidence: CalendarConfidence;
   planningConstraint: PlanningConstraint;
+  relatedOutcomeId: string | null; // set only when this event bears on that Outcome's execution
   notes: string | null;
 }
 

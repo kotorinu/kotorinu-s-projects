@@ -866,3 +866,23 @@ Phaseとして扱う：
 
 この4時間には他のTaskを自動配置しない。
 ユーザーが別途変更した場合のみ更新する。
+
+## 表示方針（2026-09-05修正）
+
+TASK MAPは「今月の前進」（月次Outcome／Task Progress／Outcome Achievement／
+Task Coverage／GENESIS進捗／Weekly Reading／営業代行／RIALA）を最優先表示する。
+固定予定（FixedCalendarEvent）はTASK MAPのメイン情報ではない。
+
+- 普通の固定予定（個人の予約等）→ TASK MAPには原則出さない
+- 旅行・合宿などGoal/Outcomeに直接影響する重要イベント →
+  Planning Constraintとしてデータは保持しつつ、該当Outcome/Goal Tree側で
+  文脈付き表示する（TASK MAPには出さない）
+- 時間指定の通常Calendar予定（実行計画）→ TASK MAPには出さず、
+  TODAYやスケジュール画面側で参照する
+
+TASK MAPでは、その月の固定予定は最下部に「◯月の固定予定 N件」という
+折りたたみ表示としてのみ置いてよい（デフォルト閉、件数のみ表示）。
+
+「TASK MAPから見えなくする」ことと「データを削除する」ことは別。
+Master / Workflow / Template / Calendar Constraint / Historical Record は、
+表示から外れても実データとして保持し続ける。

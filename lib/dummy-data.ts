@@ -565,6 +565,7 @@ export const fixedCalendarEvents: FixedCalendarEvent[] = [
     endTime: null,
     confidence: "FIXED_ALL_DAY_EVENT",
     planningConstraint: "BLOCK_NORMAL_WORK",
+    relatedOutcomeId: "o-genesis-60day",
     notes:
       "直後に10/5〜10/8の北海道旅行が続くため、準備の実質的な完成期限は10/3当日ではなく10/2まで。10/3朝に大量の準備Taskを残さない。",
   },
@@ -578,6 +579,7 @@ export const fixedCalendarEvents: FixedCalendarEvent[] = [
     endTime: null,
     confidence: "FIXED_ALL_DAY_EVENT",
     planningConstraint: "NO_HEAVY_WORK",
+    relatedOutcomeId: "o-genesis-60day",
     notes: "GENESIS合宿の直後。10月第1週は通常稼働週として扱わない。",
   },
   {
@@ -590,6 +592,7 @@ export const fixedCalendarEvents: FixedCalendarEvent[] = [
     endTime: "15:00",
     confidence: "CONFIRMED_FIXED_EVENT",
     planningConstraint: "BLOCK_TIME",
+    relatedOutcomeId: null,
     notes: null,
   },
 ];

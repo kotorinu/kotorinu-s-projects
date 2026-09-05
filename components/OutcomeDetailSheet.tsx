@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { recurringRules, tasks, weeklyReadings } from "@/lib/dummy-data";
-import { confidenceLabel } from "@/lib/calendar";
+import { fixedCalendarEvents, recurringRules, tasks, weeklyReadings } from "@/lib/dummy-data";
+import { confidenceLabel, planningConstraintLabel } from "@/lib/calendar";
+import { formatMd } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
 import ProgressBar from "@/components/ProgressBar";
 import type { Outcome } from "@/lib/types";
@@ -27,6 +28,7 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
   const linkedRules = recurringRules.filter((r) => r.outcomeId === outcome.id);
   const linkedTasks = tasks.filter((t) => t.outcomeId === outcome.id);
   const linkedReadings = weeklyReadings.filter((r) => r.outcomeId === outcome.id);
+  const linkedFixedEvents = fixedCalendarEvents.filter((e) => e.relatedOutcomeId === outcome.id);
   const taskProgress = computeProgress(linkedTasks);
 
   return (
@@ -119,6 +121,35 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
                   </li>
                 ))}
               </ul>
+            </Section>
+          )}
+
+          {linkedFixedEvents.length > 0 && (
+            <Section title="固定予定（Planning Constraint）">
+              <ul className="flex flex-col gap-1.5">
+                {linkedFixedEvents.map((e) => {
+                  const constraintLabel = planningConstraintLabel(e.planningConstraint);
+                  const dateLabel =
+                    e.startDate === e.endDate ? formatMd(e.startDate) : `${formatMd(e.startDate)}〜${formatMd(e.endDate)}`;
+                  return (
+                    <li key={e.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-[12px] font-bold text-stone-700">{e.title}</p>
+                        <span className="shrink-0 text-[11px] font-bold text-stone-400">{dateLabel}</span>
+                      </div>
+                      {constraintLabel && (
+                        <span className="mt-1 inline-block rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-bold text-white">
+                          {constraintLabel}
+                        </span>
+                      )}
+                      {e.notes && <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{e.notes}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-2 text-[10px] text-stone-400">
+                この期間は通常と同じ実行量を前提にしない。詳細はTASK MAP最下部の「固定予定」参照。
+              </p>
             </Section>
           )}
 

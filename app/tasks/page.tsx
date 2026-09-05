@@ -74,6 +74,7 @@ export default function TaskMapPage() {
   const [sort, setSort] = useState<SortKey>("期限順");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>(null);
+  const [fixedScheduleOpen, setFixedScheduleOpen] = useState(false);
 
   const monthKey = monthKeyOf(monthOffset);
 
@@ -225,42 +226,6 @@ export default function TaskMapPage() {
         </div>
       </section>
 
-      {monthFixedEvents.length > 0 && (
-        <section className="mx-5 mt-2.5 flex flex-col gap-1.5">
-          {monthFixedEvents.map((e) => {
-            const constraintLabel = planningConstraintLabel(e.planningConstraint);
-            const dateLabel =
-              e.startDate === e.endDate
-                ? `${formatMd(e.startDate)}${e.startTime ? ` ${e.startTime}〜${e.endTime}` : ""}`
-                : `${formatMd(e.startDate)}〜${formatMd(e.endDate)}`;
-            return (
-              <div
-                key={e.id}
-                className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[13px] font-bold text-stone-700">
-                    {fixedEventTypeIcon[e.type]} {e.title}
-                  </p>
-                  <span className="shrink-0 text-[11px] font-bold text-stone-500">{dateLabel}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {constraintLabel && (
-                    <span className="rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-bold text-white">
-                      {constraintLabel}
-                    </span>
-                  )}
-                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
-                    {confidenceLabel(e.confidence)}
-                  </span>
-                </div>
-                {e.notes && <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{e.notes}</p>}
-              </div>
-            );
-          })}
-        </section>
-      )}
-
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-bold text-stone-800">今月の前進</p>
@@ -408,6 +373,54 @@ export default function TaskMapPage() {
           )}
         </div>
       </section>
+
+      {monthFixedEvents.length > 0 && (
+        <section className="px-5 pb-6">
+          <button
+            type="button"
+            onClick={() => setFixedScheduleOpen((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-stone-200 px-4 py-2.5 text-left"
+          >
+            <span className="text-[11px] font-bold text-stone-400">
+              {monthLabel(monthKey)}の固定予定 {monthFixedEvents.length}件
+            </span>
+            <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${fixedScheduleOpen ? "rotate-180" : ""}`}>
+              ▾
+            </span>
+          </button>
+          {fixedScheduleOpen && (
+            <div className="mt-1.5 flex flex-col gap-1.5">
+              {monthFixedEvents.map((e) => {
+                const constraintLabel = planningConstraintLabel(e.planningConstraint);
+                const dateLabel =
+                  e.startDate === e.endDate
+                    ? `${formatMd(e.startDate)}${e.startTime ? ` ${e.startTime}〜${e.endTime}` : ""}`
+                    : `${formatMd(e.startDate)}〜${formatMd(e.endDate)}`;
+                return (
+                  <div key={e.id} className="rounded-xl bg-stone-50 px-3.5 py-2.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-[12px] font-bold text-stone-600">
+                        {fixedEventTypeIcon[e.type]} {e.title}
+                      </p>
+                      <span className="shrink-0 text-[10px] font-bold text-stone-400">{dateLabel}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {constraintLabel && (
+                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold text-stone-600">
+                          {constraintLabel}
+                        </span>
+                      )}
+                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-400">
+                        {confidenceLabel(e.confidence)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
       {selectedOutcome && <OutcomeDetailSheet outcome={selectedOutcome} onClose={() => setSelectedOutcome(null)} />}
