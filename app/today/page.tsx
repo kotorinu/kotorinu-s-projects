@@ -115,11 +115,20 @@ export default function TodayPage() {
 
   // A live clock, not a fabricated one — re-checked every minute so NOW/
   // NEXT/PAST stay correct across a long-open session without a full
-  // scheduling engine.
-  const [nowHmValue, setNowHmValue] = useState(() => nowHm());
+  // scheduling engine. Starts at "00:00" (everything LATER) rather than
+  // calling nowHm() during the initial render: this page is statically
+  // prerendered, so computing wall-clock time there would bake in the
+  // build-time clock and mismatch the client's real clock on hydration.
+  // The real time is set client-only, in the effect below.
+  const [nowHmValue, setNowHmValue] = useState("00:00");
   useEffect(() => {
-    const id = setInterval(() => setNowHmValue(nowHm()), 60_000);
-    return () => clearInterval(id);
+    const tick = () => setNowHmValue(nowHm());
+    const firstTick = setTimeout(tick, 0);
+    const id = setInterval(tick, 60_000);
+    return () => {
+      clearTimeout(firstTick);
+      clearInterval(id);
+    };
   }, []);
 
   const fixedEventsToday = useMemo(
