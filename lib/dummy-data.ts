@@ -13,6 +13,7 @@ import {
   SalesPhase,
   SalesSprint,
   Task,
+  TimeBlock,
   WeeklyReading,
   Workflow,
   WorkPrinciple,
@@ -24,6 +25,12 @@ import {
 // fabricate placeholders in its place.
 
 const now = new Date().toISOString();
+
+// TimeBlocks (2026-09-05, PRD.md §27): Task ≠ Time — when a Task is
+// actually worked on, separate from what it is. No real schedule has been
+// confirmed yet, so this stays empty rather than inventing one; TODAY's
+// Timeline shows an honest empty state until real TimeBlocks exist.
+export const timeBlocks: TimeBlock[] = [];
 
 // Goal Tree (2026-09-05 restoration, PRD.md §25). The old Fixture Goals
 // deleted on 2026-09-05 (commit 8b41a7e) were never re-created — they were

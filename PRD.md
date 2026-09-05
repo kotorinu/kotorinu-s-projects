@@ -1094,3 +1094,91 @@ Help Needは新しいPrincipleではなく、既存のHelp Need Workflow
 （`lib/dummy-data.ts`）に保持し、TaskDetailSheet内でTask.workContextに
 応じて必要な分だけ参照する設計に留める。Goal Tree / Sales Master / RIALA
 / GENESIS / TODAY / TASK MAPの既存実装は変更しない。
+
+---
+
+# 27. TODAYをメイン実行画面へ（2026-09-05追加・恒久ルール）
+
+## 画面の役割分担
+
+- **TODAY**：今日を実行する画面（通常利用の中心、HOME）
+- **TASK MAP**：Taskを管理・俯瞰する画面
+- **GOAL TREE**：なぜやるかを確認する画面
+
+アプリ起動時のファーストビューはTODAY（`app/page.tsx`は`/today`へ
+redirect、BottomNavも先頭がTODAY——これは2026-09-05以前から実装済みで、
+今回変更していない。恒久ルールとして明文化する）。
+
+## Task ≠ Time Block
+
+Task＝何を完成させるか。TimeBlock＝いつ実行するか。1つのTaskを複数の
+TimeBlockに分けてよい。TimeBlockが動いてもTaskの完了基準は変わらない。
+
+```
+TimeBlock
+- id
+- taskId
+- date (YYYY-MM-DD)
+- startTime / endTime (HH:mm)
+- status: PLANNED/IN_PROGRESS/DONE/SKIPPED
+- calendarEventId (nullable)
+- source: AI_WORK_OS / GOOGLE_CALENDAR / USER
+```
+
+将来Google Calendarと同期できるSchemaにする（`calendarEventId`）。
+**2026-09-05時点：`timeBlocks`は空配列**。実際のスケジュールがまだ
+確定していないため、架空のTime Blockは作らない。
+
+## TODAYのTimeline化
+
+今日のTimeBlock（Task紐付き）と今日の時間指定Fixed Calendar Eventを
+時刻順にマージし、現在時刻を基準にPAST/NOW/NEXT/LATERを判定して表示する
+（`lib/timeline.ts`の`buildTimeline`）。
+
+- NOW：Task名・残り時間・完了条件（1件目）・準備件数・Context Tag・
+  AI Capabilityを表示。情報過多にしないため、完了条件は全件でなく1件目＋
+  件数のみ
+- NEXT：現在Taskの直後に行うものを明確にする
+- PAST：薄く表示（完了/未完了に関わらず時間が過ぎたことが分かる程度）
+
+TimeBlockが無いTaskは「時間未定」として別枠にフラットに並べる。時間が
+無いTaskに対して勝手にNOW/NEXTを割り当てない（時間の裏付けがない優先度
+表示は誤解を招くため）。
+
+## 固定予定（Fixed Calendar Event）の扱い
+
+固定予定はTaskとして扱わない。Timeline上では時間指定のものだけ「予定」
+ブロックとして表示し（チェックボックス無し、タップ不可）、終日予定は
+Timelineの上に「本日終日：◯◯」という一行としてのみ表示する。
+**Task Progress（今日の前進の完了/全体）には含めない**——元々Task
+Progressの分母はTaskのみで計算されており、この点は今回の変更前から
+正しかったため、実装変更はしていない。
+
+## Google Calendarの位置づけ
+
+Google Calendarは削除しない。将来的な役割は、外部予定・固定予定・
+Meeting・Travel・Calendar Constraintを取得するSourceとして使う。
+AI Work OSのTODAYを日常的に見るメイン画面とする。
+
+Google Calendar API連携はまだ無い。今回、疑似同期・自動インポートは
+作らない。Schema（TimeBlock.calendarEventId、FixedCalendarEvent）だけ
+将来対応可能にしてある。
+
+## Manager → Executorの時間軸
+
+前夜（Manager Mode）：Task分解 → Estimate → Preparation → Time Block配置
+翌朝（Executor Mode／TODAY Timeline）：NOW → NEXT → 実行
+
+Manager Modeの夜間プランニングUI自体はPhase1でまだ実装しない（PRD.md
+§25参照、`DayPlan`型のみ）。今回はTODAY側（実行時の受け皿）だけを
+Timeline化した。
+
+## 今回やらなかったこと（意図的）
+
+- Google Calendar双方向同期
+- 自動スケジューリングエンジン（TimeBlockを自動生成する機能）
+- 大規模Manager Mode UI（夜間プランニング画面）
+- 架空Time Block・架空の今日Taskの作成
+
+実データ（TimeBlock・今日のTask）が無い場合はTODAYに正直なEmpty State
+を表示する。

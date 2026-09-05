@@ -2,6 +2,14 @@ export function todayStr(): string {
   return toYmd(new Date());
 }
 
+// "HH:mm" for right now, in the browser's local time.
+export function nowHm(): string {
+  const d = new Date();
+  const h = `${d.getHours()}`.padStart(2, "0");
+  const m = `${d.getMinutes()}`.padStart(2, "0");
+  return `${h}:${m}`;
+}
+
 export function toYmd(d: Date): string {
   const y = d.getFullYear();
   const m = `${d.getMonth() + 1}`.padStart(2, "0");

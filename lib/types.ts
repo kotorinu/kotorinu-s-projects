@@ -317,6 +317,25 @@ export interface WeeklyReview {
   nextImprovements: string[]; // 1-3 items, never more
 }
 
+// --- TimeBlock — Task ≠ Time (2026-09-05, PRD.md §27) ---
+// Task = what to complete. TimeBlock = when to work on it. One Task can
+// span several TimeBlocks; a TimeBlock moving doesn't change the Task's own
+// definition of done. Schema is Google-Calendar-sync-ready (calendarEventId)
+// even though no live sync exists yet — don't build that sync now.
+export type TimeBlockStatus = "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED";
+export type TimeBlockSource = "AI_WORK_OS" | "GOOGLE_CALENDAR" | "USER";
+
+export interface TimeBlock {
+  id: string;
+  taskId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  status: TimeBlockStatus;
+  calendarEventId: string | null;
+  source: TimeBlockSource;
+}
+
 // --- Work Principles / 仕事の型 — Knowledge Layer (2026-09-05, PRD.md §26) ---
 // Not a Task, not a Calendar Event: a small reusable "how to communicate/
 // judge quality" reference. The point is that the user shouldn't have to

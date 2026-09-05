@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
-import { daysBetween, formatMd, todayStr } from "@/lib/date";
-import { capabilityBadge } from "@/lib/capability";
-import type { RecurringRule, Task } from "@/lib/types";
+import { fixedCalendarEvents, goals, outcomes, recurringRules, timeBlocks, tasks as allTasks } from "@/lib/dummy-data";
+import { daysBetween, formatMd, nowHm, todayStr } from "@/lib/date";
+import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
+import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
+import type { FixedEventType, RecurringRule, Task } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import RecurringDetailSheet from "@/components/RecurringDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import Confetti from "@/components/Confetti";
+
+const fixedEventTypeIcon: Record<FixedEventType, string> = {
+  MILESTONE: "🏕",
+  TRAVEL: "✈",
+  FIXED_APPOINTMENT: "📌",
+};
 
 const today = todayStr();
 const weekday = ["日", "月", "火", "水", "木", "金", "土"][new Date().getDay()];
@@ -50,9 +57,18 @@ export default function TodayPage() {
     celebrationTimer.current = setTimeout(() => setCelebration(null), durationMs);
   }
 
+  // Task ≠ Time (PRD.md §27): a Task scheduled today via a real TimeBlock
+  // counts as today's work even if its own workDate/deadline points
+  // elsewhere — the TimeBlock is the stronger, more current signal.
+  const timeBlocksToday = useMemo(() => timeBlocks.filter((tb) => tb.date === today), []);
+  const scheduledTaskIds = useMemo(() => new Set(timeBlocksToday.map((tb) => tb.taskId)), [timeBlocksToday]);
+
   const todayTasks = useMemo(
-    () => allTasks.filter((t) => isOpen(t) && (t.workDate === today || t.deadline === today)),
-    []
+    () =>
+      allTasks.filter(
+        (t) => isOpen(t) && (t.workDate === today || t.deadline === today || scheduledTaskIds.has(t.id))
+      ),
+    [scheduledTaskIds]
   );
 
   const overdueTasks = useMemo(
@@ -69,16 +85,40 @@ export default function TodayPage() {
     });
   }, [todayTasks]);
 
-  // Executor Mode (PRD.md §25): TODAY doesn't ask you to re-prioritize —
-  // it hands you NOW, then NEXT, then everything else. Priority was already
-  // decided (by Manager Mode the night before, once that exists; for now,
-  // by each task's own importance/urgency at data-entry time).
-  const openTodayTasks = useMemo(() => todayTasks.filter((t) => !done.has(t.id)), [todayTasks, done]);
-  const doneTodayTasks = useMemo(() => todayTasks.filter((t) => done.has(t.id)), [todayTasks, done]);
-  const nowTask = openTodayTasks[0] ?? null;
-  const nextTask = openTodayTasks[1] ?? null;
-  const laterTasks = openTodayTasks.slice(2);
+  // Scheduled (has a TimeBlock today) done Tasks stay visible inline in the
+  // Timeline, dimmed — they must not also appear in this footer, or a
+  // completed scheduled Task would show twice.
+  const doneTodayTasks = useMemo(
+    () => todayTasks.filter((t) => done.has(t.id) && !scheduledTaskIds.has(t.id)),
+    [todayTasks, done, scheduledTaskIds]
+  );
   const [doneListOpen, setDoneListOpen] = useState(false);
+
+  // A live clock, not a fabricated one — re-checked every minute so NOW/
+  // NEXT/PAST stay correct across a long-open session without a full
+  // scheduling engine.
+  const [nowHmValue, setNowHmValue] = useState(() => nowHm());
+  useEffect(() => {
+    const id = setInterval(() => setNowHmValue(nowHm()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const fixedEventsToday = useMemo(
+    () => fixedCalendarEvents.filter((e) => e.startDate <= today && e.endDate >= today),
+    []
+  );
+  const fixedEventsAllDayToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime === null), [fixedEventsToday]);
+  const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
+
+  const timeline = useMemo(
+    () => buildTimeline(timeBlocksToday, allTasks, fixedEventsTimedToday, nowHmValue),
+    [timeBlocksToday, fixedEventsTimedToday, nowHmValue]
+  );
+
+  const unscheduledTodayTasks = useMemo(
+    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !done.has(t.id)),
+    [todayTasks, scheduledTaskIds, done]
+  );
 
   const preparationCountByTaskId = useMemo(() => {
     const map = new Map<string, number>();
@@ -241,47 +281,45 @@ export default function TodayPage() {
 
       <section className="px-5 pt-4">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-stone-800">今日やる</h2>
+          <h2 className="text-sm font-bold text-stone-800">今日のTimeline</h2>
         </div>
 
-        {todayTasks.length === 0 ? (
-          <EmptyState icon="🌤" text="今日やるタスクはありません" />
+        {fixedEventsAllDayToday.length > 0 && (
+          <p className="mb-2.5 text-[11px] font-bold text-stone-400">
+            本日終日：{fixedEventsAllDayToday.map((e) => e.title).join("・")}
+          </p>
+        )}
+
+        {timeline.length === 0 && unscheduledTodayTasks.length === 0 && doneTodayTasks.length === 0 ? (
+          <EmptyState icon="🌤" text="今日の予定はまだありません" />
         ) : (
           <div className="flex flex-col gap-5">
-            {nowTask && (
-              <div>
-                <p className="mb-1.5 text-[10px] font-black tracking-widest text-accent-dark">NOW</p>
-                <TaskRow
-                  task={nowTask}
-                  checked={false}
-                  onToggle={() => toggle(nowTask)}
-                  onOpen={() => setSelectedTask(nowTask)}
-                  preparationCount={preparationCountByTaskId.get(nowTask.id) ?? 0}
-                  emphasis
-                />
-              </div>
+            {timeline.length > 0 && (
+              <ul className="flex flex-col gap-2">
+                {timeline.map((item) =>
+                  item.kind === "task" ? (
+                    <TimelineTaskCard
+                      key={item.timeBlock.id}
+                      item={item}
+                      checked={done.has(item.task.id)}
+                      onToggle={() => toggle(item.task)}
+                      onOpen={() => setSelectedTask(item.task)}
+                      preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
+                    />
+                  ) : (
+                    <TimelineFixedCard key={item.event.id} item={item} />
+                  )
+                )}
+              </ul>
             )}
 
-            {nextTask && (
-              <div>
-                <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">NEXT</p>
-                <TaskRow
-                  task={nextTask}
-                  checked={false}
-                  onToggle={() => toggle(nextTask)}
-                  onOpen={() => setSelectedTask(nextTask)}
-                  preparationCount={preparationCountByTaskId.get(nextTask.id) ?? 0}
-                />
-              </div>
-            )}
-
-            {laterTasks.length > 0 && (
+            {unscheduledTodayTasks.length > 0 && (
               <div>
                 <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
-                  LATER TODAY（{laterTasks.length}）
+                  時間未定（{unscheduledTodayTasks.length}）
                 </p>
                 <ul className="flex flex-col gap-2">
-                  {laterTasks.map((t) => (
+                  {unscheduledTodayTasks.map((t) => (
                     <TaskRow
                       key={t.id}
                       task={t}
@@ -485,6 +523,120 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
       <span className="text-3xl">{icon}</span>
       <p className="text-sm text-stone-400">{text}</p>
     </div>
+  );
+}
+
+const timelineStatusLabel: Record<string, string> = { NOW: "NOW", NEXT: "NEXT", PAST: "", LATER: "" };
+
+function TimelineTaskCard({
+  item,
+  checked,
+  onToggle,
+  onOpen,
+  preparationCount,
+}: {
+  item: Extract<TimelineItem, { kind: "task" }>;
+  checked: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+  preparationCount: number;
+}) {
+  const { task, startTime, endTime, status } = item;
+  const isNow = status === "NOW";
+  const isPast = status === "PAST";
+  const badge = capabilityBadge(task.aiCapability);
+  const remaining = isNow ? minutesUntil(endTime, nowHm()) : null;
+
+  return (
+    <li
+      className={`rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ${
+        isNow ? "ring-2 ring-accent-soft" : ""
+      }`}
+      style={{ opacity: isPast || checked ? 0.55 : 1 }}
+    >
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="完了にする"
+          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
+            checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
+          }`}
+        >
+          ✓
+        </button>
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+            <span className="tabular-nums">
+              {startTime}〜{endTime}
+            </span>
+            {timelineStatusLabel[status] && (
+              <span className={isNow ? "text-accent-dark" : "text-stone-400"}>{timelineStatusLabel[status]}</span>
+            )}
+          </div>
+          <p className={`mt-0.5 text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
+            {task.title}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
+            {badge.tone && (
+              <span
+                className={`rounded-full px-2 py-0.5 font-bold ${
+                  badge.tone === "warning" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-dark"
+                }`}
+              >
+                {badge.label}
+              </span>
+            )}
+            {isNow && remaining !== null && (
+              <span className={`ml-auto font-bold ${remaining < 0 ? "text-danger" : "text-accent-dark"}`}>
+                残り{remaining}分
+              </span>
+            )}
+          </div>
+
+          {isNow && !checked && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
+              {task.definitionOfDone.length > 0 && (
+                <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
+              )}
+              {preparationCount > 0 && (
+                <span className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
+                  準備{preparationCount}件
+                </span>
+              )}
+              {task.contextTags.map((tag) => (
+                <span key={tag} className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
+                  {tag}
+                </span>
+              ))}
+              <span className="shrink-0 font-bold text-stone-500">{capabilityOwnerLabel(task.aiCapability)}</span>
+            </div>
+          )}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function TimelineFixedCard({ item }: { item: Extract<TimelineItem, { kind: "fixed" }> }) {
+  const { event, startTime, endTime, status } = item;
+  const isPast = status === "PAST";
+  return (
+    <li
+      className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-3.5 py-3"
+      style={{ opacity: isPast ? 0.55 : 1 }}
+    >
+      <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+        <span className="tabular-nums">
+          {startTime}〜{endTime}
+        </span>
+        <span>予定</span>
+      </div>
+      <p className="mt-0.5 text-[14px] font-bold text-stone-700">
+        {fixedEventTypeIcon[event.type]} {event.title}
+      </p>
+    </li>
   );
 }
 
