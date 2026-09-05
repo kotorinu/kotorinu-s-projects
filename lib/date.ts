@@ -62,6 +62,17 @@ export function addDaysToYmd(ymd: string, days: number): string {
   return toYmd(addDays(new Date(ymd + "T00:00:00"), days));
 }
 
+// Sunday that starts the week containing `ymd` (2026-09-06, Week View).
+export function startOfWeek(ymd: string): string {
+  const d = new Date(ymd + "T00:00:00");
+  return addDaysToYmd(ymd, -d.getDay());
+}
+
+// The 7 dates of the week starting at `startYmd` (a Sunday, from startOfWeek).
+export function weekDates(startYmd: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => addDaysToYmd(startYmd, i));
+}
+
 export function daysBetween(fromYmd: string, toYmdStr: string): number {
   const from = new Date(fromYmd + "T00:00:00");
   const to = new Date(toYmdStr + "T00:00:00");

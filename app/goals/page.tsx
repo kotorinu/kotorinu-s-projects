@@ -44,7 +44,26 @@ function GoalTreeContent() {
     return map;
   }, []);
 
-  const roots = childrenOf.get(null) ?? [];
+  const roots = useMemo(() => childrenOf.get(null) ?? [], [childrenOf]);
+
+  // Flattened DFS order with an absolute depth per node (2026-09-06
+  // readability fix). Rendering used to nest each node's own div inside its
+  // parent's, so CSS marginLeft compounded down the chain — capping the
+  // per-node value didn't help, since a long chain (人生→Work→5年→3年→1年→
+  // 半年→3か月→1か月) still added its own capped margin on top of the
+  // parent's already-cumulative position, drifting off the right edge just
+  // the same. Rendering as one flat sibling list with an absolute, capped
+  // marginLeft per row fixes this for real.
+  const flatNodes = useMemo(() => {
+    const out: Array<{ goal: Goal; depth: number; hasChildren: boolean }> = [];
+    function visit(goal: Goal, depth: number) {
+      const children = childrenOf.get(goal.id) ?? [];
+      out.push({ goal, depth, hasChildren: children.length > 0 });
+      for (const child of children) visit(child, depth + 1);
+    }
+    for (const r of roots) visit(r, 0);
+    return out;
+  }, [roots, childrenOf]);
 
   const tasksOf = useMemo(() => {
     const map = new Map<string, number>();
@@ -99,74 +118,27 @@ function GoalTreeContent() {
             </p>
           </div>
         ) : (
-          roots.map((goal) => (
-            <GoalBranch
+          flatNodes.map(({ goal, depth, hasChildren }) => (
+            <div
               key={goal.id}
-              goal={goal}
-              depth={0}
-              today={today}
-              childrenOf={childrenOf}
-              tasksOf={tasksOf}
-              focusId={focusId}
-              linkedFocusId={linkedFocusId}
-              expandedIds={expandedIds}
-              onToggle={toggle}
-            />
+              id={`goal-${goal.id}`}
+              className="scroll-mt-28"
+              style={{ marginLeft: Math.min(depth, 2) * 16 }}
+            >
+              <TimelineRow
+                goal={goal}
+                today={today}
+                hasChildren={hasChildren}
+                isFocus={goal.id === focusId}
+                isLinked={goal.id === linkedFocusId}
+                linkedTasks={tasksOf.get(goal.id) ?? 0}
+                expanded={expandedIds.has(goal.id)}
+                onToggle={() => toggle(goal.id)}
+              />
+            </div>
           ))
         )}
       </div>
-    </div>
-  );
-}
-
-function GoalBranch({
-  goal,
-  depth,
-  today,
-  childrenOf,
-  tasksOf,
-  focusId,
-  linkedFocusId,
-  expandedIds,
-  onToggle,
-}: {
-  goal: Goal;
-  depth: number;
-  today: string;
-  childrenOf: Map<string | null, Goal[]>;
-  tasksOf: Map<string, number>;
-  focusId: string | null;
-  linkedFocusId: string | null;
-  expandedIds: Set<string>;
-  onToggle: (id: string) => void;
-}) {
-  const children = childrenOf.get(goal.id) ?? [];
-  return (
-    <div id={`goal-${goal.id}`} className="scroll-mt-28" style={{ marginLeft: depth * 14 }}>
-      <TimelineRow
-        goal={goal}
-        today={today}
-        hasChildren={children.length > 0}
-        isFocus={goal.id === focusId}
-        isLinked={goal.id === linkedFocusId}
-        linkedTasks={tasksOf.get(goal.id) ?? 0}
-        expanded={expandedIds.has(goal.id)}
-        onToggle={() => onToggle(goal.id)}
-      />
-      {children.map((child) => (
-        <GoalBranch
-          key={child.id}
-          goal={child}
-          depth={depth + 1}
-          today={today}
-          childrenOf={childrenOf}
-          tasksOf={tasksOf}
-          focusId={focusId}
-          linkedFocusId={linkedFocusId}
-          expandedIds={expandedIds}
-          onToggle={onToggle}
-        />
-      ))}
     </div>
   );
 }

@@ -957,7 +957,7 @@ export const tasks: Task[] = [
     area: "営業代行",
     deadline: "2026-09-07",
     workDate: null,
-    estimateMinutes: 60,
+    estimateMinutes: null,
     actualMinutes: null,
     startedAt: null,
     completedAt: null,
@@ -995,7 +995,8 @@ export const tasks: Task[] = [
     parentOperationId: null,
     workflowId: null,
     requiredInputs: [],
-    notes: null,
+    notes:
+      "完了基準は「読んだ」ではなく複数の説明可能項目で具体化済み（監査済み・変更なし）。予定時間は①基礎ワークシートの実際の分量が未確認のため確定できず、60分という以前の数値は根拠不明のため削除した（PRD.md Task名/Estimate監査ラウンド参照）。実際に取り組んでnextEstimateMinutesへ記録してから確定させる。",
     preparationForTaskId: null,
     recommendedTiming: null,
     contextTags: [],
@@ -1131,7 +1132,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t-sales-004",
-    title: "実践者FBを営業Masterへ統合する",
+    title: "実践者からのアドバイスを各フェーズへ紐づける",
     description: "実践者からの6件のFBを、関連する各SalesPhaseへ紐づけて統合する。",
     why: "FBを単発メモのまま放置せず、該当フェーズで参照できる状態にするため",
     area: "営業代行",

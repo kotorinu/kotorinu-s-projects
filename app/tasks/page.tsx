@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { fixedCalendarEvents, monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fixedCalendarEvents, monthEndStates, outcomes, tasks as allTasks, timeBlocks } from "@/lib/dummy-data";
 import {
   dayOfMonth,
   daysBetween,
@@ -10,15 +10,20 @@ import {
   isSameMonth,
   monthKeyOf,
   monthLabel,
+  startOfWeek,
+  weekDates,
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
+import { buildWeekEntries, WeekEntry } from "@/lib/weekPlan";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
+
+const WEEKDAY_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
 type QuickFilter = "全部" | "未着手" | "進行中" | "AI" | "7日以内";
 
@@ -66,7 +71,7 @@ export default function TaskMapPage() {
   // todayStr() — this page is statically prerendered, so a module const
   // would bake in the deploy-time date and never advance for any viewer
   // (期限超過/7日以内 would silently go stale after deploy day).
-  const { currentDate: today } = useTodayExecution();
+  const { currentDate: today, workDateOverrides } = useTodayExecution();
   const [monthOffset, setMonthOffset] = useState(0);
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("全部");
   const [refineOpen, setRefineOpen] = useState(false);
@@ -107,27 +112,36 @@ export default function TaskMapPage() {
     return { inProgress, notStarted, aiOwned, overdue, within7 };
   }, [monthTasks, today]);
 
-  const weekBuckets = useMemo(() => {
+  // Monthly Calendar Map (2026-09-06 readability round): a real day-by-day
+  // grid replaces the old "1週目/2週目/3週目/4週目" quartile-bucket rows —
+  // the goal here is "どこが詰まっているか" at a glance, not task detail
+  // (that's what the Task List below is for). Each cell holds at most a
+  // few Area dots, never full task text.
+  type MonthCell = { day: number; date: string; areas: Area[] } | null;
+  const monthCells = useMemo<MonthCell[]>(() => {
     const total = daysInMonth(monthKey);
-    const boundaries = [1, 8, 15, 22, total + 1];
-    const buckets: Area[][] = [[], [], [], []];
-    for (const t of monthTasks) {
-      const day = dayOfMonth(t.deadline);
-      let idx = boundaries.findIndex((b, i) => day >= b && day < boundaries[i + 1]);
-      if (idx === -1) idx = 3;
-      buckets[idx].push(t.area);
+    const firstDow = new Date(`${monthKey}-01T00:00:00`).getDay();
+    const cells: MonthCell[] = [];
+    for (let i = 0; i < firstDow; i++) cells.push(null);
+    for (let d = 1; d <= total; d++) {
+      const date = `${monthKey}-${String(d).padStart(2, "0")}`;
+      const areas = monthTasks.filter((t) => t.deadline === date).map((t) => t.area);
+      cells.push({ day: d, date, areas });
     }
-    return buckets;
+    return cells;
   }, [monthTasks, monthKey]);
 
-  const todayBucketIndex = useMemo(() => {
-    if (monthOffset !== 0) return null;
-    const total = daysInMonth(monthKey);
-    const boundaries = [1, 8, 15, 22, total + 1];
-    const day = dayOfMonth(today);
-    const idx = boundaries.findIndex((b, i) => day >= b && day < boundaries[i + 1]);
-    return idx === -1 ? 3 : idx;
-  }, [monthOffset, monthKey, today]);
+  // Week View (top priority per §6): always the real week containing
+  // `today`, not the currently-browsed month — switching months shouldn't
+  // move this. workDateOverrides comes from Day Rollover Carryover
+  // decisions (§10-11 of the previous round) so a Task moved via "今日やる"
+  // actually shows up here too.
+  const weekStart = useMemo(() => startOfWeek(today), [today]);
+  const weekDateList = useMemo(() => weekDates(weekStart), [weekStart]);
+  const weekEntries = useMemo(
+    () => buildWeekEntries(weekDateList, allTasks, timeBlocks, fixedCalendarEvents, workDateOverrides),
+    [weekDateList, workDateOverrides]
+  );
 
   const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
     (v) => v !== "全部"
@@ -208,30 +222,48 @@ export default function TaskMapPage() {
         </div>
       </header>
 
-      <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
-        <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切分布</p>
-        <div className="grid grid-cols-4 gap-1.5">
-          {weekBuckets.map((bucket, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5 rounded-xl bg-stone-50 py-2">
-              <p className="text-[10px] font-bold text-stone-400">{i + 1}週目</p>
-              <div className="flex min-h-[16px] flex-wrap items-center justify-center gap-0.5 px-1">
-                {bucket.length === 0 ? (
-                  <span className="h-1 w-1 rounded-full bg-stone-200" />
-                ) : (
-                  bucket.map((area, j) => (
-                    <span
-                      key={j}
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: areaDotColor[area] }}
-                    />
-                  ))
+      <WeekView
+        dates={weekDateList}
+        entriesByDate={weekEntries}
+        today={today}
+        onOpenTask={(taskId) => {
+          const t = allTasks.find((task) => task.id === taskId);
+          if (t) setSelectedTask(t);
+        }}
+      />
+
+      <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
+        <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切カレンダー</p>
+        <div className="grid grid-cols-7 gap-y-1.5 text-center">
+          {WEEKDAY_LABEL.map((w) => (
+            <span key={w} className="text-[9px] font-bold text-stone-300">
+              {w}
+            </span>
+          ))}
+          {monthCells.map((c, i) =>
+            c === null ? (
+              <span key={`blank-${i}`} />
+            ) : (
+              <div
+                key={c.date}
+                className={`mx-auto flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg ${
+                  c.date === today ? "bg-accent-soft ring-1 ring-accent" : ""
+                }`}
+              >
+                <span className={`text-[10px] font-bold ${c.date === today ? "text-accent-dark" : "text-stone-500"}`}>
+                  {c.day}
+                </span>
+                {c.areas.length > 0 && (
+                  <div className="flex items-center gap-0.5">
+                    {c.areas.slice(0, 3).map((a, j) => (
+                      <span key={j} className="h-1 w-1 rounded-full" style={{ backgroundColor: areaDotColor[a] }} />
+                    ))}
+                    {c.areas.length > 3 && <span className="text-[7px] font-bold text-stone-400">+{c.areas.length - 3}</span>}
+                  </div>
                 )}
               </div>
-              <span className={`text-[9px] font-bold text-accent-dark ${todayBucketIndex === i ? "" : "invisible"}`}>
-                ▲今日
-              </span>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </section>
 
@@ -454,6 +486,87 @@ export default function TaskMapPage() {
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
       {selectedOutcome && <OutcomeDetailSheet outcome={selectedOutcome} onClose={() => setSelectedOutcome(null)} />}
     </div>
+  );
+}
+
+const weekEntryStyle: Record<WeekEntry["kind"], string> = {
+  FIXED: "bg-stone-100 text-stone-500",
+  DEADLINE: "bg-danger-soft text-danger",
+  PLANNED_WORK: "bg-accent-soft text-accent-dark",
+};
+
+// TASK MAP Week View (2026-09-06): "今週、いつ何をやるか" at a glance —
+// not a Google Calendar replacement (PRD.md's Google Calendar semantics
+// section), so this stays compact: a handful of short entries per day, not
+// a full time-grid. Horizontal scroll on narrow screens, today scrolled
+// into view on mount so it's the first thing visible without swiping.
+function WeekView({
+  dates,
+  entriesByDate,
+  today,
+  onOpenTask,
+}: {
+  dates: string[];
+  entriesByDate: Map<string, WeekEntry[]>;
+  today: string;
+  onOpenTask: (taskId: string) => void;
+}) {
+  const todayRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    todayRef.current?.scrollIntoView({ behavior: "auto", inline: "start", block: "nearest" });
+  }, []);
+
+  return (
+    <section className="mt-1 px-5">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h2 className="text-sm font-bold text-stone-800">今週</h2>
+        <span className="text-[11px] font-bold text-stone-400">
+          {formatMd(dates[0])}〜{formatMd(dates[6])}
+        </span>
+      </div>
+      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" style={{ scrollSnapType: "x proximity" }}>
+        {dates.map((d) => {
+          const isToday = d === today;
+          const entries = entriesByDate.get(d) ?? [];
+          const weekday = WEEKDAY_LABEL[new Date(d + "T00:00:00").getDay()];
+          return (
+            <div
+              key={d}
+              ref={isToday ? todayRef : undefined}
+              className={`w-[108px] shrink-0 rounded-2xl p-2.5 ${
+                isToday ? "bg-accent-soft ring-2 ring-accent" : "bg-white shadow-sm"
+              }`}
+              style={{ scrollSnapAlign: "start" }}
+            >
+              <p className={`text-[11px] font-bold ${isToday ? "text-accent-dark" : "text-stone-400"}`}>
+                {weekday} <span className="tabular-nums">{dayOfMonth(d)}</span>
+              </p>
+              <div className="mt-1.5 flex flex-col gap-1">
+                {entries.length === 0 ? (
+                  <p className="text-[10px] text-stone-300">—</p>
+                ) : (
+                  entries.slice(0, 4).map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => e.taskId && onOpenTask(e.taskId)}
+                      disabled={!e.taskId}
+                      className={`truncate rounded-lg px-1.5 py-1 text-left text-[10px] font-bold ${weekEntryStyle[e.kind]}`}
+                    >
+                      {e.time && <span className="tabular-nums opacity-70">{e.time} </span>}
+                      {e.label}
+                    </button>
+                  ))
+                )}
+                {entries.length > 4 && (
+                  <p className="text-[9px] font-bold text-stone-400">+{entries.length - 4}件</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

@@ -7,6 +7,7 @@ import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
 import { computeVariance, VARIANCE_REASONS, varianceReasonLabel } from "@/lib/execution";
+import { useTodayExecution } from "@/lib/todayExecutionStore";
 import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } from "@/lib/workPrinciples";
 import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
@@ -51,9 +52,15 @@ export default function TaskDetailSheet({
     };
   }, []);
 
+  const { currentDate: today } = useTodayExecution();
   const linkedTimeBlocks = timeBlocks
     .filter((tb) => tb.taskId === task.id)
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
+  // Task Series (2026-09-06): for a Task split across several TimeBlocks
+  // (a book's several reading sessions, Skill Plus's several passes), the
+  // first one that isn't already past is "what's next" — never guessed,
+  // just the plain date/time comparison against today.
+  const nextTimeBlockIndex = linkedTimeBlocks.findIndex((tb) => tb.date >= today);
 
   const goal = task.goalId ? goals.find((g) => g.id === task.goalId) ?? null : null;
   const goalProgress = goal ? computeGoalProgress(allTasks, goal.id) : null;
@@ -354,15 +361,31 @@ export default function TaskDetailSheet({
 
           {linkedTimeBlocks.length > 0 && (
             <Section title="予定（Time Block）">
-              <ul className="flex flex-col gap-1.5">
-                {linkedTimeBlocks.map((tb) => (
-                  <li key={tb.id} className="flex items-baseline justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 text-[12px]">
-                    <span className="font-bold text-stone-700">{formatMd(tb.date)}</span>
-                    <span className="font-medium text-stone-500">
-                      {tb.startTime}〜{tb.endTime}
-                    </span>
-                  </li>
-                ))}
+              {linkedTimeBlocks.length > 1 && (
+                <Row label="最終期限" value={formatMd(task.deadline)} />
+              )}
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {linkedTimeBlocks.map((tb, i) => {
+                  const isNext = i === nextTimeBlockIndex;
+                  const isPast = nextTimeBlockIndex !== -1 ? i < nextTimeBlockIndex : tb.date < today;
+                  return (
+                    <li
+                      key={tb.id}
+                      className={`flex items-baseline justify-between gap-2 rounded-xl px-3 py-2 text-[12px] ${
+                        isNext ? "bg-accent-soft ring-1 ring-accent" : "bg-stone-50"
+                      }`}
+                      style={{ opacity: isPast && !isNext ? 0.55 : 1 }}
+                    >
+                      <span className={`font-bold ${isNext ? "text-accent-dark" : "text-stone-700"}`}>
+                        {isNext && "次は　"}
+                        {formatMd(tb.date)}
+                      </span>
+                      <span className={`font-medium ${isNext ? "text-accent-dark" : "text-stone-500"}`}>
+                        {tb.startTime}〜{tb.endTime}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
               <p className="mt-1.5 text-[10px] text-stone-400">
                 Task ≠ Time Block：1つのTaskを複数の予定に分けて実行できます

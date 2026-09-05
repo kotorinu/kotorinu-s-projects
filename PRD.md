@@ -1466,3 +1466,75 @@ TaskをTODAYで完了しても、関連するFixedCalendarEventを自動削除�
 場合はRolloverを無条件でno-opにするガードを追加。実運用では時刻は
 常に前進のみのため通常は到達しない経路だが、端末の時計が狂った場合の
 保険としても機能する。
+
+# TASK MAP Weekly Calendar View / Goal Tree可読性修正（2026-09-06）
+
+Production実使用の結果判明した可読性問題を、新機能追加より優先して修正。
+
+## Goal Tree — 過剰インデントの原因と修正
+
+原因：各Goalノードの`marginLeft`が親ノードの`<div>`の中に**入れ子**で
+適用されていたため、`depth * 14`を`Math.min(depth, N) * 16`のように
+上限付きの値へ変えても、子の`marginLeft`が親の累積位置の上にさらに
+加算され続け、結局5年後→3年後→…→1か月後のような単一の長い連鎖
+（depth 2〜7）で右端へ流れ続けていた。
+
+修正：`app/goals/page.tsx`をDFS順の**フラットな兄弟リスト**へ再構成
+（`flatNodes`）。各行を同じ親コンテナ直下の独立したdivとして描画し、
+`marginLeft: Math.min(depth, 2) * 16`を絶対値として適用することで、
+depth 2以降はすべて同じ32pxに収まり、二度と右へ流れない。階層の深さは
+既存のドット＋縦の接続線（vertical connector）で表現する。
+
+## TASK MAP Week View
+
+TASK MAP最上部（Monthly Overviewより前）に「今週」ビューを新設
+（`lib/weekPlan.ts`の`buildWeekEntries`、`WeekView`コンポーネント）。
+Sunday始まりの7日を横スクロールのカードで表示し、今日のカードを
+自動的にスクロール表示する。各日には以下だけを表示：
+
+- FIXED（Google Calendar確定の固定予定）
+- DEADLINE（Taskの締切、その日にPLANNED_WORKが無い場合のみ）
+- PLANNED_WORK（実TimeBlock、または`workDate`/Carryoverの実効配置日）
+
+15分未満のTimeBlock（食事・入浴等）は表示しない。タップすると
+TaskDetailSheetが開く。Google Calendarの代替ではなく「AI Work OS上で
+今週を俯瞰するビュー」と位置づけ、完全なCalendar UIの再実装はしていない
+（既存のGoogle Calendar semantics方針を踏襲、モデル変更なし）。
+
+## Monthly Overview再設計
+
+「1週目/2週目/3週目/4週目」の文章的なバケット表示を廃止し、実際の
+日付グリッド（7列×最大6行のMonthly Calendar Map）へ置き換え。各セルは
+日付＋最大3件のArea dot＋あふれ件数（+N）のみで、Task本文は出さない
+（「どこが詰まっているか」の把握が目的、詳細はTask Listで見る）。
+
+## Task Series（分割Task）の接続
+
+THE FORMAT・地頭力等、複数TimeBlockに分かれるTaskは、Week Viewでは
+各TimeBlockが個別の日に自動的に表示される（データモデルは前ラウンドの
+ままで変更不要）。TaskDetailSheetの「予定（Time Block）」セクションに
+「最終期限」の行と、今日以降で最初のTimeBlockへの「次は」ハイライトを
+追加した。
+
+## Task名 / Estimateの監査結果
+
+Task名に含まれる内部実装用語を監査し、`t-sales-004`のタイトルを
+「実践者FBを営業Masterへ統合する」→「実践者からのアドバイスを各
+フェーズへ紐づける」へ変更（"Master"/"統合"という内部語をタイトルから
+除去、descriptionの内容と整合）。他のTask名に同種の問題は見つからな
+かった。`t-sales-001`「営業17フェーズの全体像を理解する」はDoDが既に
+6項目の具体的な説明可能基準になっており曖昧ではなかったが、
+estimateMinutes=60分は実際のワークシート分量を確認せずに設定された
+根拠不明な値だったため、鬼速PDCAと同じ扱いでnullへ変更し、理由を
+notesへ記録した。
+
+## Desktop表示について（今回のスコープ判断）
+
+`app/layout.tsx`のルートシェルは元々全ページ共通で
+`max-w-[430px]`のスマホ幅に固定されている（過去ラウンドからの既存設計）。
+今回「PC表示ではWeek Viewを横幅いっぱいに使う」という要望があったが、
+アプリ全体のシェル幅戦略を変更するのは可読性修正の範囲を超える構造変更と
+判断し、今回は行っていない。そのためWeek Viewは現状、PC・モバイル問わず
+同じスマホ幅レイアウト内で横スクロールする形で動作する（モバイル要件は
+満たしている）。将来的に真のデスクトップ幅対応をする場合は、ルート
+シェルの幅戦略自体を見直す別ラウンドとして扱う。
