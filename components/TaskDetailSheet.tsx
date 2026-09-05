@@ -106,6 +106,14 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
             <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
           </Section>
 
+          {task.linkedSalesMaster && (
+            <Section title="営業Master">
+              <Link href="/sales-master" className="text-[12px] font-bold text-accent-dark">
+                ＞ 営業Masterを見る
+              </Link>
+            </Section>
+          )}
+
           {(goal || outcome || areaOutcome) && (
             <Section title="上位成果">
               {goal && goalProgress ? (

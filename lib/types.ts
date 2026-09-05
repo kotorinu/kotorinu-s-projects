@@ -59,6 +59,7 @@ export interface Task {
   deliveryStatus: DeliveryStatus | null;
   automationCandidate: boolean;
   automationType: AutomationType | null;
+  linkedSalesMaster: boolean; // true → TaskDetailSheet offers "＞ 営業Masterを見る"
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -127,4 +128,89 @@ export interface DailyOccurrence {
   completedAt: string | null;
   overrunReason: string | null;
   note: string | null;
+}
+
+// --- Sales Master (営業プレイブック) ---
+// USABLE requires spoken practice/roleplay evidence, not just filled text —
+// see PRD-adjacent instructions; never set by "text exists" alone.
+export type MasteryStatus = "NOT_STARTED" | "UNDERSTANDING" | "FILLED" | "PRACTICING" | "FEEDBACK_RECEIVED" | "USABLE";
+
+// The 17 phases and their order/names are fixed by the user's own worksheet
+// — never reorder or rename them. purpose/okState/checkPoints/sourceQuestions/
+// ngExamples are the worksheet's own content (①基礎) and must come from that
+// source, never be invented; they are empty until the worksheet is provided.
+export interface SalesPhase {
+  id: string;
+  phaseNumber: number;
+  title: string;
+  purpose: string | null;
+  okState: string | null;
+  checkPoints: string[];
+  sourceQuestions: string[];
+  ngExamples: string[];
+  myUnderstanding: string | null;
+  myTalkExamples: string[];
+  myQuestions: string[];
+  myTransitionTalk: string[];
+  caseSpecificKnowledge: string[];
+  nextImprovement: string[];
+  improvementHistory: string[];
+  masteryStatus: MasteryStatus;
+}
+
+// A lesson from someone more experienced, mapped onto whichever phases it
+// applies to. One PractitionerFeedback can and often does apply to several.
+export interface PractitionerFeedback {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  relatedPhaseIds: string[];
+  lesson: string;
+  exampleTalk: string[];
+  addedAt: string;
+}
+
+export interface RoleplayFeedback {
+  id: string;
+  date: string | null;
+  relatedPhaseIds: string[];
+  goodPoints: string[];
+  issues: string[];
+  stuckPoints: string[];
+  nextImprovements: string[];
+  feedbackFrom: string | null;
+  recordingReference: string | null;
+  transcriptReference: string | null;
+}
+
+export interface LiveSalesFeedback {
+  id: string;
+  date: string | null;
+  result: string | null;
+  relatedPhaseIds: string[];
+  customerSituation: string | null;
+  whatHappened: string | null;
+  goodPoints: string[];
+  issues: string[];
+  objections: string[];
+  nextImprovement: string[];
+  recordingReference: string | null;
+  transcriptReference: string | null;
+}
+
+export interface SalesSprintDeliverable {
+  title: string;
+  definitionOfDone: string[];
+}
+
+// A near-term checkpoint (not a completion deadline) for the Sales Master —
+// e.g. "show up to Wednesday's feedback session with a v1 draft and one
+// roleplay done," not "finish all 17 phases."
+export interface SalesSprint {
+  id: string;
+  goal: string;
+  checkpointLabel: string;
+  checkpointDate: string | null;
+  deliverables: SalesSprintDeliverable[];
 }
