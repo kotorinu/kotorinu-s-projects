@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { capabilityAction, capabilityOwnerLabel } from "@/lib/capability";
+import { problemDecompositionKnowledge } from "@/lib/dummy-data";
 import type { RecurringRule } from "@/lib/types";
 
 export default function RecurringDetailSheet({
@@ -27,6 +28,7 @@ export default function RecurringDetailSheet({
   }, []);
 
   const action = capabilityAction(rule.aiCapability);
+  const linkedKnowledge = problemDecompositionKnowledge.filter((k) => k.relatedRecurringRuleId === rule.id);
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center">
@@ -98,6 +100,28 @@ export default function RecurringDetailSheet({
               >
                 ＞ 60日チャレンジを見る
               </button>
+            </Section>
+          )}
+
+          {linkedKnowledge.length > 0 && (
+            <Section title="関連Knowledge">
+              {linkedKnowledge.map((k) => (
+                <div key={k.id} className="rounded-2xl bg-stone-50 px-3.5 py-3">
+                  <p className="text-[12px] font-bold text-stone-700">{k.title}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-stone-500">{k.purpose}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {k.perspectives.map((p) => (
+                      <span
+                        key={p.id}
+                        className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-stone-500"
+                      >
+                        {p.label}
+                      </span>
+                    ))}
+                  </div>
+                  {k.caveat && <p className="mt-2 text-[10px] leading-relaxed text-stone-400">{k.caveat}</p>}
+                </div>
+              ))}
             </Section>
           )}
 

@@ -240,8 +240,11 @@ export type VarianceReason =
   | "LOST_FOCUS" // 集中途切れ
   | "UNEXPECTED_WORK" // 想定外対応
   | "TECHNICAL_ISSUE" // 技術問題
-  | "ESTIMATE_MISS" // Estimateミス
-  | "SCOPE_ADDED"; // Task Scope追加
+  | "ESTIMATE_MISS" // Estimateミス（作業量過小評価）
+  | "SCOPE_ADDED" // Task Scope追加
+  | "AI_WAIT" // AI待ち（2026-09-05追加）
+  | "INTERRUPTED" // 割り込み（2026-09-05追加）
+  | "OTHER"; // その他（2026-09-05追加）
 
 // A confirmed plan for one day, produced by Manager Mode the night before —
 // "翌朝、TODAYを開けば何を・何時に・どこまでやるか決まっている" state.
@@ -499,7 +502,23 @@ export interface Workflow {
   aiCapability: AiCapability;
   outputType: OutputType | null;
   requiredInputs: string[];
+  // --- Recurring content workflow extensions (2026-09-05). Optional because
+  // only a genuinely recurring content workflow (e.g. RIALA Daily Learning
+  // Share) populates these — every other Workflow leaves them undefined
+  // rather than being forced to declare empty values.
+  postStructure?: string[]; // HOOK→状況→おすすめ→理由→印象→URL→CTA、など投稿の型（毎回同文にはしない）
+  ctaTypes?: DailyLearningCtaType[];
+  schedulingCapability?: SchedulingCapability; // 実際に自動投稿できるかどうかを、外部権限確認前は絶対に過大表示しない
+  contentPoolCount?: number | null; // 参照するコンテンツ総数（個別タイトル・URLは未取得なら架空生成しない）
+  contentPoolNote?: string | null;
 }
+
+export type DailyLearningCtaType = "READ" | "COMMENT" | "SHARE_EXPERIENCE" | "TRY_TODAY";
+
+// How far this app can currently take a scheduled/automated post. Never
+// display AUTO_SCHEDULE_AVAILABLE until an actual external API/permission is
+// confirmed working — see PRD.md's Daily Learning Share section.
+export type SchedulingCapability = "UNAVAILABLE" | "DRAFT_ONLY" | "HUMAN_APPROVAL" | "AUTO_SCHEDULE_AVAILABLE";
 
 // Never set ACTIVE or DONE on inference alone — ACTIVE needs a concrete
 // current subject (an actual event/member/thread), DONE needs evidence the
@@ -536,4 +555,46 @@ export interface AiOperationMatrixEntry {
   completionCondition: string | null;
   automationStatus: AutomationStatus;
   missingInputs: string[];
+}
+
+// --- Problem Decomposition / 問い切りと統合 — Knowledge Layer (2026-09-05) ---
+// A Training/Knowledge reference, like WorkPrinciple above — never a Task,
+// never a Calendar Event. Loosely related to GENESIS's 具体⇄抽象トレーニング
+// (RecurringRule r-001) and to GENESIS合宿's Leadership Training, but never
+// turned into a mandatory confirmed Task ("合宿で必ずこの方法を使う" is
+// explicitly NOT a rule). The 5 perspectives are lenses to reach for when
+// decomposing a problem, not a fixed 5-question checklist to run every time.
+
+export type DecompositionPerspectiveId = "DEFINITION" | "CURRENT_STATE" | "GAP" | "METHOD" | "PRIORITY";
+
+export interface DecompositionPerspective {
+  id: DecompositionPerspectiveId;
+  label: string;
+  question: string;
+}
+
+export type DecompositionTypeId = "PROCESS" | "ISSUE";
+
+export interface DecompositionTypeExample {
+  id: DecompositionTypeId;
+  title: string;
+  description: string;
+  example: string[];
+}
+
+export interface ProblemDecompositionKnowledge {
+  id: string;
+  title: string;
+  purpose: string;
+  flow: string[]; // GOAL→FACT→GAP→CENTRAL QUESTION→DECOMPOSE→ASSIGN→SYNTHESIZE→PRIORITIZE→ACTION
+  loopPrinciple: string; // 「一発で完全分解しない」の原則
+  perspectives: DecompositionPerspective[];
+  synthesisCategories: string[]; // FACT / CONSTRAINT / OPTION / UNKNOWN
+  qualityBarQuestion: string; // 良いSub Questionの基準
+  goodExampleQuestions: string[];
+  badExampleQuestions: string[];
+  decompositionTypes: DecompositionTypeExample[];
+  relatedRecurringRuleId: string | null;
+  relatedGoalId: string | null;
+  caveat: string | null;
 }

@@ -8,6 +8,7 @@ import {
   OperationCategory,
   Outcome,
   PractitionerFeedback,
+  ProblemDecompositionKnowledge,
   RecurringRule,
   RoleplayFeedback,
   SalesPhase,
@@ -1773,6 +1774,14 @@ export const operationCategories: OperationCategory[] = [
     title: "運営改善 / AI移管",
     purpose: "定型業務についてAIに任せる部分と人間が判断する部分を整理し、AI Operation Matrixとして確定する。",
   },
+  {
+    id: "oc-08",
+    categoryNumber: 8,
+    area: "RIALA",
+    title: "コミュニティ学習促進",
+    purpose:
+      "RIALA Learning内に存在するコンテンツを毎日1つ再発見してもらい、コミュニティの学習価値と参加きっかけを増やす（2026-09-05追加、運営の事務処理ではなく価値創出の施策候補）。",
+  },
 ];
 
 export const workflows: Workflow[] = [
@@ -1874,6 +1883,49 @@ export const workflows: Workflow[] = [
     aiCapability: "HYBRID",
     outputType: "OPERATION_DOC",
     requiredInputs: [],
+  },
+  // RIALA Daily Learning Share（2026-09-05追加）— 毎日Taskをdummy-dataへ増殖
+  // させるのではなく、Recurring Workflow（型）として1件だけ保持する。RIALA
+  // Learning内に約119件のコンテンツが存在すると本人から確認済みだが、個別の
+  // タイトル・URL・内容はこのセッションから取得できないため、件数のみ保持し
+  // 119件分を架空生成しない（contentPoolNote参照）。予約投稿はしゅんさんへ
+  // 依頼中で未実装のため、schedulingCapabilityはDRAFT_ONLYまで（自動投稿でき
+  // ると勝手に表示しない）。
+  {
+    id: "wf-08-daily-learning",
+    categoryId: "oc-08",
+    title: "RIALA Daily Learning Share",
+    description:
+      "その日のテーマを決め、RIALA Learningから関連コンテンツを1件選び、AIが投稿Draftを作り、本人の一言を加えて、投稿可能状態まで作る。",
+    steps: [
+      "その日のテーマを決める",
+      "RIALA Learningから関連コンテンツを1件選ぶ",
+      "内容を確認する",
+      "AIが投稿文Draftを作る",
+      "ユーザー自身の一言・学びを入れる",
+      "コンテンツURLを付ける",
+      "投稿前QA",
+      "予約投稿または投稿可能状態にする",
+      "投稿する",
+      "必要なら反応を記録する",
+    ],
+    aiCapability: "HYBRID",
+    outputType: "MESSAGE_DRAFT",
+    requiredInputs: ["今日のテーマ", "選んだLearningコンテンツ", "本人の一言・学び（未入力ならUSER_COMMENT_REQUIREDとして止める）"],
+    postStructure: [
+      "HOOK",
+      "今日の状況・共感",
+      "今回おすすめするLearning",
+      "なぜおすすめか",
+      "自分が印象に残ったこと",
+      "URL",
+      "軽いCTA",
+    ],
+    ctaTypes: ["READ", "COMMENT", "SHARE_EXPERIENCE", "TRY_TODAY"],
+    schedulingCapability: "DRAFT_ONLY",
+    contentPoolCount: 119,
+    contentPoolNote:
+      "件数のみ本人確認済み（2026-09-05時点）。個別タイトル・URL・内容は未取得のため、実行時にRIALA Learning側で都度選ぶ。119件を架空のコンテンツ一覧として生成しない。",
   },
 ];
 
@@ -2181,5 +2233,66 @@ export const aiOperationMatrix: AiOperationMatrixEntry[] = [
     completionCondition: "UNKNOWNが解消された",
     automationStatus: "CANDIDATE",
     missingInputs: [],
+  },
+];
+
+// --- Problem Decomposition / 問い切りと統合 — Knowledge Layer (2026-09-05) ---
+// Not a Task, not a Calendar Event (see ProblemDecompositionKnowledge's doc
+// comment in types.ts). Related to r-001（具体⇄抽象トレーニング）and
+// GENESIS合宿's Leadership Training, but never turned into a mandatory Task.
+export const problemDecompositionKnowledge: ProblemDecompositionKnowledge[] = [
+  {
+    id: "pdk-01",
+    title: "問い切りと統合（Problem Decomposition）",
+    purpose:
+      "複雑な状況を、誰でも考えられる単位へ分け、チームの思考を前進させられるようになる。",
+    flow: [
+      "GOAL（目標）",
+      "FACT（現状）",
+      "GAP（差）",
+      "CENTRAL QUESTION（最大の問い）",
+      "DECOMPOSE（分解）",
+      "ASSIGN（担当）",
+      "SYNTHESIZE（統合）",
+      "PRIORITIZE（優先順位）",
+      "ACTION（実行）",
+    ],
+    loopPrinciple:
+      "最初から完璧なSub Questionを全部作ろうとしない。分解→3〜5分考える→持ち寄る→統合→次の問いを切る、を短周期で回す（DECOMPOSE → EXECUTE/THINK → SYNTHESIZE → RE-DECOMPOSE）。",
+    perspectives: [
+      { id: "DEFINITION", label: "DEFINITION", question: "成功とは何か？" },
+      { id: "CURRENT_STATE", label: "CURRENT STATE", question: "今どうなっているか？" },
+      { id: "GAP", label: "GAP", question: "何が足りないか？" },
+      { id: "METHOD", label: "METHOD", question: "どう埋めるか？" },
+      { id: "PRIORITY", label: "PRIORITY", question: "次に何を解くか？" },
+    ],
+    synthesisCategories: ["FACT（事実）", "CONSTRAINT（制約）", "OPTION（選択肢）", "UNKNOWN（未解決）"],
+    qualityBarQuestion:
+      "この問いを1人または1チームに渡した時、何を考えて何を返せばいいか分かるか？",
+    goodExampleQuestions: [
+      "完成条件で曖昧な点を3つ出してください。",
+      "今確認できている事実だけを整理してください。",
+      "成功を止めている制約を挙げてください。",
+      "5分以内に試せる方法を3案出してください。",
+    ],
+    badExampleQuestions: ["どうしたらいいと思う？"],
+    decompositionTypes: [
+      {
+        id: "PROCESS",
+        title: "工程分解（PROCESS DECOMPOSITION）",
+        description: "完成までの工程で切る。",
+        example: ["状態把握", "縄をほどく", "形を作る", "確認", "修正"],
+      },
+      {
+        id: "ISSUE",
+        title: "論点分解（ISSUE DECOMPOSITION）",
+        description: "論点で切る。",
+        example: ["定義", "現状", "制約", "方法", "優先順位"],
+      },
+    ],
+    relatedRecurringRuleId: "r-001",
+    relatedGoalId: "g-genesis-camp",
+    caveat:
+      "「合宿で必ずこの方法を使う」という確定Taskにはしない。5視点は毎回全部を順番に聞くチェックリストではなく、分解時に使う視点として保持する。どちらの分解方法（工程／論点）を使うかも絶対ルール化しない。",
   },
 ];

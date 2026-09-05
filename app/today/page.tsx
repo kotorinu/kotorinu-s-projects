@@ -5,7 +5,8 @@ import { fixedCalendarEvents, goals, outcomes, recurringRules, timeBlocks, tasks
 import { daysBetween, formatMd, minutesSince, nowHm, todayStr } from "@/lib/date";
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
-import type { FixedEventType, RecurringRule, Task } from "@/lib/types";
+import { computeVariance } from "@/lib/execution";
+import type { FixedEventType, RecurringRule, Task, VarianceReason } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
@@ -52,11 +53,19 @@ export default function TodayPage() {
   const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = usePrefersReducedMotion();
 
-  // Measures Estimate vs Actual for real (PRD.md §28): session-only (no DB
-  // yet), never fabricated — actualMinutes is only ever set from a real
-  // 開始→完了 span the user actually walked through just now.
+  // Measures Estimate vs Actual for real (PRD.md §25/§29): session-only (no
+  // DB yet), never fabricated — actualMinutes is only ever set from a real
+  // 開始→完了 span the user actually walked through just now. Plan
+  // (TimeBlock startTime/endTime) and Actual (taskStartedAt/actualMinutes)
+  // are never conflated — starting early/late never rewrites the TimeBlock.
   const [taskStartedAt, setTaskStartedAt] = useState<Map<string, string>>(new Map());
   const [taskActualMinutes, setTaskActualMinutes] = useState<Map<string, number>>(new Map());
+  const [varianceReasonByTaskId, setVarianceReasonByTaskId] = useState<Map<string, VarianceReason>>(new Map());
+  // At most one Task can be STARTED at a time (Early Start, §1-2) — starting
+  // a second one while one is already in progress requires confirmation and
+  // never silently marks the first one complete.
+  const [startedTaskId, setStartedTaskId] = useState<string | null>(null);
+  const [switchConfirmTaskId, setSwitchConfirmTaskId] = useState<string | null>(null);
 
   function fireCelebration(c: Celebration, durationMs: number) {
     setCelebration(c);
@@ -64,15 +73,30 @@ export default function TodayPage() {
     celebrationTimer.current = setTimeout(() => setCelebration(null), durationMs);
   }
 
-  function startTask(taskId: string) {
+  function reallyStart(taskId: string) {
+    setStartedTaskId(taskId);
     setTaskStartedAt((prev) => new Map(prev).set(taskId, new Date().toISOString()));
+    setSwitchConfirmTaskId(null);
   }
 
-  function completeNowTask(task: Task) {
+  function requestStart(taskId: string) {
+    if (startedTaskId && startedTaskId !== taskId) {
+      setSwitchConfirmTaskId(taskId);
+      return;
+    }
+    reallyStart(taskId);
+  }
+
+  function confirmSwitch() {
+    if (switchConfirmTaskId) reallyStart(switchConfirmTaskId);
+  }
+
+  function completeStartedTask(task: Task) {
     const startedIso = taskStartedAt.get(task.id);
     if (startedIso) {
       setTaskActualMinutes((prev) => new Map(prev).set(task.id, minutesSince(startedIso)));
     }
+    if (startedTaskId === task.id) setStartedTaskId(null);
     toggle(task);
   }
 
@@ -139,9 +163,19 @@ export default function TodayPage() {
   const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
 
   const timeline = useMemo(
-    () => buildTimeline(timeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue),
-    [timeBlocksToday, fixedEventsTimedToday, nowHmValue]
+    () => buildTimeline(timeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue, startedTaskId),
+    [timeBlocksToday, fixedEventsTimedToday, nowHmValue, startedTaskId]
   );
+
+  // A STARTED Task with no TimeBlock today (started from the 時間未定 list,
+  // or from an overdue/upcoming Task) has nowhere to render inside the
+  // time-sorted Timeline — pin it above instead, rather than silently
+  // dropping the fact that it's the one actually being worked on right now.
+  const startedTask = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) ?? null : null;
+  const pinnedNowTask =
+    startedTask && !scheduledTaskIds.has(startedTask.id) && !done.has(startedTask.id) ? startedTask : null;
+  const pinnedNowStartedIso = pinnedNowTask ? taskStartedAt.get(pinnedNowTask.id) : undefined;
+  const pinnedNowElapsedMinutes = pinnedNowStartedIso ? minutesSince(pinnedNowStartedIso) : null;
 
   // Where to draw the "──── NOW hh:mm ────" divider: right before the NOW
   // slot if one exists, else right before the next upcoming slot, else at
@@ -153,14 +187,17 @@ export default function TodayPage() {
     return nextIdx !== -1 ? nextIdx : timeline.length;
   }, [timeline]);
 
-  const nowCardRef = useRef<HTMLLIElement | null>(null);
+  // HTMLElement (not HTMLLIElement) so the same ref can point at either the
+  // <li> inside the time-sorted Timeline or the pinned <div> above it —
+  // whichever is actually rendering the current NOW task.
+  const nowCardRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     nowCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
   const unscheduledTodayTasks = useMemo(
-    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !done.has(t.id)),
-    [todayTasks, scheduledTaskIds, done]
+    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !done.has(t.id) && t.id !== startedTaskId),
+    [todayTasks, scheduledTaskIds, done, startedTaskId]
   );
 
   const preparationCountByTaskId = useMemo(() => {
@@ -321,7 +358,19 @@ export default function TodayPage() {
           </p>
         )}
 
-        {timeline.length === 0 && unscheduledTodayTasks.length === 0 && doneTodayTasks.length === 0 ? (
+        {pinnedNowTask && (
+          <div ref={nowCardRef as React.Ref<HTMLDivElement>} className="mb-2">
+            <PinnedNowCard
+              task={pinnedNowTask}
+              elapsedMinutes={pinnedNowElapsedMinutes}
+              onComplete={() => completeStartedTask(pinnedNowTask)}
+              onOpen={() => setSelectedTask(pinnedNowTask)}
+              preparationCount={preparationCountByTaskId.get(pinnedNowTask.id) ?? 0}
+            />
+          </div>
+        )}
+
+        {timeline.length === 0 && unscheduledTodayTasks.length === 0 && doneTodayTasks.length === 0 && !pinnedNowTask ? (
           <EmptyState icon="🌤" text="今日の予定はまだありません" />
         ) : (
           <div className="flex flex-col gap-5">
@@ -333,12 +382,12 @@ export default function TodayPage() {
                       <TimelineTaskCard
                         item={item}
                         checked={done.has(item.task.id)}
-                        started={taskStartedAt.has(item.task.id)}
+                        started={startedTaskId === item.task.id}
                         actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
                         nowHmValue={nowHmValue}
-                        onStart={() => startTask(item.task.id)}
-                        onComplete={() => completeNowTask(item.task)}
-                        onToggle={() => toggle(item.task)}
+                        onStart={() => requestStart(item.task.id)}
+                        onComplete={() => completeStartedTask(item.task)}
+                        onUndo={() => toggle(item.task)}
                         onOpen={() => setSelectedTask(item.task)}
                         preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
                         nowRef={item.status === "NOW" ? nowCardRef : undefined}
@@ -372,7 +421,8 @@ export default function TodayPage() {
                       key={t.id}
                       task={t}
                       checked={false}
-                      onToggle={() => toggle(t)}
+                      started={false}
+                      onStart={() => requestStart(t.id)}
                       onOpen={() => setSelectedTask(t)}
                       preparationCount={preparationCountByTaskId.get(t.id) ?? 0}
                     />
@@ -397,7 +447,9 @@ export default function TodayPage() {
                         key={t.id}
                         task={t}
                         checked={true}
-                        onToggle={() => toggle(t)}
+                        started={false}
+                        onStart={() => {}}
+                        onUndo={() => toggle(t)}
                         onOpen={() => setSelectedTask(t)}
                         preparationCount={preparationCountByTaskId.get(t.id) ?? 0}
                       />
@@ -462,7 +514,57 @@ export default function TodayPage() {
 
       <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
 
-      {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+      {selectedTask && (
+        <TaskDetailSheet
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          actualMinutes={taskActualMinutes.get(selectedTask.id) ?? null}
+          started={startedTaskId === selectedTask.id}
+          varianceReason={varianceReasonByTaskId.get(selectedTask.id) ?? null}
+          onSetVarianceReason={(reason) =>
+            setVarianceReasonByTaskId((prev) => new Map(prev).set(selectedTask.id, reason))
+          }
+        />
+      )}
+
+      {switchConfirmTaskId &&
+        (() => {
+          const nextTask = allTasks.find((t) => t.id === switchConfirmTaskId);
+          const currentTask = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) : null;
+          if (!nextTask) return null;
+          return (
+            <div className="fixed inset-0 z-50 flex items-end justify-center">
+              <button
+                type="button"
+                aria-label="閉じる"
+                onClick={() => setSwitchConfirmTaskId(null)}
+                className="absolute inset-0 bg-stone-900/45"
+              />
+              <div className="relative w-full max-w-[430px] rounded-t-3xl bg-white p-5 shadow-2xl">
+                <p className="text-[14px] font-black text-stone-800">現在実行中のTaskがあります</p>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
+                  「{currentTask?.title ?? "実行中のTask"}」を中断して、「{nextTask.title}」を開始しますか？
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSwitchConfirmTaskId(null)}
+                    className="flex-1 rounded-full bg-stone-100 py-2.5 text-[13px] font-bold text-stone-600"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmSwitch}
+                    className="flex-1 rounded-full bg-accent py-2.5 text-[13px] font-bold text-white"
+                  >
+                    切り替える
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {selectedRecurring && (
         <RecurringDetailSheet
@@ -601,6 +703,65 @@ function NowIndicator({ nowHmValue }: { nowHmValue: string }) {
   );
 }
 
+// Task状態を一目で分かる形にする（PRD.md §29「3. Task状態を直感的にする」）：
+// ○（未着手・タップで今から開始）→ ▶（実行中・タップで完了）→ ✓（完了・タップ
+// で取り消し）。取り消し線や大量のBadgeは使わず、この1ボタンの状態遷移だけで
+// 表現する。
+type ExecState = "NOT_STARTED" | "STARTED" | "DONE";
+
+function execStateOf(checked: boolean, started: boolean): ExecState {
+  if (checked) return "DONE";
+  if (started) return "STARTED";
+  return "NOT_STARTED";
+}
+
+function TaskStateButton({
+  state,
+  onStart,
+  onComplete,
+  onUndo,
+}: {
+  state: ExecState;
+  onStart: () => void;
+  onComplete: () => void;
+  onUndo: () => void;
+}) {
+  if (state === "DONE") {
+    return (
+      <button
+        type="button"
+        onClick={onUndo}
+        aria-label="完了を取り消す"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent text-xs text-white transition-all duration-150 active:scale-90"
+      >
+        ✓
+      </button>
+    );
+  }
+  if (state === "STARTED") {
+    return (
+      <button
+        type="button"
+        onClick={onComplete}
+        aria-label="完了にする"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent-soft text-[9px] text-accent-dark transition-all duration-150 active:scale-90"
+      >
+        ▶
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onStart}
+      aria-label="今から開始"
+      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-stone-200 text-transparent transition-all duration-150 active:scale-90"
+    >
+      ✓
+    </button>
+  );
+}
+
 function TimelineTaskCard({
   item,
   checked,
@@ -609,7 +770,7 @@ function TimelineTaskCard({
   nowHmValue,
   onStart,
   onComplete,
-  onToggle,
+  onUndo,
   onOpen,
   preparationCount,
   nowRef,
@@ -621,49 +782,49 @@ function TimelineTaskCard({
   nowHmValue: string;
   onStart: () => void;
   onComplete: () => void;
-  onToggle: () => void;
+  onUndo: () => void;
   onOpen: () => void;
   preparationCount: number;
-  nowRef?: React.RefObject<HTMLLIElement | null>;
+  nowRef?: React.RefObject<HTMLElement | null>;
 }) {
   const { task, startTime, endTime, status } = item;
   const isNow = status === "NOW";
   const isPast = status === "PAST";
+  // "focused" = the card showing the execution-detail row and remaining-time
+  // badge — either it's the time-based NOW slot, or the user actually
+  // pressed 今から開始 on it (which can happen on any NEXT/LATER/PAST card).
+  const isFocused = isNow || started;
   const badge = capabilityBadge(task.aiCapability);
+  const execState = execStateOf(checked, started);
+  const variance =
+    checked && actualMinutes !== null ? computeVariance(task.estimateMinutes, actualMinutes) : null;
   // nowHmValue comes from the page's hydration-safe state, not a direct
   // nowHm() call here — see NowIndicator's comment for why that matters.
-  const remaining = isNow ? minutesUntil(endTime, nowHmValue) : null;
+  const remaining = isFocused ? minutesUntil(endTime, nowHmValue) : null;
 
   return (
     <li
-      ref={nowRef}
+      ref={nowRef as React.Ref<HTMLLIElement>}
       className={`rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ${
-        isNow ? "ring-2 ring-accent-soft" : ""
+        isFocused ? "ring-2 ring-accent-soft" : ""
       }`}
-      style={{ opacity: isPast || checked ? 0.55 : 1 }}
+      style={{ opacity: isPast && !isFocused ? 0.55 : checked ? 0.55 : 1 }}
     >
       <div className="flex items-start gap-3">
-        {!isNow && (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label="完了にする"
-            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
-              checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
-            }`}
-          >
-            ✓
-          </button>
-        )}
+        <TaskStateButton state={execState} onStart={onStart} onComplete={onComplete} onUndo={onUndo} />
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
             <span className="tabular-nums">
               {startTime}〜{endTime}
             </span>
-            {timelineStatusLabel[status] && (
-              <span className={isNow ? "text-accent-dark" : "text-stone-400"}>{timelineStatusLabel[status]}</span>
+            {started ? (
+              <span className="text-accent-dark">実行中</span>
+            ) : (
+              timelineStatusLabel[status] && (
+                <span className={isNow ? "text-accent-dark" : "text-stone-400"}>{timelineStatusLabel[status]}</span>
+              )
             )}
-            {isPast && !checked && <span className="text-stone-400">・未確認</span>}
+            {isPast && !checked && !started && <span className="text-stone-400">・未確認</span>}
           </div>
           <p className={`mt-0.5 text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
             {task.title}
@@ -679,17 +840,25 @@ function TimelineTaskCard({
                 {badge.label}
               </span>
             )}
-            {isNow && remaining !== null && (
-              <span className={`ml-auto font-bold ${remaining < 0 ? "text-danger" : "text-accent-dark"}`}>
-                残り{remaining}分
-              </span>
+            {/* A genuinely time-based NOW slot can never have negative
+                remaining (by construction, now < endTime). Negative only
+                shows up when a Task is Early-Started well past its own
+                planned window — "残り-357分" there is just noise, not a
+                useful overrun warning, so it's suppressed. */}
+            {isFocused && !checked && remaining !== null && remaining >= 0 && (
+              <span className="ml-auto font-bold text-accent-dark">残り{remaining}分</span>
             )}
             {checked && actualMinutes !== null && (
-              <span className="ml-auto font-bold text-stone-400">実績{actualMinutes}分</span>
+              <span className="ml-auto font-bold text-stone-400">
+                実績{actualMinutes}分
+                {variance?.varianceMinutes !== null &&
+                  variance !== null &&
+                  ` (${variance.varianceMinutes >= 0 ? "+" : ""}${variance.varianceMinutes}分)`}
+              </span>
             )}
           </div>
 
-          {isNow && !checked && (
+          {isFocused && !checked && (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
               {task.definitionOfDone.length > 0 && (
                 <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
@@ -709,32 +878,66 @@ function TimelineTaskCard({
           )}
         </button>
       </div>
-
-      {isNow && !checked && (
-        <div className="mt-2.5 flex gap-2 border-t border-stone-100 pt-2.5">
-          {!started ? (
-            <button
-              type="button"
-              onClick={onStart}
-              className="flex-1 rounded-full bg-stone-800 py-2 text-[12px] font-bold text-white active:scale-[0.98]"
-            >
-              開始
-            </button>
-          ) : (
-            <span className="flex flex-1 items-center justify-center rounded-full bg-stone-100 py-2 text-[12px] font-bold text-stone-500">
-              実行中
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onComplete}
-            className="flex-1 rounded-full bg-accent py-2 text-[12px] font-bold text-white active:scale-[0.98]"
-          >
-            完了
-          </button>
-        </div>
-      )}
     </li>
+  );
+}
+
+// A Task that's actually STARTED but has no TimeBlock today (started from
+// the 時間未定 list, or from an overdue/upcoming Task) — pinned above the
+// Timeline so "what I'm actually doing right now" is never hidden just
+// because it has no scheduled slot to sort into.
+function PinnedNowCard({
+  task,
+  elapsedMinutes,
+  onComplete,
+  onOpen,
+  preparationCount,
+}: {
+  task: Task;
+  elapsedMinutes: number | null;
+  onComplete: () => void;
+  onOpen: () => void;
+  preparationCount: number;
+}) {
+  const badge = capabilityBadge(task.aiCapability);
+  return (
+    <div className="rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ring-2 ring-accent-soft">
+      <div className="flex items-start gap-3">
+        <TaskStateButton state="STARTED" onStart={() => {}} onComplete={onComplete} onUndo={() => {}} />
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-accent-dark">
+            <span>実行中</span>
+            <span className="text-stone-400">・時間未定から開始</span>
+          </div>
+          <p className="mt-0.5 text-[15px] font-bold leading-snug text-stone-800">{task.title}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
+            {badge.tone && (
+              <span
+                className={`rounded-full px-2 py-0.5 font-bold ${
+                  badge.tone === "warning" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-dark"
+                }`}
+              >
+                {badge.label}
+              </span>
+            )}
+            {elapsedMinutes !== null && <span className="ml-auto font-bold text-stone-400">経過{elapsedMinutes}分</span>}
+          </div>
+          {(task.definitionOfDone.length > 0 || preparationCount > 0) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
+              {task.definitionOfDone.length > 0 && (
+                <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
+              )}
+              {preparationCount > 0 && (
+                <span className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
+                  準備{preparationCount}件
+                </span>
+              )}
+            </div>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -820,14 +1023,20 @@ function TimelineFixedCard({ item }: { item: Extract<TimelineItem, { kind: "fixe
 function TaskRow({
   task,
   checked,
-  onToggle,
+  started,
+  onStart,
+  onComplete,
+  onUndo,
   onOpen,
   preparationCount = 0,
   emphasis = false,
 }: {
   task: Task;
   checked: boolean;
-  onToggle: () => void;
+  started: boolean;
+  onStart: () => void;
+  onComplete?: () => void;
+  onUndo?: () => void;
   onOpen: () => void;
   preparationCount?: number;
   emphasis?: boolean;
@@ -836,6 +1045,7 @@ function TaskRow({
   const [burst, setBurst] = useState(false);
   const [prevChecked, setPrevChecked] = useState(checked);
   const badge = capabilityBadge(task.aiCapability);
+  const execState = execStateOf(checked, started);
 
   if (checked !== prevChecked) {
     setPrevChecked(checked);
@@ -855,17 +1065,13 @@ function TaskRow({
       }`}
       style={{ opacity: checked ? 0.55 : 1 }}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label="完了にする"
-        className={`relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
-          checked
-            ? "border-accent bg-accent text-white"
-            : "border-stone-200 text-transparent active:scale-90"
-        }`}
-      >
-        ✓
+      <span className="relative">
+        <TaskStateButton
+          state={execState}
+          onStart={onStart}
+          onComplete={onComplete ?? (() => {})}
+          onUndo={onUndo ?? (() => {})}
+        />
         {burst && (
           <span className="pointer-events-none absolute inset-0">
             {[0, 60, 120, 180, 240, 300].map((deg) => (
@@ -880,7 +1086,7 @@ function TaskRow({
             ))}
           </span>
         )}
-      </button>
+      </span>
       <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
         <p className={`text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
           {task.title}

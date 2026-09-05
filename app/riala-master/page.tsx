@@ -6,11 +6,19 @@ import { aiOperationMatrix, operationCategories, operationalAudits, tasks, workf
 import { auditStatusLabel, computeRialaStats, countAuditsByCategory } from "@/lib/riala";
 import { capabilityOwnerLabel } from "@/lib/capability";
 import RialaCategoryDetailSheet from "@/components/RialaCategoryDetailSheet";
-import type { OperationCategory } from "@/lib/types";
+import type { OperationCategory, SchedulingCapability } from "@/lib/types";
+
+const schedulingCapabilityLabel: Record<SchedulingCapability, { label: string; tone: "accent" | "warning" | "neutral" }> = {
+  UNAVAILABLE: { label: "投稿手段なし", tone: "warning" },
+  DRAFT_ONLY: { label: "投稿可能状態まで作成", tone: "accent" },
+  HUMAN_APPROVAL: { label: "人間承認後に投稿", tone: "accent" },
+  AUTO_SCHEDULE_AVAILABLE: { label: "自動予約投稿可能", tone: "accent" },
+};
 
 export default function RialaMasterPage() {
   const [selected, setSelected] = useState<OperationCategory | null>(null);
   const stats = computeRialaStats(operationalAudits, workflows, tasks.filter((t) => t.area === "RIALA"));
+  const dailyLearning = workflows.find((w) => w.id === "wf-08-daily-learning");
 
   return (
     <div className="flex flex-col pb-8">
@@ -62,6 +70,68 @@ export default function RialaMasterPage() {
           })}
         </div>
       </section>
+
+      {dailyLearning && (
+        <section className="mt-5 px-5">
+          <h2 className="mb-2 text-xs font-bold text-stone-400">コミュニティ学習促進（Recurring Workflow）</h2>
+          <div className="rounded-2xl bg-white px-3.5 py-3.5 shadow-sm">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[13px] font-bold text-stone-800">{dailyLearning.title}</p>
+              {dailyLearning.schedulingCapability && (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    schedulingCapabilityLabel[dailyLearning.schedulingCapability].tone === "warning"
+                      ? "bg-danger-soft text-danger"
+                      : "bg-accent-soft text-accent-dark"
+                  }`}
+                >
+                  {schedulingCapabilityLabel[dailyLearning.schedulingCapability].label}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-stone-500">{dailyLearning.description}</p>
+
+            {dailyLearning.contentPoolCount !== null && dailyLearning.contentPoolCount !== undefined && (
+              <p className="mt-2 text-[11px] font-bold text-stone-600">
+                参照コンテンツプール：約{dailyLearning.contentPoolCount}件
+              </p>
+            )}
+            {dailyLearning.contentPoolNote && (
+              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">{dailyLearning.contentPoolNote}</p>
+            )}
+
+            {dailyLearning.postStructure && dailyLearning.postStructure.length > 0 && (
+              <div className="mt-2.5">
+                <p className="mb-1 text-[10px] font-bold text-stone-400">投稿の基本構造</p>
+                <div className="flex flex-wrap gap-1">
+                  {dailyLearning.postStructure.map((s, i) => (
+                    <span key={i} className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {dailyLearning.ctaTypes && dailyLearning.ctaTypes.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-1 text-[10px] font-bold text-stone-400">CTA種類（毎回同じにしない）</p>
+                <div className="flex flex-wrap gap-1">
+                  {dailyLearning.ctaTypes.map((c) => (
+                    <span key={c} className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="mt-2.5 text-[10px] leading-relaxed text-stone-400">
+              毎日Taskとしてdummy-dataへ増殖させず、Recurring Workflow（型）として1件のみ保持。今日のInstanceは実際に着手されるまでTODAYへ架空生成しません。予約投稿は現在しゅんさんへ依頼中のためDRAFT_ONLYまで（自動投稿できるとは表示しません）。
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="mt-5 px-5">
         <h2 className="mb-2 text-xs font-bold text-stone-400">AI Operation Matrix（候補・未確定）</h2>

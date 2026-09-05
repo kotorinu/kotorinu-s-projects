@@ -1278,3 +1278,96 @@ TODAY TimelineのNOWカードのみ、チェックボックスの代わりに
 - Timelineの時間比例ビジュアル（時間軸目盛りに応じた高さ配置）— 現状は
   時刻順の縦リスト＋NOW Indicator行に留める
 - Weekly Review集計UI（実績データがまだ薄いため）
+
+# Execution UX + RIALA Daily Learning 改善ラウンド（2026-09-05）
+
+「予定を見るアプリ」から「今やるTaskを選び、実行し、実績を蓄積する
+Execution OS」への拡張。
+
+## Early Start（予定時刻より前でも開始できる）
+
+Plan（TimeBlockのstartTime/endTime）とActual（実際に開始・完了した時刻）
+は絶対に混同しない。ユーザーはNOW以外のTask（NEXT/LATER/PAST、時間未定
+リスト含む）にも「今から開始」を使え、押した瞬間にそのTaskだけが
+グローバルなSTARTED Taskになる（`lib/timeline.ts`の`buildTimeline`が
+`startedTaskId`引数を受け取り、そのTaskのTimelineスロットをPlanの
+時刻に関係なくNOWへ強制昇格させる。TimeBlock自体のstartTime/endTimeは
+一切書き換えない）。
+
+同時にSTARTEDにできるTaskは1つだけ。既に別のTaskがSTARTEDの状態で
+別のTaskの「今から開始」を押すと、「現在実行中のTaskがあります」の
+確認シートが出る（`app/today/page.tsx`の`switchConfirmTaskId`）。
+「切り替える」を押すまで前のTaskは実行中のまま保持され、勝手に完了
+扱いにはしない。
+
+TimeBlockを持たない（時間未定リストの）Taskを開始した場合は
+Timelineに差し込む場所が無いため、Timelineの直前に`PinnedNowCard`
+として固定表示する。現在の実データでは今日のTaskは全てTimeBlockを
+持つため、この経路は現状のfixtureでは発火しない（架空のunscheduled
+Taskを作ってまで発火させることはしていない）。
+
+NOWの判定優先順位（`buildTimeline`）：
+1. 実際にSTARTEDのTask
+2. 現在時刻内のTimeBlock
+3. NEXT（＝壁時計で次に来るTask。STARTEDが過去のTaskを指していても、
+   「nowIndexの次の配列インデックス」ではなく「現在時刻より後に始まる
+   最初のTask」で判定するよう修正済み — 実装中に見つけたバグ）
+
+## Task状態の可視化とActual計測
+
+Task状態を○（未着手・タップで開始）／▶（実行中・タップで完了）／
+✓（完了・タップで取り消し）の1ボタン遷移で表現する
+（`TaskStateButton`、`app/today/page.tsx`）。取り消し線や大量のBadgeは
+使わない。
+
+開始→完了で`actualMinutes`を計測し（`lib/date.ts`の`minutesSince`、
+セッション内メモリのみ）、`estimateMinutes`があれば
+`lib/execution.ts`の`computeVariance`で差分（例：`実績47分 (+17分)`）を
+Timelineカード・TaskDetailSheetの両方に表示する。差が出た理由は
+「なぜ差が出た？」チップ（想定外の確認／情報不足／AI待ち／集中切れ／
+作業量過小評価／割り込み／分解不足／技術的な問題／Task範囲の追加／
+その他、`VarianceReason`型）から本人が任意で選択する形にし、AIが
+理由を勝手に生成することはない。実際の現在時刻NOWスロットで
+`remaining`（残り分）がマイナスになることは時刻の定義上あり得ないため、
+Early Startで大きく過去のTaskを開始した場合の「残り-355分」のような
+無意味な表示は出さない（`remaining >= 0`のみ表示）。
+
+## TASK MAP：Filter/Sort統合と重複UI削除
+
+「絞り込み」と「並び替え」を1行にまとめ、Summary Metric（進行中／
+未着手／AI担当／7日以内）をタップした際に表示していた重複Chip行
+（`{quickFilter} ✕`ボタン）を撤去。フィルターが有効な間は小さな
+「フィルター解除」リンクのみ表示する（`app/tasks/page.tsx`）。
+
+## RIALA Daily Learning Share（Recurring Workflow）
+
+RIALA Learning内の約119件のコンテンツ（個別タイトル・URL・内容は
+このセッションから取得できないため件数のみ保持、架空生成しない）を
+毎日1つ再発見してもらう施策。新規カテゴリ`oc-08`「コミュニティ学習
+促進」＋Workflow`wf-08-daily-learning`として`/riala-master`に追加。
+毎日Taskとしてdummy-dataへ増殖させず、Recurring Workflow（型）
+1件のみ保持し、今日のInstanceは実際に着手されるまでTODAYへ生成しない
+（架空のDraft・投稿を作らない）。予約投稿はしゅんさんへ依頼中で未実装
+のため`schedulingCapability: "DRAFT_ONLY"`に留め、自動投稿できるとは
+表示しない（`SchedulingCapability`型：UNAVAILABLE/DRAFT_ONLY/
+HUMAN_APPROVAL/AUTO_SCHEDULE_AVAILABLE）。
+
+## Problem Decomposition / 問い切りと統合（Knowledge Layer）
+
+TaskにもCalendar Eventにもしない、Work Principlesと同種のKnowledge
+（`ProblemDecompositionKnowledge`型、`lib/dummy-data.ts`の
+`problemDecompositionKnowledge`）。GOAL→FACT→GAP→CENTRAL QUESTION→
+DECOMPOSE→ASSIGN→SYNTHESIZE→PRIORITIZE→ACTIONの流れ、5つの視点
+（DEFINITION/CURRENT STATE/GAP/METHOD/PRIORITY）、工程分解と論点分解の
+違いを保持。GENESISの具体⇄抽象トレーニング（r-001）のRecurringDetail
+Sheetから「関連Knowledge」として参照でき、GENESIS合宿（g-genesis-camp）
+にも緩く関連付けるが、「合宿で必ずこの方法を使う」という確定Taskには
+しない。
+
+## 今回やらなかったこと（意図的）
+
+- 「3つのすぐ」の正確な3項目（本の内容が未確認のため）
+- RIALA Daily Learning Shareの今日のInstance生成・自動投稿
+- Weekly Reviewへのvariance集計反映（実績データがまだ薄いため）
+- Overdue/Upcomingの圧縮アラート行への開始ボタン追加（Today Timelineと
+  時間未定リストの範囲に留めた）

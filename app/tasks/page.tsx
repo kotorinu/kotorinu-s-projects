@@ -280,31 +280,53 @@ export default function TaskMapPage() {
         )}
       </section>
 
-      <section className="mt-3 px-5">
-        <div className="flex items-center gap-1.5">
-          {quickFilter !== "全部" && (
-            <button
-              type="button"
-              onClick={() => setQuickFilter("全部")}
-              className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
-            >
-              {quickFilter} ✕
-            </button>
-          )}
+      <section className="mt-2.5 px-5">
+        <div className="flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => setRefineOpen((v) => !v)}
-            className={`ml-auto flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+            className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
               activeRefineCount > 0 ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
             }`}
           >
             絞り込み{activeRefineCount > 0 ? ` ${activeRefineCount}` : ""}
             <span className={`text-[9px] transition-transform ${refineOpen ? "rotate-180" : ""}`}>▾</span>
           </button>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="text-[10px] font-medium text-stone-400">並び替え</span>
+            <div className="flex gap-1 rounded-full bg-stone-100 p-1">
+              {SORTS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSort(s)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                    sort === s ? "bg-white text-stone-800 shadow-sm" : "text-stone-400"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
+        {(quickFilter !== "全部" || activeRefineCount > 0) && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuickFilter("全部");
+              resetRefine();
+            }}
+            className="mt-1.5 text-[11px] font-bold text-stone-400"
+          >
+            フィルター解除
+          </button>
+        )}
+
         {refineOpen && (
-          <div className="mt-2.5 flex flex-col gap-3 rounded-2xl bg-white p-3.5 shadow-sm">
+          <div className="mt-2 flex flex-col gap-3 rounded-2xl bg-white p-3.5 shadow-sm">
             <RefineGroup label="Area" options={["全部", ...AREAS]} value={areaFilter} onChange={setAreaFilter} />
             <RefineGroup label="担当" options={["全部", ...CAPABILITY_GROUPS]} value={capFilter} onChange={setCapFilter} />
             <RefineGroup label="重要度" options={["全部", ...PRIORITIES]} value={importanceFilter} onChange={setImportanceFilter} />
@@ -320,24 +342,6 @@ export default function TaskMapPage() {
             )}
           </div>
         )}
-
-        <div className="mt-2.5 flex items-center gap-2">
-          <span className="text-[11px] font-medium text-stone-400">並び替え</span>
-          <div className="flex gap-1 rounded-full bg-stone-100 p-1">
-            {SORTS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSort(s)}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
-                  sort === s ? "bg-white text-stone-800 shadow-sm" : "text-stone-400"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
       </section>
 
       <section className="mt-2.5 flex flex-col gap-1.5 px-5">

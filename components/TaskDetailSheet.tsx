@@ -6,10 +6,11 @@ import { goals, monthEndStates, outcomes, tasks as allTasks, timeBlocks, workPri
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
+import { computeVariance, VARIANCE_REASONS, varianceReasonLabel } from "@/lib/execution";
 import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } from "@/lib/workPrinciples";
 import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
-import type { Task } from "@/lib/types";
+import type { Task, VarianceReason } from "@/lib/types";
 
 const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
   MESSAGE_DRAFT: "メッセージ下書き",
@@ -19,7 +20,24 @@ const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
   OTHER: "その他",
 };
 
-export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose: () => void }) {
+export default function TaskDetailSheet({
+  task,
+  onClose,
+  actualMinutes = null,
+  started = false,
+  varianceReason = null,
+  onSetVarianceReason,
+}: {
+  task: Task;
+  onClose: () => void;
+  // Session-only Estimate vs Actual state (PRD.md §25/§29) — only the TODAY
+  // page tracks this (no DB yet), so these are optional; TASK MAP opens this
+  // same sheet without them and simply shows no execution-tracking section.
+  actualMinutes?: number | null;
+  started?: boolean;
+  varianceReason?: VarianceReason | null;
+  onSetVarianceReason?: (reason: VarianceReason) => void;
+}) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [requested, setRequested] = useState(false);
   const [outcomeSheetOpen, setOutcomeSheetOpen] = useState(false);
@@ -296,15 +314,42 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
               <Row label="予定時間" value={task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} />
               <Row label="期限" value={formatMd(task.deadline)} />
               <Row label="担当" value={capabilityOwnerLabel(task.aiCapability)} />
-              {task.actualMinutes !== null && (
-                <Row
-                  label="実績"
-                  value={`${task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} → ${task.actualMinutes}分`}
-                />
-              )}
+              {started && actualMinutes === null && <Row label="状態" value="実行中" />}
+              {actualMinutes !== null &&
+                (() => {
+                  const { varianceMinutes } = computeVariance(task.estimateMinutes, actualMinutes);
+                  return (
+                    <Row
+                      label="実績"
+                      value={`${task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} → ${actualMinutes}分${
+                        varianceMinutes !== null ? `（${varianceMinutes >= 0 ? "+" : ""}${varianceMinutes}分）` : ""
+                      }`}
+                    />
+                  );
+                })()}
               {task.overrunReason && <Row label="理由" value={task.overrunReason} />}
               {task.nextImprovement && <Row label="次回改善" value={task.nextImprovement} />}
             </dl>
+
+            {actualMinutes !== null && task.estimateMinutes !== null && onSetVarianceReason && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-[10px] font-bold text-stone-400">なぜ差が出た？（任意）</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {VARIANCE_REASONS.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => onSetVarianceReason(r)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                        varianceReason === r ? "bg-accent text-white" : "bg-stone-100 text-stone-500"
+                      }`}
+                    >
+                      {varianceReasonLabel[r]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
 
           {linkedTimeBlocks.length > 0 && (
