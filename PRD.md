@@ -760,3 +760,109 @@ Never invent：
 現在の完了条件を満たした根拠が必要。
 逆に、記録があるからといって ACTIVE にもしない
 （現在の対象・必要性が確認できて初めてACTIVE）。
+
+---
+
+# 24. Calendar Source of Truth Rule（2026-09-05追加・恒久ルール）
+
+Google Calendarを一律に「古い可能性あり」と扱わない。
+予定の種類によって扱いを分ける。
+
+### PRIORITY 1: USER_CONFIRMED
+
+ユーザーが明示的に「これは決まっている」「これは確定」と言った情報。
+最優先。
+
+### PRIORITY 2: FIXED_ALL_DAY_EVENT
+
+Google Calendarの終日予定は、原則として固定予定／制約として扱う。
+
+例：
+- 2026-10-03〜10-04 GENESIS合宿
+- 2026-10-05〜10-08 北海道旅行
+- 書籍の読了対象／締切として登録された終日予定
+
+ただし、明らかにメモ・仮置きと書かれている場合は除く。
+
+### PRIORITY 3: CONFIRMED_WEEKLY_READING
+
+60日チャレンジで読む本は、Google Calendarに登録されているものをCONFIRMEDとして扱う。
+CALENDAR_ONLY / NEEDS_CONFIRMATIONにはしない。
+
+ユーザー確認済みルール：「本に関しては確定でいい」
+
+Calendar上で確認できる例：仕事の教科書／THE FORMAT／地頭力を鍛える／鬼速PDCA など。
+
+タイトル・読了予定日をWeeklyReadingへ正式に取り込んでよい。
+
+### PRIORITY 4: TIMED_EXECUTION_BLOCK
+
+通常の時間指定予定。
+
+例：19:45〜21:45 営業準備／04:45〜06:45 朝ルーティン／読書実行ブロック／RIALA作業時間
+
+これらは「現在の実行計画」として参照するが、固定事実とは扱わない。
+ユーザーの予定変更により随時動く可能性がある。
+
+つまり：Task / Goalの根拠ではなく、Execution Plan / Work Dateとして扱う。
+
+## 固定予定によるPlanning Constraint
+
+固定終日予定はTaskではなくAvailability Constraintとしても扱う。
+
+**2026-10-03〜10-04 GENESIS合宿**
+- type: MILESTONE
+- planningConstraint: BLOCK_NORMAL_WORK
+
+**2026-10-05〜10-08 北海道旅行**
+- type: TRAVEL
+- planningConstraint: NO_HEAVY_WORK
+
+この期間に、通常と同じ量の営業準備／RIALA／GENESIS追加作業／読書大量消化／AI Work OS開発を自動配置しない。
+ただし、ユーザーが明示的に実施すると決めたものは除く。
+
+特に、10/3〜10/4合宿→10/5〜10/8旅行と連続するため、
+GENESIS合宿準備の実質的な完成期限は10/3当日ではなく、原則10/2までに完成状態へ持っていく。
+10/3朝に大量の準備Taskを残さない。
+
+## Weekly Reading Rule
+
+60日チャレンジ：毎週1冊読む。本は事前に決まっている。
+Google Calendarに登録された書籍予定はCONFIRMED。
+
+WeeklyReadingには以下を持つ：
+bookTitle / targetDate / calendarEventIds[] / status / learningPoints[] / personalExamples[] / actionItems[]
+
+本に複数の時間指定読書ブロックが存在する場合：
+Weekly Reading Task ↓ Calendar Execution Blocks として紐づける。
+
+時間ブロックが移動しても「今週この本を読む」というWeekly Task自体は消えない。
+
+## 合宿直後の旅行を逆算へ反映
+
+10/3〜10/4 GENESIS合宿、10/5〜10/8 北海道旅行のため、10月第1週を通常稼働週として扱わない。
+
+9月最終週までに以下を蓄積：
+- 60日チャレンジEvidence整理
+- 合宿で話せるBefore / After
+- 未達・改善点整理
+- 読書から行動化した事例
+- 具体⇄抽象の変化
+- 問題解決の変化
+- 期限遵守／逆算管理の変化
+
+Phaseとして扱う：
+- 10/1〜10/2：FINALIZE期間
+- 10/3〜10/4：OUTPUT / CAMP
+- 10/5〜10/8：TRAVEL
+
+## 固定された個別予定
+
+以下はGoogle Calendar上で確認済みのため、CONFIRMED_FIXED_EVENTとして扱う。
+
+**2026-09-22 11:00〜15:00「ポンテイデア 佐々木みなみさんのタロット」**
+- type: FIXED_APPOINTMENT
+- planningConstraint: BLOCK_TIME
+
+この4時間には他のTaskを自動配置しない。
+ユーザーが別途変更した場合のみ更新する。

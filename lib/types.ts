@@ -134,6 +134,64 @@ export interface DailyOccurrence {
   note: string | null;
 }
 
+// --- Calendar Source of Truth (2026-09-05 rule) ---
+// Google Calendar is not treated as uniformly "possibly stale." Confidence
+// depends on the kind of entry — see PRD.md §24. USER_CONFIRMED is highest;
+// CALENDAR_ONLY/NEEDS_CONFIRMATION are the floor and must never be promoted
+// to a Task/Goal fact on inference alone.
+export type CalendarConfidence =
+  | "USER_CONFIRMED" // Priority 1: user explicitly said "this is decided"
+  | "FIXED_ALL_DAY_EVENT" // Priority 2: all-day event = constraint, unless it's clearly a memo/placeholder
+  | "CONFIRMED_WEEKLY_READING" // Priority 3: the 60-day challenge's weekly book list
+  | "TIMED_EXECUTION_BLOCK" // Priority 4: a normal timed block — an execution plan, not a fixed fact
+  | "CONFIRMED_FIXED_EVENT" // a specific timed appointment confirmed on Calendar
+  | "CALENDAR_ONLY" // on Calendar but not elevated to any tier above
+  | "NEEDS_CONFIRMATION"; // ambiguous — must not be treated as fact until confirmed
+
+// What a fixed period should prevent from being auto-scheduled onto it.
+// BLOCK_NORMAL_WORK: don't place the usual work volume in this window.
+// NO_HEAVY_WORK: lighter-touch only (e.g. travel). BLOCK_TIME: don't place
+// anything in this specific time range.
+export type PlanningConstraint = "BLOCK_NORMAL_WORK" | "NO_HEAVY_WORK" | "BLOCK_TIME" | null;
+
+export type FixedEventType = "MILESTONE" | "TRAVEL" | "FIXED_APPOINTMENT";
+
+// A period or moment sourced from Google Calendar that this app treats as a
+// hard constraint rather than a movable execution-plan block. Never invent
+// one — only what the user has explicitly confirmed on Calendar belongs here.
+export interface FixedCalendarEvent {
+  id: string;
+  title: string;
+  type: FixedEventType;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD — same as startDate for a single day
+  startTime: string | null; // HH:mm, null for all-day
+  endTime: string | null;
+  confidence: CalendarConfidence;
+  planningConstraint: PlanningConstraint;
+  notes: string | null;
+}
+
+export type WeeklyReadingStatus = "CONFIRMED" | "IN_PROGRESS" | "DONE";
+
+// The 60-day challenge's "read one book a week" practice. The book list
+// itself is CONFIRMED per the user's own rule ("本に関しては確定でいい") —
+// never demote it to CALENDAR_ONLY/NEEDS_CONFIRMATION. targetDate/
+// calendarEventIds stay null/[] until actual Calendar data is read (Phase 3);
+// the title list here may itself be incomplete — the user gave examples, not
+// a closed list, so do not invent additional titles.
+export interface WeeklyReading {
+  id: string;
+  bookTitle: string;
+  targetDate: string | null;
+  calendarEventIds: string[];
+  status: WeeklyReadingStatus;
+  outcomeId: string | null;
+  learningPoints: string[];
+  personalExamples: string[];
+  actionItems: string[];
+}
+
 // --- Sales Master (営業プレイブック) ---
 // USABLE requires spoken practice/roleplay evidence, not just filled text —
 // see PRD-adjacent instructions; never set by "text exists" alone.

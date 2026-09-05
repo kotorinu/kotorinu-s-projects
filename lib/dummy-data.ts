@@ -1,5 +1,6 @@
 import {
   AiOperationMatrixEntry,
+  FixedCalendarEvent,
   Goal,
   LiveSalesFeedback,
   MonthEndState,
@@ -12,6 +13,7 @@ import {
   SalesPhase,
   SalesSprint,
   Task,
+  WeeklyReading,
   Workflow,
 } from "./types";
 
@@ -546,6 +548,100 @@ export const recurringRules: RecurringRule[] = [
     why: "「多分大丈夫」ではなく、実在する時間と期限から逆算して行動できる自分になるため。",
     outcomeId: "o-genesis-60day",
     streakDays: 0,
+  },
+];
+
+// --- Calendar Source of Truth（2026-09-05追加、PRD.md §24） ---
+// Only what the user explicitly confirmed on Google Calendar. Never add a
+// period/appointment here on inference — see FixedCalendarEvent's doc comment.
+export const fixedCalendarEvents: FixedCalendarEvent[] = [
+  {
+    id: "fce-genesis-camp",
+    title: "GENESIS合宿",
+    type: "MILESTONE",
+    startDate: "2026-10-03",
+    endDate: "2026-10-04",
+    startTime: null,
+    endTime: null,
+    confidence: "FIXED_ALL_DAY_EVENT",
+    planningConstraint: "BLOCK_NORMAL_WORK",
+    notes:
+      "直後に10/5〜10/8の北海道旅行が続くため、準備の実質的な完成期限は10/3当日ではなく10/2まで。10/3朝に大量の準備Taskを残さない。",
+  },
+  {
+    id: "fce-hokkaido-trip",
+    title: "北海道旅行",
+    type: "TRAVEL",
+    startDate: "2026-10-05",
+    endDate: "2026-10-08",
+    startTime: null,
+    endTime: null,
+    confidence: "FIXED_ALL_DAY_EVENT",
+    planningConstraint: "NO_HEAVY_WORK",
+    notes: "GENESIS合宿の直後。10月第1週は通常稼働週として扱わない。",
+  },
+  {
+    id: "fce-tarot-0922",
+    title: "ポンテイデア 佐々木みなみさんのタロット",
+    type: "FIXED_APPOINTMENT",
+    startDate: "2026-09-22",
+    endDate: "2026-09-22",
+    startTime: "11:00",
+    endTime: "15:00",
+    confidence: "CONFIRMED_FIXED_EVENT",
+    planningConstraint: "BLOCK_TIME",
+    notes: null,
+  },
+];
+
+// The 60日チャレンジ「毎週1冊読む」book list. Confirmed per the user's rule
+// ("本に関しては確定でいい"), but the user gave these as examples ("など") —
+// not a closed list — and gave no targetDate/calendarEventIds, so those stay
+// null/[] rather than being invented.
+export const weeklyReadings: WeeklyReading[] = [
+  {
+    id: "wr-shigoto-no-kyokasho",
+    bookTitle: "仕事の教科書",
+    targetDate: null,
+    calendarEventIds: [],
+    status: "CONFIRMED",
+    outcomeId: "o-genesis-60day",
+    learningPoints: [],
+    personalExamples: [],
+    actionItems: [],
+  },
+  {
+    id: "wr-the-format",
+    bookTitle: "THE FORMAT",
+    targetDate: null,
+    calendarEventIds: [],
+    status: "CONFIRMED",
+    outcomeId: "o-genesis-60day",
+    learningPoints: [],
+    personalExamples: [],
+    actionItems: [],
+  },
+  {
+    id: "wr-jiatamaryoku-wo-kitaeru",
+    bookTitle: "地頭力を鍛える",
+    targetDate: null,
+    calendarEventIds: [],
+    status: "CONFIRMED",
+    outcomeId: "o-genesis-60day",
+    learningPoints: [],
+    personalExamples: [],
+    actionItems: [],
+  },
+  {
+    id: "wr-kisoku-pdca",
+    bookTitle: "鬼速PDCA",
+    targetDate: null,
+    calendarEventIds: [],
+    status: "CONFIRMED",
+    outcomeId: "o-genesis-60day",
+    learningPoints: [],
+    personalExamples: [],
+    actionItems: [],
   },
 ];
 

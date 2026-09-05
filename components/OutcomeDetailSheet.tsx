@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { recurringRules, tasks } from "@/lib/dummy-data";
+import { recurringRules, tasks, weeklyReadings } from "@/lib/dummy-data";
+import { confidenceLabel } from "@/lib/calendar";
 import { computeProgress } from "@/lib/progress";
 import ProgressBar from "@/components/ProgressBar";
 import type { Outcome } from "@/lib/types";
@@ -25,6 +26,7 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
 
   const linkedRules = recurringRules.filter((r) => r.outcomeId === outcome.id);
   const linkedTasks = tasks.filter((t) => t.outcomeId === outcome.id);
+  const linkedReadings = weeklyReadings.filter((r) => r.outcomeId === outcome.id);
   const taskProgress = computeProgress(linkedTasks);
 
   return (
@@ -117,6 +119,26 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
                   </li>
                 ))}
               </ul>
+            </Section>
+          )}
+
+          {linkedReadings.length > 0 && (
+            <Section title="Weekly Reading（毎週1冊）">
+              <ul className="flex flex-col gap-1.5">
+                {linkedReadings.map((r) => (
+                  <li key={r.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-[12px] font-bold text-stone-700">{r.bookTitle}</p>
+                      <span className="shrink-0 text-[10px] font-bold text-stone-400">
+                        {r.targetDate ?? "読了予定日未確認"}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] text-stone-400">
+                Google Calendarに登録された書籍として{confidenceLabel("CONFIRMED_WEEKLY_READING")}扱い。上記は本人が挙げた例で、他にもCalendar上に予定がある可能性あり。
+              </p>
             </Section>
           )}
 

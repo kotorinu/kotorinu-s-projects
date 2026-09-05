@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
 import {
   dayOfMonth,
   daysBetween,
@@ -14,10 +14,11 @@ import {
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
+import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
-import type { Area, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
+import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
 
 const today = todayStr();
 
@@ -46,6 +47,12 @@ const areaDotColor: Record<Area, string> = {
   RIALA: "#7c3aed",
   GENESIS: "#0d9488",
   その他: "#a8a29e",
+};
+
+const fixedEventTypeIcon: Record<FixedEventType, string> = {
+  MILESTONE: "🏕",
+  TRAVEL: "✈",
+  FIXED_APPOINTMENT: "📌",
 };
 
 const statusDot: Record<TaskStatus, string> = {
@@ -154,6 +161,7 @@ export default function TaskMapPage() {
   }, [undatedTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
 
   const endStates = monthEndStates.filter((s) => s.monthKey === monthKey);
+  const monthFixedEvents = eventsForMonth(fixedCalendarEvents, monthKey);
 
   function resetRefine() {
     setAreaFilter("全部");
@@ -216,6 +224,42 @@ export default function TaskMapPage() {
           ))}
         </div>
       </section>
+
+      {monthFixedEvents.length > 0 && (
+        <section className="mx-5 mt-2.5 flex flex-col gap-1.5">
+          {monthFixedEvents.map((e) => {
+            const constraintLabel = planningConstraintLabel(e.planningConstraint);
+            const dateLabel =
+              e.startDate === e.endDate
+                ? `${formatMd(e.startDate)}${e.startTime ? ` ${e.startTime}〜${e.endTime}` : ""}`
+                : `${formatMd(e.startDate)}〜${formatMd(e.endDate)}`;
+            return (
+              <div
+                key={e.id}
+                className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[13px] font-bold text-stone-700">
+                    {fixedEventTypeIcon[e.type]} {e.title}
+                  </p>
+                  <span className="shrink-0 text-[11px] font-bold text-stone-500">{dateLabel}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {constraintLabel && (
+                    <span className="rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-bold text-white">
+                      {constraintLabel}
+                    </span>
+                  )}
+                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                    {confidenceLabel(e.confidence)}
+                  </span>
+                </div>
+                {e.notes && <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{e.notes}</p>}
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <div className="flex items-baseline justify-between">
