@@ -64,6 +64,14 @@ export interface Task {
   workflowId: string | null; // Workflow this was generated from (LEVEL 2), if any
   requiredInputs: string[]; // what had to be known/true before this could exist
   notes: string | null;
+  // --- Goal → Decompose → Execute → Measure → Improve (PRD.md §25) ---
+  preparationForTaskId: string | null; // set → this Task IS prep for another Task, not the execution itself
+  recommendedTiming: RecommendedTiming | null; // when a Preparation Task should be done
+  contextTags: string[]; // "いつ・どの状況でやるか" — only tags that prevent hesitation at execution time
+  varianceMinutes: number | null; // actualMinutes - estimateMinutes, once both are known
+  variancePercent: number | null;
+  varianceReason: VarianceReason | null; // a category, picked only on a large overrun — not a prompt for prose
+  nextEstimateMinutes: number | null; // AI-suggested next estimate, once same-type history exists (Phase 1: always null, no history yet)
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +87,12 @@ export interface Goal {
   desiredState: string;
   achievementCriteria: string;
   status: GoalStatus;
+  // A Goal node can point at the Area's real detail instead of duplicating
+  // it — an Outcome/Master already has the canonical content (RIALA's
+  // achievementCriteria[], Sales Master's phases, etc). Never copy that
+  // content onto the Goal; link to it.
+  linkedUrl: string | null; // e.g. "/riala-master", "/sales-master"
+  note: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -199,6 +213,107 @@ export interface WeeklyReading {
   learningPoints: string[];
   personalExamples: string[];
   actionItems: string[];
+}
+
+// --- Execution OS: Goal → Decompose → Execute → Measure → Improve (2026-09-05, PRD.md §25) ---
+// The basic loop every Task sits inside. "done/not done" alone isn't enough:
+// what to achieve → what it breaks into → estimated/actual minutes → why
+// they diverged → what changes next time. Phase 1 has no DB, so instances
+// of DayPlan/WeeklyReview/ConsultationPrep/SpeedPracticeCheck below are not
+// persisted or populated with real data yet — types only, ready for Phase 2.
+// Never fabricate an instance to make a feature look "done."
+
+export type RecommendedTiming =
+  | "PREVIOUS_NIGHT" // 前日の夜
+  | "EARLY_MORNING" // 朝一
+  | "BEFORE_LEAVING" // 外出前
+  | "BEFORE_MEETING" // 商談・会議前
+  | "START_OF_TASK" // 実行の直前
+  | "DURING_COMMUTE" // 移動中
+  | "ANYTIME";
+
+export type VarianceReason =
+  | "UNDER_DECOMPOSED" // 分解不足
+  | "MISSING_INFO" // 必要情報不足
+  | "LOST_FOCUS" // 集中途切れ
+  | "UNEXPECTED_WORK" // 想定外対応
+  | "TECHNICAL_ISSUE" // 技術問題
+  | "ESTIMATE_MISS" // Estimateミス
+  | "SCOPE_ADDED"; // Task Scope追加
+
+// A confirmed plan for one day, produced by Manager Mode the night before —
+// "翌朝、TODAYを開けば何を・何時に・どこまでやるか決まっている" state.
+// Once confirmedAt is set, Executor Mode (TODAY) doesn't re-decide priority;
+// only a genuinely new circumstance triggers Replan (a new DayPlan/status).
+export type DayPlanStatus = "DRAFT" | "CONFIRMED" | "SUPERSEDED";
+
+export interface DayPlan {
+  id: string;
+  date: string; // YYYY-MM-DD — the day this plan is for
+  successState: string | null; // 「明日の成功状態」
+  topGoalId: string | null; // Goal or Outcome id this day serves most
+  taskIds: string[]; // Next Actions, in execution order
+  doNotList: string[]; // 「明日やらないこと」
+  estimateTotalMinutes: number | null;
+  bufferMinutes: number | null;
+  status: DayPlanStatus;
+  confirmedAt: string | null;
+}
+
+// Preparation before asking someone for help — replaces a bare "Slackで相談
+// する" Task, which is not allowed on its own. Must specify what/why/whom/
+// what answer is wanted before the Task counts as ready.
+export type HelpType = "INFORMATION" | "ADVICE" | "DECISION" | "REVIEW" | "EXECUTION_HELP" | "SHARING_ONLY";
+
+export interface ConsultationPrep {
+  id: string;
+  relatedTaskId: string | null;
+  purpose: string;
+  currentSituation: string;
+  whatIKnow: string[];
+  whatIDontKnow: string[];
+  hypothesis: string | null;
+  concern: string | null;
+  helpType: HelpType;
+  desiredAnswer: string;
+  recipient: string | null;
+  bestTiming: string | null;
+  bestChannel: string | null;
+  createdAt: string;
+}
+
+// The 7 checklist items the user has actually confirmed for weekly Speed
+// Practice review. The book's "3つのすぐ" is referenced but its exact 3
+// items were never confirmed in chat — do not invent names/definitions for
+// it; this type holds only what's confirmed.
+export interface SpeedPracticeCheck {
+  weekKey: string;
+  setGoal: boolean; // 目標を立てたか
+  decomposed: boolean; // 分解したか
+  measuredTime: boolean; // 時間を測ったか
+  prepared: boolean; // 事前準備したか
+  noHesitationAtExecution: boolean; // 実行時に迷わなかったか
+  startedImmediately: boolean; // すぐ着手したか
+  clarifiedHelpNeed: boolean; // Help Needを明確にしたか
+}
+
+// Weekly aggregate over Estimate/Actual. Every number here must come from
+// real completed Tasks with real actualMinutes — with none yet recorded,
+// no WeeklyReview instance should exist; never compute one from all-null
+// data and present it as if it were real.
+export interface WeeklyReview {
+  id: string;
+  weekKey: string;
+  tasksCompleted: number;
+  estimateTotalMinutes: number | null;
+  actualTotalMinutes: number | null;
+  avgVariancePercent: number | null;
+  biggestOverruns: string[]; // Task ids
+  underDecomposedTasks: string[]; // Task ids
+  underPreparedTasks: string[]; // Task ids
+  improvedTasks: string[]; // Task ids that got faster after a change
+  helpNeedUsed: number;
+  nextImprovements: string[]; // 1-3 items, never more
 }
 
 // --- Sales Master (営業プレイブック) ---

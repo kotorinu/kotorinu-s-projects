@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { goals, tasks } from "@/lib/dummy-data";
 import { formatMd, todayStr } from "@/lib/date";
 import type { Goal } from "@/lib/types";
@@ -24,17 +25,20 @@ function GoalTreeContent() {
     () => new Set(linkedFocusId ? [linkedFocusId] : [])
   );
 
-  const chain = useMemo(() => {
-    const byParent = new Map<string | null, Goal>();
-    for (const g of goals) byParent.set(g.parentId, g);
-    const ordered: Goal[] = [];
-    let current = byParent.get(null);
-    while (current) {
-      ordered.push(current);
-      current = byParent.get(current.id);
+  // A real tree, not a single chain: g-direction alone has 3 children
+  // (GENESIS/営業代行/RIALA) that all matter at once. Collapsing that into
+  // one linear chain would silently drop siblings from view.
+  const childrenOf = useMemo(() => {
+    const map = new Map<string | null, Goal[]>();
+    for (const g of goals) {
+      const list = map.get(g.parentId) ?? [];
+      list.push(g);
+      map.set(g.parentId, list);
     }
-    return ordered;
+    return map;
   }, []);
+
+  const roots = childrenOf.get(null) ?? [];
 
   const tasksOf = useMemo(() => {
     const map = new Map<string, number>();
@@ -47,14 +51,14 @@ function GoalTreeContent() {
 
   const focusId = useMemo(() => {
     let best: { id: string; diff: number } | null = null;
-    for (const g of chain) {
+    for (const g of goals) {
       if (!g.targetDate) continue;
       const diff = new Date(g.targetDate).getTime() - todayMs;
       if (diff < 0) continue;
       if (!best || diff < best.diff) best = { id: g.id, diff };
     }
     return best?.id ?? null;
-  }, [chain]);
+  }, []);
 
   useEffect(() => {
     if (!linkedFocusId) return;
@@ -79,7 +83,7 @@ function GoalTreeContent() {
       </header>
 
       <div className="mt-4 px-5">
-        {chain.length === 0 ? (
+        {roots.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-stone-200 py-14 text-center">
             <span className="text-3xl">🌱</span>
             <p className="text-sm text-stone-400">
@@ -89,18 +93,18 @@ function GoalTreeContent() {
             </p>
           </div>
         ) : (
-          chain.map((goal, i) => (
-            <div key={goal.id} id={`goal-${goal.id}`} className="scroll-mt-28">
-              <TimelineRow
-                goal={goal}
-                isLast={i === chain.length - 1}
-                isFocus={goal.id === focusId}
-                isLinked={goal.id === linkedFocusId}
-                linkedTasks={tasksOf.get(goal.id) ?? 0}
-                expanded={expandedIds.has(goal.id)}
-                onToggle={() => toggle(goal.id)}
-              />
-            </div>
+          roots.map((goal) => (
+            <GoalBranch
+              key={goal.id}
+              goal={goal}
+              depth={0}
+              childrenOf={childrenOf}
+              tasksOf={tasksOf}
+              focusId={focusId}
+              linkedFocusId={linkedFocusId}
+              expandedIds={expandedIds}
+              onToggle={toggle}
+            />
           ))
         )}
       </div>
@@ -108,9 +112,57 @@ function GoalTreeContent() {
   );
 }
 
+function GoalBranch({
+  goal,
+  depth,
+  childrenOf,
+  tasksOf,
+  focusId,
+  linkedFocusId,
+  expandedIds,
+  onToggle,
+}: {
+  goal: Goal;
+  depth: number;
+  childrenOf: Map<string | null, Goal[]>;
+  tasksOf: Map<string, number>;
+  focusId: string | null;
+  linkedFocusId: string | null;
+  expandedIds: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const children = childrenOf.get(goal.id) ?? [];
+  return (
+    <div id={`goal-${goal.id}`} className="scroll-mt-28" style={{ marginLeft: depth * 14 }}>
+      <TimelineRow
+        goal={goal}
+        hasChildren={children.length > 0}
+        isFocus={goal.id === focusId}
+        isLinked={goal.id === linkedFocusId}
+        linkedTasks={tasksOf.get(goal.id) ?? 0}
+        expanded={expandedIds.has(goal.id)}
+        onToggle={() => onToggle(goal.id)}
+      />
+      {children.map((child) => (
+        <GoalBranch
+          key={child.id}
+          goal={child}
+          depth={depth + 1}
+          childrenOf={childrenOf}
+          tasksOf={tasksOf}
+          focusId={focusId}
+          linkedFocusId={linkedFocusId}
+          expandedIds={expandedIds}
+          onToggle={onToggle}
+        />
+      ))}
+    </div>
+  );
+}
+
 function TimelineRow({
   goal,
-  isLast,
+  hasChildren,
   isFocus,
   isLinked,
   linkedTasks,
@@ -118,7 +170,7 @@ function TimelineRow({
   onToggle,
 }: {
   goal: Goal;
-  isLast: boolean;
+  hasChildren: boolean;
   isFocus: boolean;
   isLinked: boolean;
   linkedTasks: number;
@@ -133,7 +185,7 @@ function TimelineRow({
             isFocus ? "bg-accent ring-4 ring-accent-soft" : "bg-white ring-2 ring-stone-200"
           }`}
         />
-        {!isLast && <span className="mt-1 w-px flex-1 bg-stone-200" />}
+        {hasChildren && <span className="mt-1 w-px flex-1 bg-stone-200" />}
       </div>
 
       <button
@@ -176,6 +228,16 @@ function TimelineRow({
                 <span className="font-bold">紐づくタスク　</span>
                 {linkedTasks}件
               </p>
+            )}
+            {goal.note && <p className="text-stone-400">{goal.note}</p>}
+            {goal.linkedUrl && (
+              <Link
+                href={goal.linkedUrl}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-block font-bold text-accent-dark"
+              >
+                ＞ 詳細を見る
+              </Link>
             )}
           </div>
         )}

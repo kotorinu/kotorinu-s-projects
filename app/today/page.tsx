@@ -69,6 +69,26 @@ export default function TodayPage() {
     });
   }, [todayTasks]);
 
+  // Executor Mode (PRD.md §25): TODAY doesn't ask you to re-prioritize —
+  // it hands you NOW, then NEXT, then everything else. Priority was already
+  // decided (by Manager Mode the night before, once that exists; for now,
+  // by each task's own importance/urgency at data-entry time).
+  const openTodayTasks = useMemo(() => todayTasks.filter((t) => !done.has(t.id)), [todayTasks, done]);
+  const doneTodayTasks = useMemo(() => todayTasks.filter((t) => done.has(t.id)), [todayTasks, done]);
+  const nowTask = openTodayTasks[0] ?? null;
+  const nextTask = openTodayTasks[1] ?? null;
+  const laterTasks = openTodayTasks.slice(2);
+  const [doneListOpen, setDoneListOpen] = useState(false);
+
+  const preparationCountByTaskId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of allTasks) {
+      if (!t.preparationForTaskId) continue;
+      map.set(t.preparationForTaskId, (map.get(t.preparationForTaskId) ?? 0) + 1);
+    }
+    return map;
+  }, []);
+
   const doneCount = todayTasks.filter((t) => done.has(t.id)).length;
   const totalCount = todayTasks.length;
   const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
@@ -227,17 +247,80 @@ export default function TodayPage() {
         {todayTasks.length === 0 ? (
           <EmptyState icon="🌤" text="今日やるタスクはありません" />
         ) : (
-          <ul className="flex flex-col gap-2.5">
-            {todayTasks.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                checked={done.has(t.id)}
-                onToggle={() => toggle(t)}
-                onOpen={() => setSelectedTask(t)}
-              />
-            ))}
-          </ul>
+          <div className="flex flex-col gap-5">
+            {nowTask && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-black tracking-widest text-accent-dark">NOW</p>
+                <TaskRow
+                  task={nowTask}
+                  checked={false}
+                  onToggle={() => toggle(nowTask)}
+                  onOpen={() => setSelectedTask(nowTask)}
+                  preparationCount={preparationCountByTaskId.get(nowTask.id) ?? 0}
+                  emphasis
+                />
+              </div>
+            )}
+
+            {nextTask && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">NEXT</p>
+                <TaskRow
+                  task={nextTask}
+                  checked={false}
+                  onToggle={() => toggle(nextTask)}
+                  onOpen={() => setSelectedTask(nextTask)}
+                  preparationCount={preparationCountByTaskId.get(nextTask.id) ?? 0}
+                />
+              </div>
+            )}
+
+            {laterTasks.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
+                  LATER TODAY（{laterTasks.length}）
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {laterTasks.map((t) => (
+                    <TaskRow
+                      key={t.id}
+                      task={t}
+                      checked={false}
+                      onToggle={() => toggle(t)}
+                      onOpen={() => setSelectedTask(t)}
+                      preparationCount={preparationCountByTaskId.get(t.id) ?? 0}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {doneTodayTasks.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setDoneListOpen((v) => !v)}
+                  className="text-[11px] font-bold text-stone-400"
+                >
+                  完了（{doneTodayTasks.length}） {doneListOpen ? "▾" : "▸"}
+                </button>
+                {doneListOpen && (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {doneTodayTasks.map((t) => (
+                      <TaskRow
+                        key={t.id}
+                        task={t}
+                        checked={true}
+                        onToggle={() => toggle(t)}
+                        onOpen={() => setSelectedTask(t)}
+                        preparationCount={preparationCountByTaskId.get(t.id) ?? 0}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </section>
 
@@ -410,11 +493,15 @@ function TaskRow({
   checked,
   onToggle,
   onOpen,
+  preparationCount = 0,
+  emphasis = false,
 }: {
   task: Task;
   checked: boolean;
   onToggle: () => void;
   onOpen: () => void;
+  preparationCount?: number;
+  emphasis?: boolean;
 }) {
   const overdue = task.deadline !== null && daysBetween(today, task.deadline) < 0;
   const [burst, setBurst] = useState(false);
@@ -434,7 +521,9 @@ function TaskRow({
 
   return (
     <li
-      className="flex items-start gap-3 rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] transition-opacity duration-200"
+      className={`flex items-start gap-3 rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] transition-opacity duration-200 ${
+        emphasis ? "ring-2 ring-accent-soft" : ""
+      }`}
       style={{ opacity: checked ? 0.55 : 1 }}
     >
       <button
@@ -483,6 +572,24 @@ function TaskRow({
             期限 {formatMd(task.deadline)}
           </span>
         </div>
+
+        {!checked && (task.definitionOfDone.length > 0 || preparationCount > 0 || task.contextTags.length > 0) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
+            {task.definitionOfDone.length > 0 && (
+              <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
+            )}
+            {preparationCount > 0 && (
+              <span className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
+                準備{preparationCount}件
+              </span>
+            )}
+            {task.contextTags.map((tag) => (
+              <span key={tag} className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </button>
     </li>
   );

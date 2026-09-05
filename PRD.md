@@ -886,3 +886,155 @@ TASK MAPでは、その月の固定予定は最下部に「◯月の固定予定
 「TASK MAPから見えなくする」ことと「データを削除する」ことは別。
 Master / Workflow / Template / Calendar Constraint / Historical Record は、
 表示から外れても実データとして保持し続ける。
+
+---
+
+# 25. Execution OS — Goal → Decompose → Execute → Measure → Improve（2026-09-05追加・恒久ルール）
+
+このOSの基本ループ：
+
+```
+GOAL（目標）
+↓
+DECOMPOSE（分解）
+↓
+EXECUTE（実行）
+↓
+MEASURE（計測）
+↓
+IMPROVE（改善）
+```
+
+Task管理は「やった／やっていない」だけでは足りない。
+何を達成するか→何に分解するか→何分でやる予定か→何分かかったか→
+なぜ差が出たか→次回どう変えるか、まで扱える構造にする
+（Task.estimateMinutes/actualMinutes/varianceMinutes/variancePercent/
+varianceReason/nextEstimateMinutes/nextImprovement）。
+
+## Decompose：分解品質
+
+人間が実行時に考えなくてよい粒度までTask/Subtaskを分解する。
+
+悪い例：「ロープレする」
+良い例：前日（台本を開ける状態にする／録音準備／顧客設定を決める）→
+当日（台本確認／ロープレ／録音確認／詰まりを記録／改善点を決める）
+
+## Preparation Task
+
+「実行前準備」を正式概念にする。Preparationは通常のTaskと同じ型を使い、
+`preparationForTaskId`で実行Taskに紐付ける（別の親エンティティは作らない）。
+
+fields: `preparationForTaskId` / `recommendedTiming`
+（PREVIOUS_NIGHT/EARLY_MORNING/BEFORE_LEAVING/BEFORE_MEETING/
+START_OF_TASK/DURING_COMMUTE/ANYTIME） / `contextTags`
+
+Context/Timingタグは実行時に迷わないために必要なものだけ。
+大量にタグを作って管理負荷を増やさない。
+
+## Manager Mode / Executor Mode
+
+ユーザーの中の「経営者」と「実行者」をOS上でも分ける。
+
+**Manager Mode**（原則、前日の夜）：翌日の実行者が考えなくても動ける状態を
+作る。明日の成功状態／TOP Goal／必要Task／Subtask／Preparation／
+やらないこと／Estimate／実行順／Calendar時間／Buffer／完了条件を確定する。
+Definition of Done：翌朝TODAYを開けば「何を・何時に・どこまで」やるか
+決まっている。
+
+**Executor Mode**（翌朝〜実行中）：優先順位を考え直さない。TODAYに並んだ
+Next Actionを上から実行する。新しい事情が発生した場合のみReplanを起動。
+
+Night Planningの確定出力は`DayPlan`型（date/successState/topGoalId/
+taskIds/doNotList/estimateTotalMinutes/bufferMinutes/status/
+confirmedAt）。**Phase 1では型のみ定義**——実際にManager Modeを毎晩回す
+UI（TOMORROW PLAN画面）はまだ実装していない。実データのないまま
+Weekly Review的な集計画面を先に作ると、0件の実績を「実績のように」
+見せてしまうため、UIより先にスキーマだけを固めた。
+
+## TODAY = Executor画面
+
+TODAYの目的は「考えること」ではなく「実行すること」。
+
+表示優先順位：NOW → NEXT → LATER TODAY。各Taskには最低限、
+何をする／何分／完了条件（1件目のみ表示）／必要な準備件数／Context Tagだけを
+見せる。Goalや長い理由は詳細を開いたときに確認（TaskDetailSheet）。
+朝に大量なTask整理をさせない。完了済みは折りたたんで下部に格納する。
+
+（2026-09-05実装：`app/today/page.tsx`がNOW/NEXT/LATER TODAY構成へ変更済み）
+
+## 計測（Estimate vs Actual）
+
+完了時にEstimate/Actualの差分（varianceMinutes/variancePercent）を記録する。
+大幅超過時だけ理由を`varianceReason`（UNDER_DECOMPOSED/MISSING_INFO/
+LOST_FOCUS/UNEXPECTED_WORK/TECHNICAL_ISSUE/ESTIMATE_MISS/SCOPE_ADDED）
+から選ばせる。毎回長文入力を求めない。
+
+同種Taskの履歴が溜まったら次回Estimateを`nextEstimateMinutes`としてAIが
+提案できる構造にする（将来のpersistent DB移行を想定したSchema）。
+**Phase 1では実績が1件も無いため、この値は常にnullのまま**。
+架空の実績・架空の次回見積もりを入れない。
+
+## AI Executor
+
+Taskごとの`aiCapability`（HUMAN/AI_EXECUTE/AI_DRAFT/HYBRID/DECISION/
+BLOCKED、既存）で「実行者」をAIへ移す。原則：AIができる処理はAIが実行、
+AIができない人間作業はAIがPreparationまで終わらせ、人間は最後の実行だけを行う。
+例：RIALAの情報整理／文章作成／分類／QAはAI、最終承認・必要な送信はHuman。
+営業の台本整理／FB統合／想定顧客作成／改善候補はAI、声を出すロープレ・
+実商談はHuman。
+
+## Help Need Workflow
+
+人へ相談する前の事前準備を`ConsultationPrep`として型定義する
+（purpose/currentSituation/whatIKnow/whatIDontKnow/hypothesis/concern/
+helpType/desiredAnswer/recipient/bestTiming/bestChannel）。
+helpType: INFORMATION/ADVICE/DECISION/REVIEW/EXECUTION_HELP/SHARING_ONLY。
+
+「Slackで相談する」だけのTaskは禁止。何を・なぜ・誰に・何を答えてほしいか
+まで具体化する。**Phase 1では型のみ、実インスタンス・UIは未実装**。
+
+## Yes But / Help Need行動原則
+
+「まずやります」→必要なら条件・Helpを明確にする、という行動原則を
+Practice Principleとして保持する。これは自動承諾機能ではなく行動原則／
+Review項目。安全・法務・金銭・契約など即答が不適切なものまで自動YESには
+しない。
+
+例：「営業をやってみる」→YES。ただし「現時点では経験が不足しているため、
+最初の2〜3回同行してほしい」のようにHelp Needを具体化する。
+
+## Speed Practice / Weekly Review
+
+Weekly Reviewで確認する項目（`SpeedPracticeCheck`、本人確認済みの7項目のみ）：
+目標を立てたか／分解したか／時間を測ったか／事前準備したか／
+実行時に迷わなかったか／すぐ着手したか／Help Needを明確にしたか。
+
+本で読んだ「3つのすぐ」は正確な3項目が確認できていないため、
+名称・定義を勝手に補完しない。現在確認できている7項目のみ保持する。
+
+Weekly Reviewの集計（`WeeklyReview`型：Task完了数／Estimate・Actual合計／
+平均超過率／大きく超過したTask／分解不足Task／Preparation不足Task／
+改善後に速くなったTask／Help Need活用／来週改善1〜3件）は、
+**実際に完了しactualMinutesが記録されたTaskが無い限り生成しない**。
+数字が存在しないものは推測しない——0件の実績から「平均超過率0%」のような
+見かけ上の数字を作らない。
+
+## Goal Tree（2026-09-05復元）
+
+2026-09-05のFixture削除（commit 8b41a7e）でgoals/tasks/monthEndStatesが
+空になって以降、Goal Treeは長らく空のままだった。これは「意図的な空状態」
+ではなく「本来存在すべき確定データがまだ投入されていない」状態だったため、
+本人確認済みの内容のみで再構築した：
+
+- Life Philosophy → Work Philosophy → 長期方向（Direction）の直列チェーン
+- Direction配下に GENESIS 60日チャレンジ／営業代行／RIALA の3分岐
+- GENESIS 60日チャレンジ配下に GENESIS合宿（10/3〜10/4）Milestone
+
+5年／3年／1年／3か月／1か月の各階層は本人確認済みの具体的内容がまだ
+無いため、ノードを作らずUNKNOWNのまま扱う（削除された旧Fixture Goalの
+内容をそのまま復元することは禁止）。
+
+Goal TreeのUIは単一チェーン前提だったため、Direction配下の3分岐が
+描画から欠落する実装バグがあった。2026-09-05に親子マップを
+`Map<parentId, Goal[]>`へ一般化し、複数子を持つツリーとして描画するよう
+修正済み。
