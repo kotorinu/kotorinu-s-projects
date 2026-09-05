@@ -15,6 +15,7 @@ import {
   Task,
   WeeklyReading,
   Workflow,
+  WorkPrinciple,
 } from "./types";
 
 // Phase 1 fixture cleanup (2026-09-05): only data the user has explicitly
@@ -184,6 +185,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -242,6 +244,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -301,6 +304,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -361,6 +365,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -410,6 +415,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "ai",
     createdAt: now,
     updatedAt: now,
@@ -456,6 +462,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -502,6 +509,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -561,6 +569,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -607,6 +616,7 @@ export const tasks: Task[] = [
     variancePercent: null,
     varianceReason: null,
     nextEstimateMinutes: null,
+    workContext: null,
     source: "manual",
     createdAt: now,
     updatedAt: now,
@@ -814,6 +824,81 @@ export const weeklyReadings: WeeklyReading[] = [
     learningPoints: [],
     personalExamples: [],
     actionItems: [],
+  },
+];
+
+// --- Work Principles / 仕事の型（2026-09-05、PRD.md §26） ---
+// Content transcribed directly from the user's confirmed message — never
+// extend beyond what's given (e.g. QUALITY_BAR's 1/3/5-10-year mapping was
+// explicitly NOT confirmed, so it isn't encoded here as a fixed field).
+export const workPrinciples: WorkPrinciple[] = [
+  {
+    id: "PURPOSE_FIRST",
+    title: "PURPOSE FIRST",
+    summary: "コミュニケーション開始時に目的を明示する",
+    guidance: ["会話や依頼の冒頭で、何のための連絡かを先に伝える", "必要に応じて所要時間も先に伝える"],
+    options: [
+      "CONSULTATION（相談）",
+      "SHARING（共有）",
+      "DECISION（意思決定）",
+      "CONFIRMATION（確認）",
+      "REQUEST（依頼）",
+    ],
+    examples: ["相談があります。10分ほどです。", "意思決定をお願いしたい重要な話です。"],
+    caveat: null,
+  },
+  {
+    id: "CONCLUSION_FIRST",
+    title: "CONCLUSION FIRST",
+    summary: "文章・見出しでは、何を伝える／何をしてほしいのかを先に置く",
+    guidance: [],
+    options: [],
+    examples: ["ご相談：〇〇について", "共有：〇〇について", "確認依頼：〇〇について"],
+    caveat: null,
+  },
+  {
+    id: "SHORT_SENTENCE",
+    title: "SHORT SENTENCE",
+    summary: "1文40文字以内、できれば20文字以内",
+    guidance: ["1文を40文字以内に収める", "できれば20文字以内を目指す"],
+    options: [],
+    examples: [],
+    caveat: "本人が今回採用する仕事上の文章基準として保持するものであり、一般的な絶対ルールではない",
+  },
+  {
+    id: "FACT_INTERPRETATION",
+    title: "FACT / INTERPRETATION",
+    summary: "事実と解釈を混ぜない。FACT→INTERPRETATIONの順で整理する",
+    guidance: [
+      "まずFACT（事実）を書く",
+      "次にINTERPRETATION（解釈）を書く",
+      "AIはFACTとINTERPRETATIONを勝手に混同しない",
+    ],
+    options: ["GOOD", "BAD", "NOT_CLEAR"],
+    examples: [],
+    caveat: null,
+  },
+  {
+    id: "HUMAN_INTERPRETATION",
+    title: "HUMAN INTERPRETATION",
+    summary: "AIによる事実整理だけで完了させず、本人の解釈を残す",
+    guidance: [
+      "重要な判断では「この事実を本人はどう解釈するか」「なぜそう解釈するか」を残せる構造にする",
+      "本人の解釈をAIが勝手に捏造しない",
+    ],
+    options: [],
+    examples: [],
+    caveat: null,
+  },
+  {
+    id: "QUALITY_BAR",
+    title: "QUALITY BAR",
+    summary: "仕事に取り組む際、可能であれば事前に水準を確認する",
+    guidance: ["自分の感覚だけで品質判断せず、その領域の高い水準を知って仕事をする"],
+    options: ["MINIMUM", "BEST", "BEST_EVER"],
+    examples: [],
+    caveat:
+      "1年／3年／5〜10年という期間との厳密な対応関係は本の内容を完全に確認できていないため、固定仕様化しない",
   },
 ];
 

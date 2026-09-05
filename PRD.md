@@ -1038,3 +1038,59 @@ Goal TreeのUIは単一チェーン前提だったため、Direction配下の3�
 描画から欠落する実装バグがあった。2026-09-05に親子マップを
 `Map<parentId, Goal[]>`へ一般化し、複数子を持つツリーとして描画するよう
 修正済み。
+
+---
+
+# 26. Work Principles / 仕事の型 — Knowledge Layer（2026-09-05追加・恒久ルール）
+
+TaskでもCalendar Eventでもない第3のデータ種別。
+「ユーザーが覚えて毎回意識する」のではなく、
+Taskの種類（`workContext`）に応じてAIが必要なPrincipleを自動参照する。
+
+## 本人確認済みPrinciple（6件、`WorkPrinciple`型）
+
+- **PURPOSE FIRST**：コミュニケーション開始時に目的を明示する。
+  purposeType＝CONSULTATION/SHARING/DECISION/CONFIRMATION/REQUEST。
+  必要に応じて所要時間も先に伝える
+- **CONCLUSION FIRST**：文章・見出しでは何を伝える／してほしいかを先に置く
+- **SHORT SENTENCE**：1文40文字以内、できれば20文字以内。
+  一般的な絶対ルールではなく、本人が今回採用する仕事上の文章基準
+- **FACT / INTERPRETATION**：事実と解釈を混ぜない。FACT→INTERPRETATION
+  の順で整理する。InterpretationにはGOOD/BAD/NOT_CLEARを付けられる。
+  AIはFACTとINTERPRETATIONを勝手に混同しない
+- **HUMAN INTERPRETATION**：AIによる事実整理だけで完了させない。
+  重要な判断では「本人はどう解釈するか」「なぜそう解釈するか」を
+  残せる構造にする。本人の解釈をAIが勝手に捏造しない
+- **QUALITY BAR**：可能であれば事前に水準（MINIMUM/BEST/BEST_EVER）を
+  確認する。1年／3年／5〜10年という期間との厳密な対応関係は本の内容を
+  完全に確認できていないため固定仕様化しない
+
+## Taskとの連携（`workContext`→Principle自動参照）
+
+Work Principleをすべてのタスクに毎回表示しない。`Task.workContext`が
+設定されている時だけ、対応するPrincipleをTaskDetailSheetの
+「今回使う仕事の型」セクションに小さく表示する。
+
+確定済みマッピング：
+
+| workContext | 参照するPrinciple |
+|---|---|
+| Slack相談 | PURPOSE FIRST / FACT・INTERPRETATION / Help Need / SHORT SENTENCE |
+| RIALA告知文 | PURPOSE FIRST / CONCLUSION FIRST / SHORT SENTENCE |
+| 営業FB相談 | PURPOSE FIRST / FACT・INTERPRETATION / Help Need |
+| 振り返り | FACT・INTERPRETATION（GOOD/BAD/NOT_CLEAR） |
+| 重要成果物 | QUALITY BAR |
+
+Help Needは新しいPrincipleではなく、既存のHelp Need Workflow
+（`ConsultationPrep`、PRD.md §25）への参照。
+
+**2026-09-05時点：既存の実Task（営業8件・RIALA1件）にはworkContextを
+一切設定していない**。どのタスクがどのcontextに該当するかは本人の判断が
+必要なため、勝手に分類しない。
+
+## UI方針
+
+大きな新ページは作らない。Knowledge Layer自体は`workPrinciples`配列
+（`lib/dummy-data.ts`）に保持し、TaskDetailSheet内でTask.workContextに
+応じて必要な分だけ参照する設計に留める。Goal Tree / Sales Master / RIALA
+/ GENESIS / TODAY / TASK MAPの既存実装は変更しない。

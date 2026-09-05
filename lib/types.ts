@@ -72,6 +72,7 @@ export interface Task {
   variancePercent: number | null;
   varianceReason: VarianceReason | null; // a category, picked only on a large overrun — not a prompt for prose
   nextEstimateMinutes: number | null; // AI-suggested next estimate, once same-type history exists (Phase 1: always null, no history yet)
+  workContext: WorkContextTag | null; // which Work Principles (§26) apply to this Task, if any
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -314,6 +315,52 @@ export interface WeeklyReview {
   improvedTasks: string[]; // Task ids that got faster after a change
   helpNeedUsed: number;
   nextImprovements: string[]; // 1-3 items, never more
+}
+
+// --- Work Principles / 仕事の型 — Knowledge Layer (2026-09-05, PRD.md §26) ---
+// Not a Task, not a Calendar Event: a small reusable "how to communicate/
+// judge quality" reference. The point is that the user shouldn't have to
+// remember these every time — a Task declares which communication context
+// it's in (workContext), and the right Principles surface automatically in
+// TaskDetailSheet. Never show every Principle on every Task.
+
+export type WorkPrincipleId =
+  | "PURPOSE_FIRST"
+  | "CONCLUSION_FIRST"
+  | "SHORT_SENTENCE"
+  | "FACT_INTERPRETATION"
+  | "HUMAN_INTERPRETATION"
+  | "QUALITY_BAR";
+
+// A confirmed Principle. `options` holds named categories/levels the
+// Principle itself defines (e.g. PURPOSE_FIRST's 5 purposeTypes, QUALITY_BAR's
+// 3 levels) — [] when the Principle doesn't have named sub-categories.
+// `caveat` carries an explicit "don't over-formalize this" note the user
+// gave for that Principle, verbatim; never invent one where none was given.
+export interface WorkPrinciple {
+  id: WorkPrincipleId;
+  title: string;
+  summary: string;
+  guidance: string[];
+  options: string[];
+  examples: string[];
+  caveat: string | null;
+}
+
+// The confirmed Task-context → Principle-set mappings (PRD.md §26). Help
+// Need Workflow (ConsultationPrep, §25) is a separate existing concept, not
+// a WorkPrinciple — usesHelpNeed just says this context should also surface
+// that reference, without duplicating it as a fake 7th principle.
+export type WorkContextTag =
+  | "SLACK_CONSULTATION" // Slack相談
+  | "RIALA_ANNOUNCEMENT" // RIALA告知文
+  | "SALES_FEEDBACK_CONSULTATION" // 営業FB相談
+  | "REFLECTION" // 振り返り
+  | "KEY_DELIVERABLE"; // 重要成果物
+
+export interface WorkContextMapping {
+  principleIds: WorkPrincipleId[];
+  usesHelpNeed: boolean;
 }
 
 // --- Sales Master (営業プレイブック) ---

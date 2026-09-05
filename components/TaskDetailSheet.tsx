@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, outcomes, tasks as allTasks } from "@/lib/dummy-data";
+import { goals, monthEndStates, outcomes, tasks as allTasks, workPrinciples } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
+import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } from "@/lib/workPrinciples";
 import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import type { Task } from "@/lib/types";
@@ -105,6 +106,33 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
           <Section title="なぜやる？">
             <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
           </Section>
+
+          {task.workContext && (
+            <Section title="今回使う仕事の型">
+              <p className="mb-1.5 text-[10px] font-bold text-stone-400">
+                {WORK_CONTEXT_LABEL[task.workContext]}
+              </p>
+              <ul className="flex flex-col gap-1.5">
+                {principlesForContext(workPrinciples, task.workContext).map((p) => (
+                  <li key={p.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                    <p className="text-[12px] font-bold text-stone-700">{p.title}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">{p.summary}</p>
+                    {p.examples.length > 0 && (
+                      <p className="mt-1 text-[10px] text-stone-400">例：{p.examples[0]}</p>
+                    )}
+                  </li>
+                ))}
+                {WORK_CONTEXT_PRINCIPLES[task.workContext].usesHelpNeed && (
+                  <li className="rounded-xl bg-stone-50 px-3 py-2.5">
+                    <p className="text-[12px] font-bold text-stone-700">Help Need Workflow</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">
+                      相談前に、目的・現状・分かっていること／いないこと・欲しい回答を整理してから相談する
+                    </p>
+                  </li>
+                )}
+              </ul>
+            </Section>
+          )}
 
           {task.linkedSalesMaster && (
             <Section title="営業Master">
