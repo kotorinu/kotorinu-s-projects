@@ -1182,3 +1182,99 @@ Timeline化した。
 
 実データ（TimeBlock・今日のTask）が無い場合はTODAYに正直なEmpty State
 を表示する。
+
+---
+
+# 28. 実運用開始ラウンド — 実データ投入 + Countdown + Filter整理（2026-09-05追加・恒久ルール）
+
+## Calendar Event → Task / TimeBlock変換ルール
+
+Calendar Event ≠ 必ずTask。
+
+- 明確な成果物・DoDがあるCalendar Event → Task + TimeBlock
+- 純粋な休憩・生活・固定予定（昼食・夕食・入浴等）→ TimeBlockのみ
+  （`taskId`/`recurringRuleId`ともnull、`label`で表示）
+- Recurring Practice → 既存RecurringRuleにTimeBlockを紐付ける
+  （新規Taskを重複作成しない）
+
+「朝・4つの力」のように複数の異なる活動が1つのCalendar Blockへ
+束ねられている場合、無理に既存RecurringRule 1件へ押し込めるより、
+不確かならunlinkedなplain TimeBlockのまま保持し、本人に確認する。
+
+## 過去時間帯の完了を捏造しない
+
+現在時刻より前のTimeBlock/Taskだからといって自動的にDONE/checkedにしない。
+未確認の過去TimeBlockはTimeline上で「・未確認」と表示し、ユーザーが
+チェックボックスで確認するまでは未完了のまま扱う。
+
+## TimeBlockの拡張（Task ≠ Time、再改訂）
+
+`TimeBlock.taskId`／`recurringRuleId`をnullable化し、どちらにも
+紐付かない`label`ベースのブロック（休憩・生活等）を追加。ちょうど1つだけ
+設定し、両方settingしない。
+
+`Task.estimateMinutes`もnullable化した（本当に予定時間が未確認な
+Task——例：鬼速PDCAの読書時間——のために、架空の見積もりを作らない
+選択肢を用意するため）。
+
+## Reading Task化（Task ≠ TimeBlock）
+
+WeeklyReadingは1冊＝1 Actual Task（`WeeklyReading.taskId`で紐付け）。
+1冊に複数のCalendar実行枠があっても、Task自体は1つのまま。
+
+## RIALAの当日実務Actual Task化
+
+Templateに戻さず、その日のGoogle Calendarに具体的な実作業が存在する
+場合はActual Task化する。判断基準：Taskは成果物単位、Stepsは手順。
+5件のサブ作業を無理に5個のTaskへ分割せず、「1 Parent Task + Steps」を
+第一候補とする。
+
+対応するOperationalAuditは、現在の対象・必要性が確認できた時点で
+UNKNOWN→ACTIVEへ更新し、`actualTaskId`をセットする。完了の証拠が
+無い限りDONEにはしない。
+
+## Countdown（あと○日）
+
+Milestone/Goalの`targetDate`から`daysBetween`で毎日自動計算する。
+ハードコードしない。Multi-day MilestoneのCountdown基準日は
+**startDate**（GENESIS合宿は10/3〜10/4だが、targetDateは10/3）。
+
+視覚強度：3日以内＝強調／7日以内＝やや強調／30日以内＝通常／
+それ以外＝薄め。危機感を煽る赤色は使わない（`lib/countdown.ts`）。
+
+Goal Tree（Milestoneノード）とGENESIS Outcome詳細（固定予定
+セクション）の両方に表示する。
+
+## TASK MAP Filter整理
+
+「全部／未着手／進行中／AI」のChip行を廃止。代わりに「今月の前進」の
+Summary Metric（進行中／未着手／AI担当／7日以内）自体をタップ可能な
+Filter Buttonにし、もう一度タップすると解除する（同時に有効な
+QuickFilterは1つ）。詳細条件（Area/担当/重要度/緊急度）は「絞り込み」に
+残す。並び替えも残す。期限超過は情報表示のみ（Filterにしない）。
+
+## Daily Stack達成Motion / prefers-reduced-motion
+
+ヘッダー右上の「✦ 完了エフェクト切替」ボタンは撤去し、演出は常時有効
+（オフスイッチを持たせない）。ただし`prefers-reduced-motion: reduce`が
+設定されている場合はConfetti等のアニメーションだけをスキップし、
+テキスト・状態変化は通常通り表示する（`lib/useReducedMotion.ts`）。
+
+Achievement階層は変更なし：Task完了＝micro feedback／毎日の積み上げ
+100%＝small victory motion／Today全体100%＝celebration。
+
+## NOW Start / Complete と実測
+
+TODAY TimelineのNOWカードのみ、チェックボックスの代わりに
+「開始」「完了」ボタンを表示する。「開始」で`startedAt`相当のタイムスタンプを
+記録し、「完了」で実際の経過分数を`actualMinutes`として記録する
+（`lib/date.ts`の`minutesSince`、Phase1はセッション内のみ・DB未接続）。
+架空のActualは作らない。
+
+## 今回やらなかったこと（意図的）
+
+- Google Calendar自動同期（引き続き手動でCalendar内容を転記）
+- Manager Mode夜間プランニングUI
+- Timelineの時間比例ビジュアル（時間軸目盛りに応じた高さ配置）— 現状は
+  時刻順の縦リスト＋NOW Indicator行に留める
+- Weekly Review集計UI（実績データがまだ薄いため）

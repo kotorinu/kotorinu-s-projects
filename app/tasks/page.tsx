@@ -22,11 +22,9 @@ import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "
 
 const today = todayStr();
 
-type QuickFilter = "全部" | "未着手" | "進行中" | "AI";
+type QuickFilter = "全部" | "未着手" | "進行中" | "AI" | "7日以内";
 
-const QUICK_FILTERS: QuickFilter[] = ["全部", "未着手", "進行中", "AI"];
-
-const AREAS: Area[] = ["営業代行", "RIALA", "GENESIS", "その他"];
+const AREAS: Area[] = ["営業代行", "RIALA", "GENESIS", "Skill Plus", "その他"];
 const PRIORITIES: Priority[] = ["高", "中", "低"];
 
 type SortKey = "期限順" | "重要度" | "緊急度";
@@ -39,6 +37,7 @@ const areaStyle: Record<Area, string> = {
   営業代行: "bg-sky-50 text-sky-700",
   RIALA: "bg-violet-50 text-violet-700",
   GENESIS: "bg-teal-50 text-teal-700",
+  "Skill Plus": "bg-amber-50 text-amber-700",
   その他: "bg-stone-100 text-stone-500",
 };
 
@@ -46,6 +45,7 @@ const areaDotColor: Record<Area, string> = {
   営業代行: "#0284c7",
   RIALA: "#7c3aed",
   GENESIS: "#0d9488",
+  "Skill Plus": "#b45309",
   その他: "#a8a29e",
 };
 
@@ -65,7 +65,7 @@ const statusDot: Record<TaskStatus, string> = {
 
 export default function TaskMapPage() {
   const [monthOffset, setMonthOffset] = useState(0);
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("未着手");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("全部");
   const [refineOpen, setRefineOpen] = useState(false);
   const [areaFilter, setAreaFilter] = useState<Area | "全部">("全部");
   const [capFilter, setCapFilter] = useState<CapabilityGroup | "全部">("全部");
@@ -135,6 +135,12 @@ export default function TaskMapPage() {
     if (quickFilter === "未着手") out = out.filter((t) => t.status === "未着手");
     else if (quickFilter === "進行中") out = out.filter((t) => t.status === "進行中");
     else if (quickFilter === "AI") out = out.filter((t) => t.aiCapability !== "HUMAN");
+    else if (quickFilter === "7日以内")
+      out = out.filter((t) => {
+        if (t.status === "完了" || t.status === "Archive" || t.deadline === null) return false;
+        const diff = daysBetween(today, t.deadline);
+        return diff >= 0 && diff <= 7;
+      });
 
     if (areaFilter !== "全部") out = out.filter((t) => t.area === areaFilter);
     if (capFilter !== "全部") out = out.filter((t) => capabilityGroup(t.aiCapability) === capFilter);
@@ -241,10 +247,31 @@ export default function TaskMapPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-4 gap-2 border-t border-stone-100 pt-3 text-center">
-          <Stat label="進行中" value={stats.inProgress} />
-          <Stat label="未着手" value={stats.notStarted} />
-          <Stat label="AI担当" value={stats.aiOwned} accent />
-          <Stat label="7日以内" value={stats.within7} />
+          <StatFilterButton
+            label="進行中"
+            value={stats.inProgress}
+            active={quickFilter === "進行中"}
+            onClick={() => setQuickFilter((f) => (f === "進行中" ? "全部" : "進行中"))}
+          />
+          <StatFilterButton
+            label="未着手"
+            value={stats.notStarted}
+            active={quickFilter === "未着手"}
+            onClick={() => setQuickFilter((f) => (f === "未着手" ? "全部" : "未着手"))}
+          />
+          <StatFilterButton
+            label="AI担当"
+            value={stats.aiOwned}
+            accent
+            active={quickFilter === "AI"}
+            onClick={() => setQuickFilter((f) => (f === "AI" ? "全部" : "AI"))}
+          />
+          <StatFilterButton
+            label="7日以内"
+            value={stats.within7}
+            active={quickFilter === "7日以内"}
+            onClick={() => setQuickFilter((f) => (f === "7日以内" ? "全部" : "7日以内"))}
+          />
         </div>
         {stats.overdue > 0 && (
           <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-danger-soft px-3 py-1.5 text-xs font-bold text-danger">
@@ -253,22 +280,17 @@ export default function TaskMapPage() {
         )}
       </section>
 
-      <section className="mt-4 px-5">
+      <section className="mt-3 px-5">
         <div className="flex items-center gap-1.5">
-          {QUICK_FILTERS.map((f) => (
+          {quickFilter !== "全部" && (
             <button
-              key={f}
               type="button"
-              onClick={() => setQuickFilter(f)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
-                quickFilter === f
-                  ? "bg-accent text-white shadow-[0_4px_12px_-4px_rgba(234,91,12,0.6)]"
-                  : "bg-white text-stone-500 shadow-sm"
-              }`}
+              onClick={() => setQuickFilter("全部")}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
             >
-              {f}
+              {quickFilter} ✕
             </button>
-          ))}
+          )}
           <button
             type="button"
             onClick={() => setRefineOpen((v) => !v)}
@@ -460,12 +482,34 @@ function RefineGroup<T extends string>({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function StatFilterButton({
+  label,
+  value,
+  accent,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div>
-      <p className={`tabular-nums text-lg font-black ${accent ? "text-accent-dark" : "text-stone-800"}`}>{value}</p>
-      <p className="text-[10px] font-medium text-stone-400">{label}</p>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl py-1 transition-colors ${active ? "bg-accent-soft ring-1 ring-accent" : ""}`}
+    >
+      <p
+        className={`tabular-nums text-lg font-black ${
+          active ? "text-accent-dark" : accent ? "text-accent-dark" : "text-stone-800"
+        }`}
+      >
+        {value}
+      </p>
+      <p className={`text-[10px] font-medium ${active ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
+    </button>
   );
 }
 

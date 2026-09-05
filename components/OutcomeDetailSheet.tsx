@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { fixedCalendarEvents, recurringRules, tasks, weeklyReadings } from "@/lib/dummy-data";
 import { confidenceLabel, planningConstraintLabel } from "@/lib/calendar";
-import { formatMd } from "@/lib/date";
+import { formatMd, todayStr } from "@/lib/date";
+import { countdownLabel, countdownToneClass, countdownTone } from "@/lib/countdown";
 import { computeProgress } from "@/lib/progress";
 import ProgressBar from "@/components/ProgressBar";
 import type { Outcome } from "@/lib/types";
@@ -131,8 +132,12 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
                   const constraintLabel = planningConstraintLabel(e.planningConstraint);
                   const dateLabel =
                     e.startDate === e.endDate ? formatMd(e.startDate) : `${formatMd(e.startDate)}〜${formatMd(e.endDate)}`;
+                  const today = todayStr();
                   return (
                     <li key={e.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                      <p className={`text-[12px] font-black ${countdownToneClass[countdownTone(e.startDate, today)]}`}>
+                        {countdownLabel(e.startDate, today)}
+                      </p>
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-[12px] font-bold text-stone-700">{e.title}</p>
                         <span className="shrink-0 text-[11px] font-bold text-stone-400">{dateLabel}</span>

@@ -10,6 +10,12 @@ export function nowHm(): string {
   return `${h}:${m}`;
 }
 
+// Whole minutes elapsed from an ISO timestamp to now, minimum 1 — used to
+// turn a real 開始→完了 span into actualMinutes (never a fabricated value).
+export function minutesSince(startedIso: string): number {
+  return Math.max(1, Math.round((Date.now() - new Date(startedIso).getTime()) / 60000));
+}
+
 export function toYmd(d: Date): string {
   const y = d.getFullYear();
   const m = `${d.getMonth() + 1}`.padStart(2, "0");

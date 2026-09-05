@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fixedCalendarEvents, goals, outcomes, recurringRules, timeBlocks, tasks as allTasks } from "@/lib/dummy-data";
-import { daysBetween, formatMd, nowHm, todayStr } from "@/lib/date";
+import { daysBetween, formatMd, minutesSince, nowHm, todayStr } from "@/lib/date";
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import type { FixedEventType, RecurringRule, Task } from "@/lib/types";
+import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import RecurringDetailSheet from "@/components/RecurringDetailSheet";
@@ -43,18 +44,36 @@ export default function TodayPage() {
   const [done, setDone] = useState<Set<string>>(new Set());
   const [recurringDone, setRecurringDone] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
-  const [effectsOn, setEffectsOn] = useState(true);
+  const [overdueOpen, setOverdueOpen] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringRule | null>(null);
   const [outcomeSheetId, setOutcomeSheetId] = useState<string | null>(null);
   const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Measures Estimate vs Actual for real (PRD.md §28): session-only (no DB
+  // yet), never fabricated — actualMinutes is only ever set from a real
+  // 開始→完了 span the user actually walked through just now.
+  const [taskStartedAt, setTaskStartedAt] = useState<Map<string, string>>(new Map());
+  const [taskActualMinutes, setTaskActualMinutes] = useState<Map<string, number>>(new Map());
 
   function fireCelebration(c: Celebration, durationMs: number) {
-    if (!effectsOn) return;
     setCelebration(c);
     if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
     celebrationTimer.current = setTimeout(() => setCelebration(null), durationMs);
+  }
+
+  function startTask(taskId: string) {
+    setTaskStartedAt((prev) => new Map(prev).set(taskId, new Date().toISOString()));
+  }
+
+  function completeNowTask(task: Task) {
+    const startedIso = taskStartedAt.get(task.id);
+    if (startedIso) {
+      setTaskActualMinutes((prev) => new Map(prev).set(task.id, minutesSince(startedIso)));
+    }
+    toggle(task);
   }
 
   // Task ≠ Time (PRD.md §27): a Task scheduled today via a real TimeBlock
@@ -111,9 +130,24 @@ export default function TodayPage() {
   const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
 
   const timeline = useMemo(
-    () => buildTimeline(timeBlocksToday, allTasks, fixedEventsTimedToday, nowHmValue),
+    () => buildTimeline(timeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue),
     [timeBlocksToday, fixedEventsTimedToday, nowHmValue]
   );
+
+  // Where to draw the "──── NOW hh:mm ────" divider: right before the NOW
+  // slot if one exists, else right before the next upcoming slot, else at
+  // the end (today's schedule is entirely in the past).
+  const nowIndicatorIndex = useMemo(() => {
+    const nowIdx = timeline.findIndex((it) => it.status === "NOW");
+    if (nowIdx !== -1) return nowIdx;
+    const nextIdx = timeline.findIndex((it) => it.status === "NEXT" || it.status === "LATER");
+    return nextIdx !== -1 ? nextIdx : timeline.length;
+  }, [timeline]);
+
+  const nowCardRef = useRef<HTMLLIElement | null>(null);
+  useEffect(() => {
+    nowCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   const unscheduledTodayTasks = useMemo(
     () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !done.has(t.id)),
@@ -202,21 +236,9 @@ export default function TodayPage() {
               <span className="text-2xl">☀</span> TODAY
             </h1>
           </div>
-          <div className="flex items-start gap-2">
-            <button
-              type="button"
-              onClick={() => setEffectsOn((v) => !v)}
-              aria-label="完了エフェクトの切り替え"
-              className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full text-xs transition-colors ${
-                effectsOn ? "bg-accent-soft text-accent-dark" : "bg-stone-100 text-stone-300"
-              }`}
-            >
-              ✦
-            </button>
-            <div className="text-right">
-              <p className="tabular-nums text-2xl font-black">{formatMd(today)}</p>
-              <p className="text-xs font-medium text-stone-400">{weekday}曜日</p>
-            </div>
+          <div className="text-right">
+            <p className="tabular-nums text-2xl font-black">{formatMd(today)}</p>
+            <p className="text-xs font-medium text-stone-400">{weekday}曜日</p>
           </div>
         </div>
       </header>
@@ -296,20 +318,36 @@ export default function TodayPage() {
           <div className="flex flex-col gap-5">
             {timeline.length > 0 && (
               <ul className="flex flex-col gap-2">
-                {timeline.map((item) =>
-                  item.kind === "task" ? (
-                    <TimelineTaskCard
-                      key={item.timeBlock.id}
-                      item={item}
-                      checked={done.has(item.task.id)}
-                      onToggle={() => toggle(item.task)}
-                      onOpen={() => setSelectedTask(item.task)}
-                      preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
-                    />
-                  ) : (
-                    <TimelineFixedCard key={item.event.id} item={item} />
-                  )
-                )}
+                {timeline.map((item, i) => (
+                  <FragmentWithIndicator key={itemKey(item)} showIndicator={i === nowIndicatorIndex}>
+                    {item.kind === "task" ? (
+                      <TimelineTaskCard
+                        item={item}
+                        checked={done.has(item.task.id)}
+                        started={taskStartedAt.has(item.task.id)}
+                        actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
+                        onStart={() => startTask(item.task.id)}
+                        onComplete={() => completeNowTask(item.task)}
+                        onToggle={() => toggle(item.task)}
+                        onOpen={() => setSelectedTask(item.task)}
+                        preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
+                        nowRef={item.status === "NOW" ? nowCardRef : undefined}
+                      />
+                    ) : item.kind === "recurring" ? (
+                      <TimelineRecurringCard
+                        item={item}
+                        checked={recurringDone.has(item.rule.id)}
+                        onToggle={() => toggleRecurring(item.rule.id)}
+                        onOpen={() => setSelectedRecurring(item.rule)}
+                      />
+                    ) : item.kind === "plain" ? (
+                      <TimelinePlainCard item={item} />
+                    ) : (
+                      <TimelineFixedCard item={item} />
+                    )}
+                  </FragmentWithIndicator>
+                ))}
+                {nowIndicatorIndex === timeline.length && <NowIndicator />}
               </ul>
             )}
 
@@ -362,27 +400,29 @@ export default function TodayPage() {
         )}
       </section>
 
-      <section className="mx-5 mt-6 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
-        <div className="flex items-center gap-2">
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${
-              overdueTasks.length > 0 ? "bg-danger-soft" : "bg-stone-100"
-            }`}
-          >
-            ⚠
-          </span>
-          <span className="text-sm font-semibold text-stone-600">期限超過</span>
-          <span
-            className={`tabular-nums ml-auto text-xl font-black ${
+      <section className="mx-5 mt-4">
+        <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setOverdueOpen((v) => !v)}
+            className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ${
               overdueTasks.length > 0 ? "text-danger" : "text-stone-300"
             }`}
           >
-            {overdueTasks.length}
-          </span>
+            ⚠ 期限超過 {overdueTasks.length}
+          </button>
+          <span className="h-3 w-px bg-stone-200" />
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold text-stone-500"
+          >
+            ◷ 2日以内 {upcomingTasks.length}
+          </button>
         </div>
 
-        {overdueTasks.length > 0 && (
-          <ul className="mt-3 flex flex-col gap-1.5 border-t border-stone-100 pt-3">
+        {overdueOpen && overdueTasks.length > 0 && (
+          <ul className="mt-1.5 flex flex-col gap-1.5">
             {overdueTasks.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-danger-soft/60 px-3 py-2 text-xs">
                 <span className="truncate font-medium text-stone-700">{t.title}</span>
@@ -392,27 +432,8 @@ export default function TodayPage() {
           </ul>
         )}
 
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-3 flex w-full items-center gap-2 border-t border-stone-100 pt-3 text-sm"
-        >
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs text-stone-500 transition-transform duration-200 ${
-              expanded ? "rotate-90" : ""
-            }`}
-          >
-            ▸
-          </span>
-          <span className="font-semibold text-stone-600">2日以内</span>
-          <span className="tabular-nums ml-auto text-xl font-black text-stone-700">
-            {upcomingTasks.length}
-            <span className="ml-0.5 text-xs font-medium text-stone-400">件</span>
-          </span>
-        </button>
-
         {expanded && (
-          <ul className="mt-3 flex flex-col gap-1.5">
+          <ul className="mt-1.5 flex flex-col gap-1.5">
             {upcomingTasks.length === 0 ? (
               <li className="rounded-xl bg-stone-50 px-3 py-3 text-center text-xs text-stone-400">
                 2日以内の期限タスクはありません
@@ -429,7 +450,7 @@ export default function TodayPage() {
         )}
       </section>
 
-      <CelebrationToast celebration={celebration} />
+      <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
 
@@ -454,7 +475,13 @@ export default function TodayPage() {
   );
 }
 
-function CelebrationToast({ celebration }: { celebration: Celebration | null }) {
+function CelebrationToast({
+  celebration,
+  reducedMotion,
+}: {
+  celebration: Celebration | null;
+  reducedMotion: boolean;
+}) {
   return (
     <div
       className={`pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-6 transition-opacity duration-300 ${
@@ -471,7 +498,7 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
         <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-stone-900 px-4 py-3.5 text-white shadow-xl">
           {celebration.pct >= 100 ? (
             <>
-              <Confetti count={14} />
+              {!reducedMotion && <Confetti count={14} />}
               <p className="text-center text-lg">🎉</p>
               <p className="mt-1 text-center text-[13px] font-black">{celebration.goalTitle} 達成</p>
               <p className="mt-1 text-center text-[11px] leading-relaxed text-stone-300">
@@ -496,7 +523,7 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
 
       {celebration?.kind === "recurring" && (
         <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-stone-900 px-4 py-3.5 text-center text-white shadow-xl">
-          <Confetti count={12} />
+          {!reducedMotion && <Confetti count={12} />}
           <p className="text-lg">🎉</p>
           <p className="mt-1 text-[13px] font-black">{celebration.label}</p>
           <p className="mt-1 text-[11px] text-stone-300">
@@ -507,7 +534,7 @@ function CelebrationToast({ celebration }: { celebration: Celebration | null }) 
 
       {celebration?.kind === "today" && (
         <div className="relative w-full max-w-xs overflow-visible rounded-2xl bg-accent px-5 py-4 text-center text-white shadow-xl">
-          <Confetti count={18} />
+          {!reducedMotion && <Confetti count={18} />}
           <p className="text-2xl">🎉</p>
           <p className="mt-1 text-[15px] font-black">今日のタスク 100%</p>
           <p className="mt-1 text-[11px] text-white/80">今日もやりきりました。</p>
@@ -528,18 +555,51 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 
 const timelineStatusLabel: Record<string, string> = { NOW: "NOW", NEXT: "NEXT", PAST: "", LATER: "" };
 
+function itemKey(item: TimelineItem): string {
+  return item.kind === "fixed" ? item.event.id : item.timeBlock.id;
+}
+
+function FragmentWithIndicator({ showIndicator, children }: { showIndicator: boolean; children: React.ReactNode }) {
+  return (
+    <>
+      {showIndicator && <NowIndicator />}
+      {children}
+    </>
+  );
+}
+
+function NowIndicator() {
+  return (
+    <li aria-hidden className="flex items-center gap-2 px-0.5 py-0.5 text-[10px] font-black text-accent-dark">
+      <span className="h-px flex-1 bg-accent" />
+      NOW {nowHm()}
+      <span className="h-px flex-1 bg-accent" />
+    </li>
+  );
+}
+
 function TimelineTaskCard({
   item,
   checked,
+  started,
+  actualMinutes,
+  onStart,
+  onComplete,
   onToggle,
   onOpen,
   preparationCount,
+  nowRef,
 }: {
   item: Extract<TimelineItem, { kind: "task" }>;
   checked: boolean;
+  started: boolean;
+  actualMinutes: number | null;
+  onStart: () => void;
+  onComplete: () => void;
   onToggle: () => void;
   onOpen: () => void;
   preparationCount: number;
+  nowRef?: React.RefObject<HTMLLIElement | null>;
 }) {
   const { task, startTime, endTime, status } = item;
   const isNow = status === "NOW";
@@ -549,22 +609,25 @@ function TimelineTaskCard({
 
   return (
     <li
+      ref={nowRef}
       className={`rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ${
         isNow ? "ring-2 ring-accent-soft" : ""
       }`}
       style={{ opacity: isPast || checked ? 0.55 : 1 }}
     >
       <div className="flex items-start gap-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label="完了にする"
-          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
-            checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
-          }`}
-        >
-          ✓
-        </button>
+        {!isNow && (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label="完了にする"
+            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
+              checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
+            }`}
+          >
+            ✓
+          </button>
+        )}
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
             <span className="tabular-nums">
@@ -573,6 +636,7 @@ function TimelineTaskCard({
             {timelineStatusLabel[status] && (
               <span className={isNow ? "text-accent-dark" : "text-stone-400"}>{timelineStatusLabel[status]}</span>
             )}
+            {isPast && !checked && <span className="text-stone-400">・未確認</span>}
           </div>
           <p className={`mt-0.5 text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
             {task.title}
@@ -592,6 +656,9 @@ function TimelineTaskCard({
               <span className={`ml-auto font-bold ${remaining < 0 ? "text-danger" : "text-accent-dark"}`}>
                 残り{remaining}分
               </span>
+            )}
+            {checked && actualMinutes !== null && (
+              <span className="ml-auto font-bold text-stone-400">実績{actualMinutes}分</span>
             )}
           </div>
 
@@ -615,6 +682,89 @@ function TimelineTaskCard({
           )}
         </button>
       </div>
+
+      {isNow && !checked && (
+        <div className="mt-2.5 flex gap-2 border-t border-stone-100 pt-2.5">
+          {!started ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="flex-1 rounded-full bg-stone-800 py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+            >
+              開始
+            </button>
+          ) : (
+            <span className="flex flex-1 items-center justify-center rounded-full bg-stone-100 py-2 text-[12px] font-bold text-stone-500">
+              実行中
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onComplete}
+            className="flex-1 rounded-full bg-accent py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+          >
+            完了
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function TimelineRecurringCard({
+  item,
+  checked,
+  onToggle,
+  onOpen,
+}: {
+  item: Extract<TimelineItem, { kind: "recurring" }>;
+  checked: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+}) {
+  const { rule, startTime, endTime, status } = item;
+  const isPast = status === "PAST";
+  return (
+    <li
+      className="flex items-start gap-3 rounded-2xl bg-white px-3.5 py-3"
+      style={{ opacity: isPast || checked ? 0.55 : 1 }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="完了にする"
+        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
+          checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
+        }`}
+      >
+        ✓
+      </button>
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+          <span className="tabular-nums">
+            {startTime}〜{endTime}
+          </span>
+          {isPast && !checked && <span>・未確認</span>}
+        </div>
+        <p className={`mt-0.5 text-[14px] font-bold ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
+          {rule.title}
+        </p>
+      </button>
+    </li>
+  );
+}
+
+function TimelinePlainCard({ item }: { item: Extract<TimelineItem, { kind: "plain" }> }) {
+  const { timeBlock, startTime, endTime, status } = item;
+  const isPast = status === "PAST";
+  return (
+    <li className="rounded-2xl bg-stone-100/70 px-3.5 py-2.5" style={{ opacity: isPast ? 0.55 : 1 }}>
+      <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+        <span className="tabular-nums">
+          {startTime}〜{endTime}
+        </span>
+      </div>
+      <p className="mt-0.5 text-[13px] font-bold text-stone-600">{timeBlock.label}</p>
     </li>
   );
 }
@@ -710,7 +860,7 @@ function TaskRow({
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
           <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
-          <span className="text-stone-400">{task.estimateMinutes}分</span>
+          {task.estimateMinutes !== null && <span className="text-stone-400">{task.estimateMinutes}分</span>}
           {badge.tone && (
             <span
               className={`rounded-full px-2 py-0.5 font-bold ${

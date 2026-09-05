@@ -1,4 +1,4 @@
-export type Area = "営業代行" | "RIALA" | "GENESIS" | "その他";
+export type Area = "営業代行" | "RIALA" | "GENESIS" | "Skill Plus" | "その他";
 
 export type TaskStatus = "未着手" | "進行中" | "待ち" | "完了" | "Archive";
 
@@ -37,7 +37,7 @@ export interface Task {
   area: Area;
   deadline: string | null; // YYYY-MM-DD — null when genuinely unscheduled (see PRD.md 22)
   workDate: string | null; // YYYY-MM-DD
-  estimateMinutes: number;
+  estimateMinutes: number | null; // null when no real duration has been confirmed yet — never invent one (see PRD.md §28)
   actualMinutes: number | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -211,6 +211,7 @@ export interface WeeklyReading {
   calendarEventIds: string[];
   status: WeeklyReadingStatus;
   outcomeId: string | null;
+  taskId: string | null; // the Actual Task tracking this book (§28 — "1冊 = 1 Task", never 1冊 = 1 TimeBlock)
   learningPoints: string[];
   personalExamples: string[];
   actionItems: string[];
@@ -317,17 +318,25 @@ export interface WeeklyReview {
   nextImprovements: string[]; // 1-3 items, never more
 }
 
-// --- TimeBlock — Task ≠ Time (2026-09-05, PRD.md §27) ---
+// --- TimeBlock — Task ≠ Time (2026-09-05, PRD.md §27; revised §28) ---
 // Task = what to complete. TimeBlock = when to work on it. One Task can
 // span several TimeBlocks; a TimeBlock moving doesn't change the Task's own
 // definition of done. Schema is Google-Calendar-sync-ready (calendarEventId)
 // even though no live sync exists yet — don't build that sync now.
+//
+// Not every Calendar block has a clear deliverable (§28): a TimeBlock can
+// point at a Task, at a RecurringRule (a daily practice slot), or at
+// neither — a purely descriptive block (meals, commute, sleep prep) that
+// exists only to occupy time on the Timeline. Exactly one of
+// taskId/recurringRuleId should be set, or neither; never both.
 export type TimeBlockStatus = "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED";
 export type TimeBlockSource = "AI_WORK_OS" | "GOOGLE_CALENDAR" | "USER";
 
 export interface TimeBlock {
   id: string;
-  taskId: string;
+  taskId: string | null;
+  recurringRuleId: string | null;
+  label: string; // display title — required even when taskId/recurringRuleId is set, for a quick Timeline label without a lookup
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime: string; // HH:mm

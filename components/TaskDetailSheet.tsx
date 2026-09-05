@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, outcomes, tasks as allTasks, workPrinciples } from "@/lib/dummy-data";
+import { goals, monthEndStates, outcomes, tasks as allTasks, timeBlocks, workPrinciples } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
@@ -32,6 +32,10 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
       if (mainEl) mainEl.style.overflow = prev ?? "";
     };
   }, []);
+
+  const linkedTimeBlocks = timeBlocks
+    .filter((tb) => tb.taskId === task.id)
+    .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
 
   const goal = task.goalId ? goals.find((g) => g.id === task.goalId) ?? null : null;
   const goalProgress = goal ? computeGoalProgress(allTasks, goal.id) : null;
@@ -289,16 +293,37 @@ export default function TaskDetailSheet({ task, onClose }: { task: Task; onClose
 
           <Section title="予定・実績">
             <dl className="flex flex-col gap-1.5 text-[13px]">
-              <Row label="予定時間" value={`${task.estimateMinutes}分`} />
+              <Row label="予定時間" value={task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} />
               <Row label="期限" value={formatMd(task.deadline)} />
               <Row label="担当" value={capabilityOwnerLabel(task.aiCapability)} />
               {task.actualMinutes !== null && (
-                <Row label="実績" value={`${task.estimateMinutes}分 → ${task.actualMinutes}分`} />
+                <Row
+                  label="実績"
+                  value={`${task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} → ${task.actualMinutes}分`}
+                />
               )}
               {task.overrunReason && <Row label="理由" value={task.overrunReason} />}
               {task.nextImprovement && <Row label="次回改善" value={task.nextImprovement} />}
             </dl>
           </Section>
+
+          {linkedTimeBlocks.length > 0 && (
+            <Section title="予定（Time Block）">
+              <ul className="flex flex-col gap-1.5">
+                {linkedTimeBlocks.map((tb) => (
+                  <li key={tb.id} className="flex items-baseline justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 text-[12px]">
+                    <span className="font-bold text-stone-700">{formatMd(tb.date)}</span>
+                    <span className="font-medium text-stone-500">
+                      {tb.startTime}〜{tb.endTime}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-[10px] text-stone-400">
+                Task ≠ Time Block：1つのTaskを複数の予定に分けて実行できます
+              </p>
+            </Section>
+          )}
         </div>
       </div>
 

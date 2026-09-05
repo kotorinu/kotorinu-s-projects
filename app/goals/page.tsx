@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { goals, tasks } from "@/lib/dummy-data";
 import { formatMd, todayStr } from "@/lib/date";
+import { countdownLabel, countdownToneClass, countdownTone } from "@/lib/countdown";
 import type { Goal } from "@/lib/types";
 
-const todayMs = new Date(todayStr()).getTime();
+const today = todayStr();
+const todayMs = new Date(today).getTime();
 
 export default function GoalTreePage() {
   return (
@@ -193,6 +195,11 @@ function TimelineRow({
         onClick={onToggle}
         className={`min-w-0 flex-1 rounded-2xl pb-5 text-left ${isLinked ? "ring-2 ring-accent-soft" : ""}`}
       >
+        {goal.targetDate && (
+          <p className={`text-[13px] font-black ${countdownToneClass[countdownTone(goal.targetDate, today)]}`}>
+            {countdownLabel(goal.targetDate, today)}
+          </p>
+        )}
         <div className="flex items-baseline justify-between gap-2">
           <p className="truncate text-[14px] font-bold text-stone-800">{goal.title}</p>
           <span className="flex shrink-0 items-baseline gap-1.5">
