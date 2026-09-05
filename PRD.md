@@ -1391,3 +1391,78 @@ TODAYで完了・実行中にしたTaskの状態が、TASK MAP等へ遷移して
 Plan（TimeBlockのstartTime/endTime）はこの変更でも一切書き換えない
 （Early Startの原則を維持）。celebration・開閉状態・選択中のシート等の
 純粋なUI状態はこれまで通りページローカルの`useState`のまま。
+
+# Day Rollover / Yesterday / Carryover / Goal Tree正式復元（2026-09-06）
+
+「日付が変わっても昨日の実績を失わず、未完了Taskの行き先を決められ、
+人生の目的から今日のTaskまで辿れるOS」への拡張。
+
+## Date-keyed execution history
+
+`lib/todayExecutionStore.tsx`を単一のToday Snapshotから、dateをkeyにした
+履歴構造へ変更（`history: Record<date, DayRecord>`）。日付変更は
+RESET（今日を空で開始）ではなく、ARCHIVE → NEW DAY（昨日のStateを
+`history[昨日の日付]`へ確定保存してから、新しい空のTodayを開始）として
+扱う。`localStorage`へも同じ構造をミラーする（v2キー、旧v1からの自動
+移行は行わない — Phase1のセッションデータのため許容）。
+
+23:50にTask開始→00:00をまたいだ場合、`startedTaskId`/`startedTaskDate`は
+そのまま引き継がれ、勝手に未着手へ戻す・完了する・削除することはしない
+（`actualStartedAt`は新しい日のMapへも引き継がれ、経過時間の計算が
+日をまたいでも正しく続く）。TODAYには「昨日から実行中」バナーが表示され、
+本人が完了／中断／今日へ継続を選ぶ。
+
+## Yesterday Summary / Carryover
+
+TODAYに「昨日の頑張り」（Task完了数・毎日の積み上げ・実行時間、
+`lib/date.ts`の`formatDurationHm`）をcompact/collapsibleで表示。
+主役はあくまで今日のTimelineで、Yesterday Summaryは上部を占有しない。
+
+昨日の未完了Taskは黙って消さず、「昨日の未完了N件・行き先未決定」として
+表示し、各Taskごとに「今日やる」「別日に移す」「今回はやめる」を選択
+できる（`CarryoverDisposition`型、`lib/types.ts`）。Taskを複製せず、
+`workDateOverrides`（taskId→今の実効日付）で今日／指定日の実行リストへ
+再配置する（`lib/dayPlan.ts`の`tasksEffectiveOnDate`）。決定内容は
+`carryover`に`{fromDate}:{taskId}`をkeyとして永続保存し、「やめる」も
+削除ではなくDROPPEDという決定として記録する。実行中（STARTED）のTaskは
+専用の昨日から実行中バナーで扱うため、Carryoverリストには二重表示しない。
+
+## Google Calendar semantics（方針の明文化のみ、モデル変更なし）
+
+Google Calendar＝外部固定予定・予約・締切・旅行・動かせない時間。
+AI Work OS＝柔軟な作業Task・TimeBlock・実行・Actual・Carryover・再計画。
+柔軟な作業TaskをGoogle Calendarへ大量生成することをデフォルトにしない。
+TaskをTODAYで完了しても、関連するFixedCalendarEventを自動削除しない
+（Task StatusとCalendar Eventの存在は分離する）。既存Calendar/TimeBlock
+モデルは変更していない。
+
+## Goal Tree — 5年後〜1か月後の正式復元
+
+本人と確定済みの内容として、5年後(2031-09-01)→3年後(2029-09-01)→
+1年後(2027-09-01)→半年後(未確定のためtargetDate=null)→
+3か月後(2026-12-01)→1か月後(2026-10-01)を`g-work-philosophy`直下の
+新しいブランチとして追加（`g-5year`〜`g-1month`）。既存の
+`g-direction`（GENESIS/営業代行/RIALAの「現在のProject/Area」を束ねる
+既存ブランチ）はそのまま保全し、時間軸チェーンとは無理に一本化しない
+（意味的に別軸として両方表示する）。旧fixtureの5年後/3年後/1年後/
+3か月後/1か月後の内容は復活させていない。GENESIS合宿のCountdownは
+引き続き`daysBetween`から動的計算（固定値のハードコードなし）。
+
+## Midnight Simulation（テスト手法）
+
+実時間で0時を待たずに検証するため、`lib/date.ts`に
+`__setClockOverrideForTesting`という開発/テスト専用のフックを追加し、
+`todayExecutionStore.tsx`が`window.__aiWorkOsTestSetDate(date)`として
+ブラウザから呼び出せるようにした（UIには一切出さない、devtools専用）。
+呼び出すとクロックを上書きしつつ即座にRollover判定を実行する。この
+仕組みで23:59→00:00をまたぐ7ケース（全完了/未完了2件/23:50開始継続/
+今日やる/別日に移す/リロード保持/Yesterday Summary分離）を実際に検証した。
+
+検証中に発見・修正したバグ：Rolloverの日付比較に「新しい日付が現在日より
+後か」のガードが無く、テスト用クロックを未来へ進めた直後に本物のページ
+リロード（クロックオーバーライドが解除され実際の日付へ戻る＝見かけ上
+「過去へ戻る」）が発生すると、既存の`history`エントリを空のCurrent Dayで
+上書きしてしまう可能性があった → `newDate <= state.current.date`の
+場合はRolloverを無条件でno-opにするガードを追加。実運用では時刻は
+常に前進のみのため通常は到達しない経路だが、端末の時計が狂った場合の
+保険としても機能する。

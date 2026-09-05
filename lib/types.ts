@@ -348,6 +348,23 @@ export interface TimeBlock {
   source: TimeBlockSource;
 }
 
+// --- Day Rollover / Carryover (2026-09-06) ---
+// What the user decided about a Task that was still incomplete at the end
+// of a given day. Never "deleted" — a decision is a permanent historical
+// record, kept even once the Task itself later completes or is dropped.
+// MOVED_TODAY: re-placed onto the very next day (toDate = that day).
+// RESCHEDULED: re-placed onto a specific later date the user picked.
+// DROPPED: the user chose not to do it — recorded, not silently removed.
+export type CarryoverDisposition = "MOVED_TODAY" | "RESCHEDULED" | "DROPPED";
+
+export interface CarryoverRecord {
+  taskId: string;
+  fromDate: string; // the day the Task was left incomplete on
+  disposition: CarryoverDisposition;
+  toDate: string | null; // set for MOVED_TODAY/RESCHEDULED; null for DROPPED
+  decidedAt: string; // ISO — when the user actually made this decision
+}
+
 // --- Work Principles / 仕事の型 — Knowledge Layer (2026-09-05, PRD.md §26) ---
 // Not a Task, not a Calendar Event: a small reusable "how to communicate/
 // judge quality" reference. The point is that the user shouldn't have to

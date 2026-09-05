@@ -1,100 +1,233 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { todayStr } from "./date";
-import type { VarianceReason } from "./types";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { __setClockOverrideForTesting, todayStr } from "./date";
+import type { CarryoverDisposition, CarryoverRecord, VarianceReason } from "./types";
 
 // TODAY execution state, lifted out of app/today/page.tsx into a Provider
-// mounted once in the root layout (2026-09-05 bug fix). The root layout's
-// component tree never unmounts on client-side navigation between routes —
-// only the routed page (`app/today/page.tsx` etc.) does — so state that
-// lived in that page's own useState was wiped every time the user left
-// TODAY and came back. Moving it up here means it survives SPA navigation
-// automatically, with no change to *when* or *how* it's updated.
+// mounted once in the root layout (2026-09-05 bug fix, revised 2026-09-06
+// for Day Rollover). The root layout's component tree never unmounts on
+// client-side navigation between routes — only the routed page does — so
+// state that lived in a page's own useState was wiped on every navigation.
+// A same-day snapshot is also mirrored to localStorage so it survives a
+// full page reload (Phase 1, no DB).
 //
-// A same-day snapshot is also mirrored to localStorage so it survives a full
-// page reload too (Phase 1, no DB). `recurringDone`/`done` are meaningful
-// only for "today" — a snapshot from a previous calendar day is discarded on
-// load rather than incorrectly pre-checking tomorrow's daily practice.
+// Day Rollover (2026-09-06): a calendar-day change is ARCHIVE → NEW DAY,
+// never RESET. When `todayStr()` advances past `currentDate`, the just-
+// finished day's record is frozen into `history[thatDate]` exactly as it
+// stood, and a fresh (empty) day begins — it is never discarded. A Task
+// still STARTED at the moment of rollover is never auto-completed, auto-
+// reset, or auto-dropped: `startedTaskId`/`startedTaskDate` carry forward
+// unchanged, so the UI can show "昨日から実行中" and let the user decide.
 
-interface TodayExecutionState {
+export interface DayRecord {
+  date: string;
+  completedTaskIds: string[];
+  recurringDone: string[];
+  taskStartedAt: [string, string][];
+  taskCompletedAt: [string, string][];
+  taskActualMinutes: [string, number][];
+  varianceReasonByTaskId: [string, VarianceReason][];
+}
+
+interface CurrentDay {
+  date: string;
   done: Set<string>;
   recurringDone: Set<string>;
   taskStartedAt: Map<string, string>;
+  taskCompletedAt: Map<string, string>;
   taskActualMinutes: Map<string, number>;
   varianceReasonByTaskId: Map<string, VarianceReason>;
+}
+
+interface RolloverState {
+  current: CurrentDay;
+  history: Record<string, DayRecord>;
   startedTaskId: string | null;
+  startedTaskDate: string | null; // the date startedTaskId's actualStartedAt belongs to — differs from current.date once a day has rolled over underneath it
+  carryover: Record<string, CarryoverRecord>; // key: `${fromDate}:${taskId}`
+  workDateOverrides: Record<string, string>; // taskId -> the date it's now effectively placed on
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
-
-interface TodayExecutionApi extends TodayExecutionState {
-  setDone: (updater: SetUpdater<Set<string>>) => void;
-  setRecurringDone: (updater: SetUpdater<Set<string>>) => void;
-  setTaskStartedAt: (updater: SetUpdater<Map<string, string>>) => void;
-  setTaskActualMinutes: (updater: SetUpdater<Map<string, number>>) => void;
-  setVarianceReasonByTaskId: (updater: SetUpdater<Map<string, VarianceReason>>) => void;
-  setStartedTaskId: (id: string | null) => void;
-}
-
-const STORAGE_KEY = "ai-work-os:today-execution:v1";
-
-function emptyState(): TodayExecutionState {
-  return {
-    done: new Set(),
-    recurringDone: new Set(),
-    taskStartedAt: new Map(),
-    taskActualMinutes: new Map(),
-    varianceReasonByTaskId: new Map(),
-    startedTaskId: null,
-  };
-}
-
-interface PersistedShape {
-  date: string;
-  done: string[];
-  recurringDone: string[];
-  taskStartedAt: [string, string][];
-  taskActualMinutes: [string, number][];
-  varianceReasonByTaskId: [string, VarianceReason][];
-  startedTaskId: string | null;
-}
 
 function resolve<T>(updater: SetUpdater<T>, prev: T): T {
   return typeof updater === "function" ? (updater as (p: T) => T)(prev) : updater;
 }
 
+function emptyDay(date: string): CurrentDay {
+  return {
+    date,
+    done: new Set(),
+    recurringDone: new Set(),
+    taskStartedAt: new Map(),
+    taskCompletedAt: new Map(),
+    taskActualMinutes: new Map(),
+    varianceReasonByTaskId: new Map(),
+  };
+}
+
+function emptyRolloverState(): RolloverState {
+  return {
+    current: emptyDay(todayStr()),
+    history: {},
+    startedTaskId: null,
+    startedTaskDate: null,
+    carryover: {},
+    workDateOverrides: {},
+  };
+}
+
+function archiveDay(day: CurrentDay): DayRecord {
+  return {
+    date: day.date,
+    completedTaskIds: [...day.done],
+    recurringDone: [...day.recurringDone],
+    taskStartedAt: [...day.taskStartedAt.entries()],
+    taskCompletedAt: [...day.taskCompletedAt.entries()],
+    taskActualMinutes: [...day.taskActualMinutes.entries()],
+    varianceReasonByTaskId: [...day.varianceReasonByTaskId.entries()],
+  };
+}
+
+// ARCHIVE → NEW DAY. A STARTED Task's actualStartedAt entry is carried into
+// the new day's map (its own timestamp untouched) so elapsed-time reads
+// keep working across the boundary — this is what lets "started at 23:50"
+// still show a correct, continuously-growing elapsed time the next day.
+//
+// Guarded to only ever fire when newDate is strictly after the current
+// day: real wall-clock time never moves backward, so this should be
+// unreachable in normal use — but the devtools clock-override test seam
+// combined with a real page reload (which drops the override and re-syncs
+// to the true wall clock) can otherwise ask for a "rollover" to a date at
+// or before the current one. Without this guard that would silently
+// archive-and-overwrite an existing `history[newDate]` entry with an empty
+// day, destroying real data. Never remove this even though it only
+// protects against a test artifact today — a wrong device clock could hit
+// the same path for real.
+function rollover(state: RolloverState, newDate: string): RolloverState {
+  if (newDate <= state.current.date) return state;
+  const archived = archiveDay(state.current);
+  const carriedEntry =
+    state.startedTaskId !== null ? state.current.taskStartedAt.get(state.startedTaskId) : undefined;
+  const nextCurrent = emptyDay(newDate);
+  if (state.startedTaskId !== null && carriedEntry !== undefined) {
+    nextCurrent.taskStartedAt.set(state.startedTaskId, carriedEntry);
+  }
+  return {
+    ...state,
+    current: nextCurrent,
+    history: { ...state.history, [state.current.date]: archived },
+    // startedTaskId/startedTaskDate intentionally unchanged — see module doc.
+  };
+}
+
+interface TodayExecutionApi {
+  currentDate: string;
+  done: Set<string>;
+  recurringDone: Set<string>;
+  taskStartedAt: Map<string, string>;
+  taskCompletedAt: Map<string, string>;
+  taskActualMinutes: Map<string, number>;
+  varianceReasonByTaskId: Map<string, VarianceReason>;
+  startedTaskId: string | null;
+  startedTaskDate: string | null;
+  carryover: Record<string, CarryoverRecord>;
+  workDateOverrides: Record<string, string>;
+  history: Record<string, DayRecord>;
+
+  setDone: (updater: SetUpdater<Set<string>>) => void;
+  setRecurringDone: (updater: SetUpdater<Set<string>>) => void;
+  setTaskStartedAt: (updater: SetUpdater<Map<string, string>>) => void;
+  setTaskCompletedAt: (updater: SetUpdater<Map<string, string>>) => void;
+  setTaskActualMinutes: (updater: SetUpdater<Map<string, number>>) => void;
+  setVarianceReasonByTaskId: (updater: SetUpdater<Map<string, VarianceReason>>) => void;
+  // Setting a real id stamps startedTaskDate to today; clearing it (null) —
+  // used both for a normal completion and for an explicit 中断 — also
+  // clears startedTaskDate.
+  setStartedTaskId: (id: string | null) => void;
+  // "今日へ継続" for a Task that's been STARTED since a previous day: keeps
+  // it STARTED, just re-stamps which day it's attributed to, so the
+  // "昨日から実行中" banner clears without touching actualStartedAt itself.
+  continueStartedTaskToday: () => void;
+  recordCarryover: (fromDate: string, taskId: string, disposition: CarryoverDisposition, toDate: string | null) => void;
+}
+
+const STORAGE_KEY = "ai-work-os:today-execution:v2";
+
+interface PersistedShape {
+  currentDate: string;
+  done: string[];
+  recurringDone: string[];
+  taskStartedAt: [string, string][];
+  taskCompletedAt: [string, string][];
+  taskActualMinutes: [string, number][];
+  varianceReasonByTaskId: [string, VarianceReason][];
+  history: Record<string, DayRecord>;
+  startedTaskId: string | null;
+  startedTaskDate: string | null;
+  carryover: Record<string, CarryoverRecord>;
+  workDateOverrides: Record<string, string>;
+}
+
+function toPersisted(state: RolloverState): PersistedShape {
+  return {
+    currentDate: state.current.date,
+    done: [...state.current.done],
+    recurringDone: [...state.current.recurringDone],
+    taskStartedAt: [...state.current.taskStartedAt.entries()],
+    taskCompletedAt: [...state.current.taskCompletedAt.entries()],
+    taskActualMinutes: [...state.current.taskActualMinutes.entries()],
+    varianceReasonByTaskId: [...state.current.varianceReasonByTaskId.entries()],
+    history: state.history,
+    startedTaskId: state.startedTaskId,
+    startedTaskDate: state.startedTaskDate,
+    carryover: state.carryover,
+    workDateOverrides: state.workDateOverrides,
+  };
+}
+
+function fromPersisted(parsed: PersistedShape): RolloverState {
+  return {
+    current: {
+      date: parsed.currentDate,
+      done: new Set(parsed.done ?? []),
+      recurringDone: new Set(parsed.recurringDone ?? []),
+      taskStartedAt: new Map(parsed.taskStartedAt ?? []),
+      taskCompletedAt: new Map(parsed.taskCompletedAt ?? []),
+      taskActualMinutes: new Map(parsed.taskActualMinutes ?? []),
+      varianceReasonByTaskId: new Map(parsed.varianceReasonByTaskId ?? []),
+    },
+    history: parsed.history ?? {},
+    startedTaskId: parsed.startedTaskId ?? null,
+    startedTaskDate: parsed.startedTaskDate ?? null,
+    carryover: parsed.carryover ?? {},
+    workDateOverrides: parsed.workDateOverrides ?? {},
+  };
+}
+
 const TodayExecutionContext = createContext<TodayExecutionApi | null>(null);
 
 export function TodayExecutionProvider({ children }: { children: ReactNode }) {
-  // Starts empty on every render path (server, first client render, and a
-  // fresh tab) — identical to the pre-fix behavior — then a client-only
-  // effect below restores any same-day snapshot. This keeps the root layout
-  // itself hydration-safe: nothing here depends on localStorage during the
-  // render that has to match the server's output.
-  const [state, setState] = useState<TodayExecutionState>(emptyState);
+  // Starts empty for `todayStr()` on every render path (server, first
+  // client render, a fresh tab) — hydration-safe, matching the pre-fix
+  // behavior — then a client-only effect below restores any snapshot and
+  // rolls it forward through as many day boundaries as have actually
+  // elapsed since it was saved.
+  const [state, setState] = useState<RolloverState>(emptyRolloverState);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // setState is called inside this nested callback (via setTimeout(0)),
-    // never as the effect body's own first-line statement — the project's
-    // established fix for react-hooks/set-state-in-effect (see
-    // lib/useReducedMotion.ts for the same pattern and why it's needed).
     const load = () => {
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as PersistedShape;
-          if (parsed.date === todayStr()) {
-            setState({
-              done: new Set(parsed.done ?? []),
-              recurringDone: new Set(parsed.recurringDone ?? []),
-              taskStartedAt: new Map(parsed.taskStartedAt ?? []),
-              taskActualMinutes: new Map(parsed.taskActualMinutes ?? []),
-              varianceReasonByTaskId: new Map(parsed.varianceReasonByTaskId ?? []),
-              startedTaskId: parsed.startedTaskId ?? null,
-            });
+          let restored = fromPersisted(JSON.parse(raw) as PersistedShape);
+          const today = todayStr();
+          if (restored.current.date !== today) {
+            restored = rollover(restored, today);
           }
+          setState(restored);
         }
       } catch {
         // Corrupt JSON or storage blocked (private mode etc.) — fall back
@@ -106,41 +239,105 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(id);
   }, []);
 
+  // A long-open tab needs its own periodic rollover check — hydration alone
+  // only catches the boundary at load time. 30s is frequent enough that the
+  // "昨日から実行中" banner and Yesterday Summary appear promptly after real
+  // midnight without polling aggressively.
   useEffect(() => {
-    // Never write the pre-hydration empty snapshot back over a real one —
-    // that would erase a valid same-day snapshot before it's even read.
+    if (!hydrated) return;
+    const id = setInterval(() => {
+      const today = todayStr();
+      setState((s) => (s.current.date === today ? s : rollover(s, today)));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [hydrated]);
+
+  // Dev/test-only console hook (2026-09-06, Day Rollover round): lets a
+  // 23:59→00:00 crossing be simulated from browser devtools without waiting
+  // for real midnight — window.__aiWorkOsTestSetDate("2026-09-06") both sets
+  // the clock override (lib/date.ts) and immediately runs the same rollover
+  // check the 30s interval above would eventually run. Pass null to clear
+  // the override and return to the real wall clock. Never referenced by any
+  // UI — purely a devtools seam, harmless if never invoked.
+  useEffect(() => {
+    const w = window as unknown as { __aiWorkOsTestSetDate?: (date: string | null) => void };
+    w.__aiWorkOsTestSetDate = (date) => {
+      __setClockOverrideForTesting(date);
+      const t = todayStr();
+      setState((s) => (s.current.date === t ? s : rollover(s, t)));
+    };
+    return () => {
+      delete w.__aiWorkOsTestSetDate;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!hydrated) return;
     try {
-      const payload: PersistedShape = {
-        date: todayStr(),
-        done: [...state.done],
-        recurringDone: [...state.recurringDone],
-        taskStartedAt: [...state.taskStartedAt.entries()],
-        taskActualMinutes: [...state.taskActualMinutes.entries()],
-        varianceReasonByTaskId: [...state.varianceReasonByTaskId.entries()],
-        startedTaskId: state.startedTaskId,
-      };
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersisted(state)));
     } catch {
       // Private mode / storage full — in-memory Context state still covers
-      // SPA navigation, which is this fix's primary requirement.
+      // SPA navigation, which is this store's primary requirement.
     }
   }, [state, hydrated]);
 
-  const api = useMemo<TodayExecutionApi>(
-    () => ({
-      ...state,
-      setDone: (updater) => setState((s) => ({ ...s, done: resolve(updater, s.done) })),
-      setRecurringDone: (updater) => setState((s) => ({ ...s, recurringDone: resolve(updater, s.recurringDone) })),
-      setTaskStartedAt: (updater) => setState((s) => ({ ...s, taskStartedAt: resolve(updater, s.taskStartedAt) })),
-      setTaskActualMinutes: (updater) =>
-        setState((s) => ({ ...s, taskActualMinutes: resolve(updater, s.taskActualMinutes) })),
-      setVarianceReasonByTaskId: (updater) =>
-        setState((s) => ({ ...s, varianceReasonByTaskId: resolve(updater, s.varianceReasonByTaskId) })),
-      setStartedTaskId: (id) => setState((s) => ({ ...s, startedTaskId: id })),
-    }),
-    [state]
-  );
+  // Not wrapped in useMemo: `state` gets a new object identity on every
+  // setState call anyway (each setter below spreads it), so memoizing here
+  // would never actually skip recomputation — it only produced lint noise
+  // (React Compiler couldn't verify the field-level dependencies matched a
+  // coarse `[state]` array). Context consumers re-render on every state
+  // change regardless, so a plain object is simpler and equally cheap.
+  const api: TodayExecutionApi = {
+    currentDate: state.current.date,
+    done: state.current.done,
+    recurringDone: state.current.recurringDone,
+    taskStartedAt: state.current.taskStartedAt,
+    taskCompletedAt: state.current.taskCompletedAt,
+    taskActualMinutes: state.current.taskActualMinutes,
+    varianceReasonByTaskId: state.current.varianceReasonByTaskId,
+    startedTaskId: state.startedTaskId,
+    startedTaskDate: state.startedTaskDate,
+    carryover: state.carryover,
+    workDateOverrides: state.workDateOverrides,
+    history: state.history,
+
+    setDone: (updater) =>
+      setState((s) => ({ ...s, current: { ...s.current, done: resolve(updater, s.current.done) } })),
+    setRecurringDone: (updater) =>
+      setState((s) => ({ ...s, current: { ...s.current, recurringDone: resolve(updater, s.current.recurringDone) } })),
+    setTaskStartedAt: (updater) =>
+      setState((s) => ({ ...s, current: { ...s.current, taskStartedAt: resolve(updater, s.current.taskStartedAt) } })),
+    setTaskCompletedAt: (updater) =>
+      setState((s) => ({
+        ...s,
+        current: { ...s.current, taskCompletedAt: resolve(updater, s.current.taskCompletedAt) },
+      })),
+    setTaskActualMinutes: (updater) =>
+      setState((s) => ({
+        ...s,
+        current: { ...s.current, taskActualMinutes: resolve(updater, s.current.taskActualMinutes) },
+      })),
+    setVarianceReasonByTaskId: (updater) =>
+      setState((s) => ({
+        ...s,
+        current: { ...s.current, varianceReasonByTaskId: resolve(updater, s.current.varianceReasonByTaskId) },
+      })),
+    setStartedTaskId: (id) =>
+      setState((s) => ({ ...s, startedTaskId: id, startedTaskDate: id ? s.current.date : null })),
+    continueStartedTaskToday: () => setState((s) => ({ ...s, startedTaskDate: s.current.date })),
+    recordCarryover: (fromDate, taskId, disposition, toDate) =>
+      setState((s) => {
+        const key = `${fromDate}:${taskId}`;
+        const record: CarryoverRecord = { taskId, fromDate, disposition, toDate, decidedAt: new Date().toISOString() };
+        const nextOverrides = { ...s.workDateOverrides };
+        if (disposition !== "DROPPED" && toDate) nextOverrides[taskId] = toDate;
+        return {
+          ...s,
+          carryover: { ...s.carryover, [key]: record },
+          workDateOverrides: nextOverrides,
+        };
+      }),
+  };
 
   return <TodayExecutionContext.Provider value={api}>{children}</TodayExecutionContext.Provider>;
 }

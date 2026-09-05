@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fixedCalendarEvents, goals, outcomes, recurringRules, timeBlocks, tasks as allTasks } from "@/lib/dummy-data";
-import { daysBetween, formatMd, minutesSince, nowHm, todayStr } from "@/lib/date";
+import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince, nowHm } from "@/lib/date";
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
+import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
-import type { FixedEventType, RecurringRule, Task } from "@/lib/types";
+import type { CarryoverDisposition, FixedEventType, RecurringRule, Task } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
@@ -21,8 +22,7 @@ const fixedEventTypeIcon: Record<FixedEventType, string> = {
   FIXED_APPOINTMENT: "📌",
 };
 
-const today = todayStr();
-const weekday = ["日", "月", "火", "水", "木", "金", "土"][new Date().getDay()];
+const WEEKDAY_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
 type Celebration =
   | { kind: "simple" }
@@ -49,19 +49,29 @@ export default function TodayPage() {
   // away from /today, and local useState would be wiped each time (the
   // 2026-09-05 bug this fixes). See lib/todayExecutionStore.tsx.
   const {
+    currentDate,
     done,
     setDone,
     recurringDone,
     setRecurringDone,
     taskStartedAt,
     setTaskStartedAt,
+    setTaskCompletedAt,
     taskActualMinutes,
     setTaskActualMinutes,
     varianceReasonByTaskId,
     setVarianceReasonByTaskId,
     startedTaskId,
     setStartedTaskId,
+    startedTaskDate,
+    continueStartedTaskToday,
+    carryover,
+    workDateOverrides,
+    recordCarryover,
+    history,
   } = useTodayExecution();
+  const today = currentDate;
+  const weekday = WEEKDAY_LABEL[new Date(currentDate + "T00:00:00").getDay()];
 
   const [expanded, setExpanded] = useState(false);
   const [overdueOpen, setOverdueOpen] = useState(false);
@@ -76,6 +86,9 @@ export default function TodayPage() {
   // confirmation sheet shouldn't reappear after navigating back) — it stays
   // page-local, unlike the execution state above.
   const [switchConfirmTaskId, setSwitchConfirmTaskId] = useState<string | null>(null);
+  const [yesterdaySummaryOpen, setYesterdaySummaryOpen] = useState(false);
+  const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
+  const [rescheduleDateValue, setRescheduleDateValue] = useState("");
 
   function fireCelebration(c: Celebration, durationMs: number) {
     setCelebration(c);
@@ -106,27 +119,32 @@ export default function TodayPage() {
     if (startedIso) {
       setTaskActualMinutes((prev) => new Map(prev).set(task.id, minutesSince(startedIso)));
     }
+    setTaskCompletedAt((prev) => new Map(prev).set(task.id, new Date().toISOString()));
     if (startedTaskId === task.id) setStartedTaskId(null);
     toggle(task);
   }
 
+  function decideCarryover(taskId: string, disposition: CarryoverDisposition, toDate: string | null) {
+    recordCarryover(yesterday, taskId, disposition, toDate);
+    setReschedulingTaskId(null);
+    setRescheduleDateValue("");
+  }
+
   // Task ≠ Time (PRD.md §27): a Task scheduled today via a real TimeBlock
   // counts as today's work even if its own workDate/deadline points
-  // elsewhere — the TimeBlock is the stronger, more current signal.
-  const timeBlocksToday = useMemo(() => timeBlocks.filter((tb) => tb.date === today), []);
+  // elsewhere — the TimeBlock is the stronger, more current signal. Also
+  // includes any Task re-placed onto today via a Carryover decision (§10).
+  const timeBlocksToday = useMemo(() => timeBlocks.filter((tb) => tb.date === today), [today]);
   const scheduledTaskIds = useMemo(() => new Set(timeBlocksToday.map((tb) => tb.taskId)), [timeBlocksToday]);
 
   const todayTasks = useMemo(
-    () =>
-      allTasks.filter(
-        (t) => isOpen(t) && (t.workDate === today || t.deadline === today || scheduledTaskIds.has(t.id))
-      ),
-    [scheduledTaskIds]
+    () => tasksEffectiveOnDate(today, allTasks, timeBlocks, workDateOverrides),
+    [today, workDateOverrides]
   );
 
   const overdueTasks = useMemo(
     () => allTasks.filter((t) => isOpen(t) && t.deadline !== null && daysBetween(today, t.deadline) < 0),
-    []
+    [today]
   );
 
   const upcomingTasks = useMemo(() => {
@@ -136,7 +154,39 @@ export default function TodayPage() {
       const diff = daysBetween(today, t.deadline);
       return diff >= 1 && diff <= 2;
     });
-  }, [todayTasks]);
+  }, [todayTasks, today]);
+
+  // --- Day Rollover: Yesterday Summary / Carryover (2026-09-06) ---
+  // Not useMemo'd: these are cheap array scans over a small fixed fixture,
+  // and wrapping them tripped the React Compiler's memoization-preservation
+  // check (it couldn't verify `yesterday`/`carryover` as stable dependency
+  // identities) without any real performance benefit.
+  const yesterday = addDaysToYmd(today, -1);
+  const yesterdayRecord = history[yesterday] ?? null;
+  const yesterdayScheduledTasks = tasksScheduledOnDate(yesterday, allTasks, timeBlocks);
+  const yesterdayCompletedCount = yesterdayRecord?.completedTaskIds.length ?? 0;
+  const yesterdayTotalCount = yesterdayScheduledTasks.length;
+  const yesterdayActualMinutesTotal = yesterdayRecord
+    ? yesterdayRecord.taskActualMinutes.reduce((sum, [, m]) => sum + m, 0)
+    : 0;
+  // A Task from yesterday's plan that wasn't completed and has no Carryover
+  // decision yet (§7-9) — never auto-moved, never silently dropped. The
+  // currently-STARTED Task is excluded here even if it's technically
+  // "incomplete since yesterday" — it already gets its own cross-midnight
+  // banner (完了／中断／今日へ継続), so showing it a second time in this
+  // list with a different action set (今日やる／別日に移す／やめる) would
+  // just be a confusing double prompt for the same Task.
+  const carryoverPendingTasks = yesterdayRecord
+    ? pendingCarryoverTasks(yesterday, allTasks, timeBlocks, new Set(yesterdayRecord.completedTaskIds), carryover).filter(
+        (t) => t.id !== startedTaskId
+      )
+    : [];
+
+  // A Task STARTED on a previous day and still not resolved — Plan/Actual
+  // are never conflated and it's never auto-completed/reset/dropped (§4);
+  // the user explicitly chooses 完了／中断／今日へ継続.
+  const startedTask = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) ?? null : null;
+  const startedAcrossMidnight = startedTask !== null && startedTaskDate !== null && startedTaskDate !== today;
 
   // Scheduled (has a TimeBlock today) done Tasks stay visible inline in the
   // Timeline, dimmed — they must not also appear in this footer, or a
@@ -167,7 +217,7 @@ export default function TodayPage() {
 
   const fixedEventsToday = useMemo(
     () => fixedCalendarEvents.filter((e) => e.startDate <= today && e.endDate >= today),
-    []
+    [today]
   );
   const fixedEventsAllDayToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime === null), [fixedEventsToday]);
   const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
@@ -181,11 +231,18 @@ export default function TodayPage() {
   // or from an overdue/upcoming Task) has nowhere to render inside the
   // time-sorted Timeline — pin it above instead, rather than silently
   // dropping the fact that it's the one actually being worked on right now.
-  const startedTask = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) ?? null : null;
+  // A Task started on a *previous* day gets its own cross-midnight banner
+  // (with 完了／中断／今日へ継続) instead — never both at once.
   const pinnedNowTask =
-    startedTask && !scheduledTaskIds.has(startedTask.id) && !done.has(startedTask.id) ? startedTask : null;
+    startedTask && !startedAcrossMidnight && !scheduledTaskIds.has(startedTask.id) && !done.has(startedTask.id)
+      ? startedTask
+      : null;
   const pinnedNowStartedIso = pinnedNowTask ? taskStartedAt.get(pinnedNowTask.id) : undefined;
   const pinnedNowElapsedMinutes = pinnedNowStartedIso ? minutesSince(pinnedNowStartedIso) : null;
+  const startedAcrossMidnightElapsedIso = startedAcrossMidnight && startedTaskId ? taskStartedAt.get(startedTaskId) : undefined;
+  const startedAcrossMidnightElapsedMinutes = startedAcrossMidnightElapsedIso
+    ? minutesSince(startedAcrossMidnightElapsedIso)
+    : null;
 
   // Where to draw the "──── NOW hh:mm ────" divider: right before the NOW
   // slot if one exists, else right before the next upcoming slot, else at
@@ -368,6 +425,20 @@ export default function TodayPage() {
           </p>
         )}
 
+        {startedAcrossMidnight && startedTask && (
+          <div ref={nowCardRef as React.Ref<HTMLDivElement>} className="mb-2">
+            <CrossMidnightBanner
+              task={startedTask}
+              elapsedMinutes={startedAcrossMidnightElapsedMinutes}
+              startedDate={startedTaskDate}
+              onComplete={() => completeStartedTask(startedTask)}
+              onInterrupt={() => setStartedTaskId(null)}
+              onContinueToday={continueStartedTaskToday}
+              onOpen={() => setSelectedTask(startedTask)}
+            />
+          </div>
+        )}
+
         {pinnedNowTask && (
           <div ref={nowCardRef as React.Ref<HTMLDivElement>} className="mb-2">
             <PinnedNowCard
@@ -380,7 +451,11 @@ export default function TodayPage() {
           </div>
         )}
 
-        {timeline.length === 0 && unscheduledTodayTasks.length === 0 && doneTodayTasks.length === 0 && !pinnedNowTask ? (
+        {timeline.length === 0 &&
+        unscheduledTodayTasks.length === 0 &&
+        doneTodayTasks.length === 0 &&
+        !pinnedNowTask &&
+        !startedAcrossMidnight ? (
           <EmptyState icon="🌤" text="今日の予定はまだありません" />
         ) : (
           <div className="flex flex-col gap-5">
@@ -430,6 +505,7 @@ export default function TodayPage() {
                     <TaskRow
                       key={t.id}
                       task={t}
+                      today={today}
                       checked={false}
                       started={false}
                       onStart={() => requestStart(t.id)}
@@ -456,6 +532,7 @@ export default function TodayPage() {
                       <TaskRow
                         key={t.id}
                         task={t}
+                        today={today}
                         checked={true}
                         started={false}
                         onStart={() => {}}
@@ -471,6 +548,112 @@ export default function TodayPage() {
           </div>
         )}
       </section>
+
+      {carryoverPendingTasks.length > 0 && (
+        <section className="mx-5 mt-3">
+          <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <p className="text-xs font-bold text-stone-500">
+              昨日の未完了 <span className="text-stone-800">{carryoverPendingTasks.length}件</span>・行き先未決定
+            </p>
+            <ul className="mt-2 flex flex-col gap-2">
+              {carryoverPendingTasks.map((t) => (
+                <li key={t.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="truncate text-[13px] font-bold text-stone-700">{t.title}</p>
+                    <span className="shrink-0 text-[10px] font-bold text-stone-400">期限 {formatMd(t.deadline)}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => decideCarryover(t.id, "MOVED_TODAY", today)}
+                      className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
+                    >
+                      今日やる
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReschedulingTaskId(reschedulingTaskId === t.id ? null : t.id);
+                        setRescheduleDateValue("");
+                      }}
+                      className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-600"
+                    >
+                      別日に移す
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => decideCarryover(t.id, "DROPPED", null)}
+                      className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-400"
+                    >
+                      今回はやめる
+                    </button>
+                  </div>
+                  {reschedulingTaskId === t.id && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <input
+                        type="date"
+                        value={rescheduleDateValue}
+                        min={today}
+                        onChange={(e) => setRescheduleDateValue(e.target.value)}
+                        className="rounded-lg border border-stone-200 px-2 py-1 text-[12px] text-stone-700"
+                      />
+                      <button
+                        type="button"
+                        disabled={!rescheduleDateValue}
+                        onClick={() => decideCarryover(t.id, "RESCHEDULED", rescheduleDateValue)}
+                        className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                          rescheduleDateValue ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
+                        }`}
+                      >
+                        移動
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {yesterdayRecord && (
+        <section className="mx-5 mt-3">
+          <button
+            type="button"
+            onClick={() => setYesterdaySummaryOpen((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-left shadow-sm"
+          >
+            <span className="text-xs font-bold text-stone-500">
+              昨日の頑張り　{yesterdayCompletedCount}/{yesterdayTotalCount} Task完了
+            </span>
+            <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${yesterdaySummaryOpen ? "rotate-180" : ""}`}>
+              ▾
+            </span>
+          </button>
+          {yesterdaySummaryOpen && (
+            <div className="mt-1.5 rounded-2xl bg-stone-50 px-4 py-3 text-[12px] text-stone-600">
+              {yesterdayTotalCount > 0 && yesterdayCompletedCount === yesterdayTotalCount ? (
+                <p className="font-bold text-accent-dark">昨日はすべてやり切りました ✓</p>
+              ) : (
+                <p>
+                  Task完了 <span className="font-bold text-stone-800">{yesterdayCompletedCount}</span> /{" "}
+                  {yesterdayTotalCount}
+                </p>
+              )}
+              <p className="mt-1">
+                毎日の積み上げ{" "}
+                <span className="font-bold text-stone-800">{yesterdayRecord.recurringDone.length}</span> /{" "}
+                {recurringRules.length}
+              </p>
+              {yesterdayActualMinutesTotal > 0 && (
+                <p className="mt-1">
+                  実行時間 <span className="font-bold text-stone-800">{formatDurationHm(yesterdayActualMinutesTotal)}</span>
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="mx-5 mt-4">
         <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 shadow-sm">
@@ -951,6 +1134,67 @@ function PinnedNowCard({
   );
 }
 
+// A Task STARTED on a previous calendar day and still not resolved when
+// this day began (PRD.md Day Rollover §4). Never auto-completed, auto-
+// reset, or auto-dropped — actualStartedAt is preserved and the user
+// explicitly picks 完了／中断／今日へ継続.
+function CrossMidnightBanner({
+  task,
+  elapsedMinutes,
+  startedDate,
+  onComplete,
+  onInterrupt,
+  onContinueToday,
+  onOpen,
+}: {
+  task: Task;
+  elapsedMinutes: number | null;
+  startedDate: string | null;
+  onComplete: () => void;
+  onInterrupt: () => void;
+  onContinueToday: () => void;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ring-2 ring-accent-soft">
+      <button type="button" onClick={onOpen} className="w-full text-left">
+        <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-accent-dark">
+          <span>昨日から実行中</span>
+          {startedDate && <span className="text-stone-400">・{formatMd(startedDate)}開始</span>}
+        </div>
+        <p className="mt-0.5 text-[15px] font-bold leading-snug text-stone-800">{task.title}</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
+          {elapsedMinutes !== null && <span className="ml-auto font-bold text-stone-400">経過{formatDurationHm(elapsedMinutes)}</span>}
+        </div>
+      </button>
+      <div className="mt-2.5 flex gap-1.5 border-t border-stone-100 pt-2.5">
+        <button
+          type="button"
+          onClick={onInterrupt}
+          className="flex-1 rounded-full bg-stone-100 py-2 text-[12px] font-bold text-stone-500 active:scale-[0.98]"
+        >
+          中断
+        </button>
+        <button
+          type="button"
+          onClick={onContinueToday}
+          className="flex-1 rounded-full bg-stone-800 py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+        >
+          今日へ継続
+        </button>
+        <button
+          type="button"
+          onClick={onComplete}
+          className="flex-1 rounded-full bg-accent py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+        >
+          完了
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TimelineRecurringCard({
   item,
   checked,
@@ -1032,6 +1276,7 @@ function TimelineFixedCard({ item }: { item: Extract<TimelineItem, { kind: "fixe
 
 function TaskRow({
   task,
+  today,
   checked,
   started,
   onStart,
@@ -1042,6 +1287,7 @@ function TaskRow({
   emphasis = false,
 }: {
   task: Task;
+  today: string;
   checked: boolean;
   started: boolean;
   onStart: () => void;

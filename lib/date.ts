@@ -1,5 +1,27 @@
+// Dev/test-only seam (2026-09-06, Day Rollover round): lets a session
+// simulate crossing midnight (via browser devtools / javascript_tool)
+// without waiting for real midnight. Unset (null) in normal use, where
+// todayStr() falls straight through to the real wall-clock date — this
+// never ships as a user-facing feature or affects production behavior
+// unless explicitly poked from a console.
+let clockOverride: string | null = null;
+
+export function __setClockOverrideForTesting(date: string | null) {
+  clockOverride = date;
+}
+
 export function todayStr(): string {
-  return toYmd(new Date());
+  return clockOverride ?? toYmd(new Date());
+}
+
+// "4時間32分" / "45分" / "3時間" — never invents precision beyond whole
+// minutes.
+export function formatDurationHm(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m}分`;
+  if (m === 0) return `${h}時間`;
+  return `${h}時間${m}分`;
 }
 
 // "HH:mm" for right now, in the browser's local time.
@@ -31,6 +53,13 @@ export function addDays(base: Date, days: number): Date {
 
 export function offsetYmd(days: number): string {
   return toYmd(addDays(new Date(), days));
+}
+
+// Like offsetYmd, but relative to a given YYYY-MM-DD instead of the real
+// current date — needed once "today" can be a Day Rollover's currentDate
+// (or a simulated/injected one) rather than always the actual wall clock.
+export function addDaysToYmd(ymd: string, days: number): string {
+  return toYmd(addDays(new Date(ymd + "T00:00:00"), days));
 }
 
 export function daysBetween(fromYmd: string, toYmdStr: string): number {

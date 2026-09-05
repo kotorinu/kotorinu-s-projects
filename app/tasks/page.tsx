@@ -10,17 +10,15 @@ import {
   isSameMonth,
   monthKeyOf,
   monthLabel,
-  todayStr,
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
+import { useTodayExecution } from "@/lib/todayExecutionStore";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
-
-const today = todayStr();
 
 type QuickFilter = "全部" | "未着手" | "進行中" | "AI" | "7日以内";
 
@@ -64,6 +62,11 @@ const statusDot: Record<TaskStatus, string> = {
 };
 
 export default function TaskMapPage() {
+  // currentDate comes from the Day Rollover store, not a module-level
+  // todayStr() — this page is statically prerendered, so a module const
+  // would bake in the deploy-time date and never advance for any viewer
+  // (期限超過/7日以内 would silently go stale after deploy day).
+  const { currentDate: today } = useTodayExecution();
   const [monthOffset, setMonthOffset] = useState(0);
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("全部");
   const [refineOpen, setRefineOpen] = useState(false);
@@ -102,7 +105,7 @@ export default function TaskMapPage() {
       return t.status !== "完了" && t.status !== "Archive" && diff >= 0 && diff <= 7;
     }).length;
     return { inProgress, notStarted, aiOwned, overdue, within7 };
-  }, [monthTasks]);
+  }, [monthTasks, today]);
 
   const weekBuckets = useMemo(() => {
     const total = daysInMonth(monthKey);
@@ -124,7 +127,7 @@ export default function TaskMapPage() {
     const day = dayOfMonth(today);
     const idx = boundaries.findIndex((b, i) => day >= b && day < boundaries[i + 1]);
     return idx === -1 ? 3 : idx;
-  }, [monthOffset, monthKey]);
+  }, [monthOffset, monthKey, today]);
 
   const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
     (v) => v !== "全部"
@@ -351,7 +354,7 @@ export default function TaskMapPage() {
             <p className="text-sm text-stone-400">該当するタスクはありません</p>
           </div>
         ) : (
-          visibleTasks.map((t) => <TaskListRow key={t.id} task={t} onOpen={() => setSelectedTask(t)} />)
+          visibleTasks.map((t) => <TaskListRow key={t.id} task={t} today={today} onOpen={() => setSelectedTask(t)} />)
         )}
       </section>
 
@@ -360,7 +363,7 @@ export default function TaskMapPage() {
           <h2 className="mb-2 text-xs font-bold text-stone-400">期限未設定（{visibleUndatedTasks.length}）</h2>
           <div className="flex flex-col gap-1.5">
             {visibleUndatedTasks.map((t) => (
-              <TaskListRow key={t.id} task={t} onOpen={() => setSelectedTask(t)} />
+              <TaskListRow key={t.id} task={t} today={today} onOpen={() => setSelectedTask(t)} />
             ))}
           </div>
         </section>
@@ -517,7 +520,7 @@ function StatFilterButton({
   );
 }
 
-function TaskListRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
+function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpen: () => void }) {
   const overdue =
     task.deadline !== null &&
     task.status !== "完了" &&

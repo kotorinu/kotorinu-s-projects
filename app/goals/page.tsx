@@ -4,12 +4,10 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { goals, tasks } from "@/lib/dummy-data";
-import { formatMd, todayStr } from "@/lib/date";
+import { formatMd } from "@/lib/date";
 import { countdownLabel, countdownToneClass, countdownTone } from "@/lib/countdown";
+import { useTodayExecution } from "@/lib/todayExecutionStore";
 import type { Goal } from "@/lib/types";
-
-const today = todayStr();
-const todayMs = new Date(today).getTime();
 
 export default function GoalTreePage() {
   return (
@@ -20,6 +18,12 @@ export default function GoalTreePage() {
 }
 
 function GoalTreeContent() {
+  // currentDate comes from the Day Rollover store (lib/todayExecutionStore),
+  // not a module-level todayStr() — this page is statically prerendered, so
+  // a module-level const would bake in the deploy-time date forever (the
+  // Countdown would silently go stale for every viewer after deploy day).
+  const { currentDate: today } = useTodayExecution();
+  const todayMs = new Date(today).getTime();
   const searchParams = useSearchParams();
   const linkedFocusId = searchParams.get("focus");
 
@@ -60,7 +64,7 @@ function GoalTreeContent() {
       if (!best || diff < best.diff) best = { id: g.id, diff };
     }
     return best?.id ?? null;
-  }, []);
+  }, [todayMs]);
 
   useEffect(() => {
     if (!linkedFocusId) return;
@@ -100,6 +104,7 @@ function GoalTreeContent() {
               key={goal.id}
               goal={goal}
               depth={0}
+              today={today}
               childrenOf={childrenOf}
               tasksOf={tasksOf}
               focusId={focusId}
@@ -117,6 +122,7 @@ function GoalTreeContent() {
 function GoalBranch({
   goal,
   depth,
+  today,
   childrenOf,
   tasksOf,
   focusId,
@@ -126,6 +132,7 @@ function GoalBranch({
 }: {
   goal: Goal;
   depth: number;
+  today: string;
   childrenOf: Map<string | null, Goal[]>;
   tasksOf: Map<string, number>;
   focusId: string | null;
@@ -138,6 +145,7 @@ function GoalBranch({
     <div id={`goal-${goal.id}`} className="scroll-mt-28" style={{ marginLeft: depth * 14 }}>
       <TimelineRow
         goal={goal}
+        today={today}
         hasChildren={children.length > 0}
         isFocus={goal.id === focusId}
         isLinked={goal.id === linkedFocusId}
@@ -150,6 +158,7 @@ function GoalBranch({
           key={child.id}
           goal={child}
           depth={depth + 1}
+          today={today}
           childrenOf={childrenOf}
           tasksOf={tasksOf}
           focusId={focusId}
@@ -164,6 +173,7 @@ function GoalBranch({
 
 function TimelineRow({
   goal,
+  today,
   hasChildren,
   isFocus,
   isLinked,
@@ -172,6 +182,7 @@ function TimelineRow({
   onToggle,
 }: {
   goal: Goal;
+  today: string;
   hasChildren: boolean;
   isFocus: boolean;
   isLinked: boolean;
@@ -222,11 +233,11 @@ function TimelineRow({
 
         {expanded && (
           <div className="mt-2 flex flex-col gap-1.5 rounded-2xl bg-white p-3 text-[12px] leading-relaxed text-stone-700 shadow-sm">
-            <p>
+            <p className="whitespace-pre-line">
               <span className="font-bold text-stone-400">理想　</span>
               {goal.desiredState}
             </p>
-            <p>
+            <p className="whitespace-pre-line">
               <span className="font-bold text-stone-400">基準　</span>
               {goal.achievementCriteria}
             </p>

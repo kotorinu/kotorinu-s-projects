@@ -270,6 +270,100 @@ export const goals: Goal[] = [
     createdAt: now,
     updatedAt: now,
   },
+  // --- 時間軸Goal（5年後〜1か月後、2026-09-06正式復元） ---
+  // 本人と確定済みの内容（PROVISIONAL/未設定ではない）。GENESIS/営業代行/
+  // RIALAは「現在取り組んでいるProject/Area」であり、この時間軸チェーンと
+  // 意味が異なる別軸（g-direction配下）として維持する — 無理に一本の
+  // チェーンへ混ぜない（PRD.md Goal Tree §26）。半年後だけtargetDateの
+  // 確定値が無いため、期間から日付を計算せずnullのまま扱う。
+  {
+    id: "g-5year",
+    parentId: "g-work-philosophy",
+    title: "5年後",
+    targetDate: "2031-09-01",
+    desiredState:
+      "愛する家族と一緒に暮らし、家族との時間を大切にできている。\nオンラインを中心に場所に縛られず働き、家族との時間を確保しながら、自分自身も新しい経験や挑戦を通して成長している。\n個人として月収200万円・年収2,400万円を得ている。\n自分の事業を1つ持ち、自分が常に現場にいなくても、チームメンバーが自ら判断して事業を運営し、目標を達成できている。\n自分は既存事業の拡大や、新しい事業の立ち上げに力を注いでいる。",
+    achievementCriteria: "達成基準は今回確定していない（Desired Stateのみ確定）。",
+    status: "進行中",
+    linkedUrl: null,
+    note: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "g-3year",
+    parentId: "g-5year",
+    title: "3年後",
+    targetDate: "2029-09-01",
+    desiredState:
+      "東京の、仲間や職場の近くに住み、オフィスまで5〜10分で移動できる。\n東京駅・新宿・渋谷などの主要エリアにも出やすい生活をしている。\n5〜6人のチームをまとめるリーダーとして、メンバーの得意・不得意を把握し、適切な役割分担を行っている。\n目標設定・進捗確認・フィードバックを行い、チームとしてお客様に価値を届けながら、継続的に目標を達成している。\n年収は1,100〜1,200万円。\n仕事だけに偏らず、将来の家族形成や大切な人との時間も確保している。",
+    achievementCriteria: "達成基準は今回確定していない（Desired Stateのみ確定）。",
+    status: "進行中",
+    linkedUrl: null,
+    note: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "g-1year",
+    parentId: "g-3year",
+    title: "1年後",
+    targetDate: "2027-09-01",
+    desiredState:
+      "自分の人生の目的から、1年・1か月・1週間の目標を決め、その理由まで自分の言葉で説明できる。\n目標に合わない選択を断り、目標達成に必要な挑戦を自分で選べている。\nGENESISの事業に参画し、月50万円の報酬を継続的に得ている。\n事業の「集客・営業・商品提供・継続・売上・利益」の流れを説明でき、一つの業務領域に責任を持って、目標設定と改善を行っている。",
+    achievementCriteria:
+      "・毎週、目標と行動を振り返っている\n・目標と、その目標を設定した理由を説明できる\n・毎月、目標につながる新しい挑戦を1つ実行している\n・自分の感情・強み・弱み・判断傾向を自己理解ノートにまとめている\n・週1冊の読書から、実際の行動を最低1つ変えている",
+    status: "進行中",
+    linkedUrl: null,
+    note: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "g-halfyear",
+    parentId: "g-1year",
+    title: "半年後",
+    targetDate: null, // 本人確定値なし。「半年後」という期間から日付を逆算・捏造しない
+    desiredState:
+      "営業代行で月30万円を継続して得ている。\n一定数以上の有効面談を経験したうえで、成約率75％を達成している。\n面談ごとに振り返りと改善を行い、自分の営業の型を言語化できている。\nまた、自分がどのような人でありたいかを見失わず、仕事上の判断と自分の人生目標を結び付けられている。",
+    achievementCriteria:
+      "・営業代行の月額報酬30万円以上\n・直近20件以上の有効面談で成約率75％以上\n・面談後の振り返り・改善を毎回記録\n・週間の計画に対する行動達成率90％以上\n・自己理解ノートを週1回以上更新",
+    status: "進行中",
+    linkedUrl: null,
+    note: "Target Dateは本人確定値が無いため未設定（PROVISIONAL）。「半年後」という期間からAIが日付を計算して確定データ扱いにしない。",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "g-3month",
+    parentId: "g-halfyear",
+    title: "3か月後",
+    targetDate: "2026-12-01",
+    desiredState:
+      "本業では、問題や遅延の可能性を早めに報告・相談でき、周囲が状況を把握できている。\n稼働調整を除き、残業は月10時間以内になっている。\n営業では、面談の流れ・質問・提案・クロージングを自分の営業の型としてまとめ、直近10件以上の有効面談で成約率50％以上を達成している。\n営業代行で月15万円以上を得ている。",
+    achievementCriteria:
+      "・問題や遅延リスクが発生した当日中に報告・相談する\n・営業動画の学習と面談レビューを週1回以上行う\n・指摘事項を次回の面談で実践し、結果を記録する\n・自分の営業の型を資料として言語化する\n・表現力・論理的思考力・やり抜く力などについて、週1回改善点を振り返る",
+    status: "進行中",
+    linkedUrl: null,
+    note: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "g-1month",
+    parentId: "g-3month",
+    title: "1か月後",
+    targetDate: "2026-10-01",
+    desiredState:
+      "60日チャレンジの1か月目に予定されている課題をすべて完了している。\n「具体と抽象とは何か」「なぜ往復する必要があるのか」を、自分の言葉と複数の具体例を使って説明できる。\n営業代行先が決まり、担当する業務・報酬条件・開始日・目標が明確になっている。\n計画した行動の90％以上を実行し、未達分はその週の日曜日までにリカバリーできている。",
+    achievementCriteria:
+      "・『具体⇄抽象トレーニング』の演習を毎日最低1問解く\n・回答だけでなく、「抽象化・具体例・実生活での活用」を記録する\n・未実施分は、その週の土日で必ずリカバリーする\n・営業代行準備の目標を、週単位の行動数に分解して実行する\n・自分の人生・1年・1か月・1週間の目標と、その理由を説明できる状態",
+    status: "進行中",
+    linkedUrl: null,
+    note: null,
+    createdAt: now,
+    updatedAt: now,
+  },
   {
     id: "g-direction",
     parentId: "g-work-philosophy",
@@ -280,7 +374,7 @@ export const goals: Goal[] = [
     achievementCriteria: "5年／3年／1年の具体的な達成基準はまだ確定していない（PROVISIONAL）",
     status: "進行中",
     linkedUrl: null,
-    note: "5年後／3年後／1年後／3か月後／1か月後の各階層はまだ本人確認済みの内容がないため、ノードを作っていない。捏造せずUNKNOWNのまま扱う。",
+    note: "5年後〜1か月後の時間軸Goalは正式復元済み（g-5year以下、Work Philosophy直下の別ブランチ）。GENESIS/営業代行/RIALAはこのDirectionが指す「現在取り組んでいるProject/Area」であり、時間軸チェーンと意味的に区別する（PRD.md Goal Tree §26）。",
     createdAt: now,
     updatedAt: now,
   },
