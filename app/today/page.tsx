@@ -6,7 +6,8 @@ import { daysBetween, formatMd, minutesSince, nowHm, todayStr } from "@/lib/date
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
-import type { FixedEventType, RecurringRule, Task, VarianceReason } from "@/lib/types";
+import { useTodayExecution } from "@/lib/todayExecutionStore";
+import type { FixedEventType, RecurringRule, Task } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
@@ -42,8 +43,26 @@ function isOpen(t: Task) {
 }
 
 export default function TodayPage() {
-  const [done, setDone] = useState<Set<string>>(new Set());
-  const [recurringDone, setRecurringDone] = useState<Set<string>>(new Set());
+  // Task status / started / completed / actualMinutes / varianceReason all
+  // live in TodayExecutionProvider (mounted once in the root layout), not in
+  // this page's own useState — this page unmounts on every SPA navigation
+  // away from /today, and local useState would be wiped each time (the
+  // 2026-09-05 bug this fixes). See lib/todayExecutionStore.tsx.
+  const {
+    done,
+    setDone,
+    recurringDone,
+    setRecurringDone,
+    taskStartedAt,
+    setTaskStartedAt,
+    taskActualMinutes,
+    setTaskActualMinutes,
+    varianceReasonByTaskId,
+    setVarianceReasonByTaskId,
+    startedTaskId,
+    setStartedTaskId,
+  } = useTodayExecution();
+
   const [expanded, setExpanded] = useState(false);
   const [overdueOpen, setOverdueOpen] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
@@ -53,18 +72,9 @@ export default function TodayPage() {
   const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = usePrefersReducedMotion();
 
-  // Measures Estimate vs Actual for real (PRD.md §25/§29): session-only (no
-  // DB yet), never fabricated — actualMinutes is only ever set from a real
-  // 開始→完了 span the user actually walked through just now. Plan
-  // (TimeBlock startTime/endTime) and Actual (taskStartedAt/actualMinutes)
-  // are never conflated — starting early/late never rewrites the TimeBlock.
-  const [taskStartedAt, setTaskStartedAt] = useState<Map<string, string>>(new Map());
-  const [taskActualMinutes, setTaskActualMinutes] = useState<Map<string, number>>(new Map());
-  const [varianceReasonByTaskId, setVarianceReasonByTaskId] = useState<Map<string, VarianceReason>>(new Map());
-  // At most one Task can be STARTED at a time (Early Start, §1-2) — starting
-  // a second one while one is already in progress requires confirmation and
-  // never silently marks the first one complete.
-  const [startedTaskId, setStartedTaskId] = useState<string | null>(null);
+  // switchConfirmTaskId is purely a same-visit UI prompt (a still-open
+  // confirmation sheet shouldn't reappear after navigating back) — it stays
+  // page-local, unlike the execution state above.
   const [switchConfirmTaskId, setSwitchConfirmTaskId] = useState<string | null>(null);
 
   function fireCelebration(c: Celebration, durationMs: number) {

@@ -1371,3 +1371,23 @@ Sheetから「関連Knowledge」として参照でき、GENESIS合宿（g-genesi
 - Weekly Reviewへのvariance集計反映（実績データがまだ薄いため）
 - Overdue/Upcomingの圧縮アラート行への開始ボタン追加（Today Timelineと
   時間未定リストの範囲に留めた）
+
+# TODAY状態のページ遷移保持（バグ修正、2026-09-05）
+
+TODAYで完了・実行中にしたTaskの状態が、TASK MAP等へ遷移して戻ると消える
+バグを修正。原因は`done`/`recurringDone`/`taskStartedAt`/
+`taskActualMinutes`/`varianceReasonByTaskId`/`startedTaskId`が
+`app/today/page.tsx`自身の`useState`にあり、Next.js App Routerでは
+ルート遷移のたびにそのページコンポーネント自体がアンマウントされるため。
+
+`lib/todayExecutionStore.tsx`にContext Providerとして切り出し、
+`app/layout.tsx`（ルートレイアウト、ルート遷移でアンマウントされない）
+でマウントすることでSPA内遷移をまたいで状態を保持する。加えて同日内は
+`localStorage`へも同じ状態をミラーし、ブラウザリロード後も保持できる
+（Phase1・DB未接続のための簡易永続化。`recurringDone`等「今日」限定の
+状態は、保存されたスナップショットの日付が今日と異なる場合は破棄し、
+翌日以降に前日の完了チェックが残らないようにしている）。
+
+Plan（TimeBlockのstartTime/endTime）はこの変更でも一切書き換えない
+（Early Startの原則を維持）。celebration・開閉状態・選択中のシート等の
+純粋なUI状態はこれまで通りページローカルの`useState`のまま。
