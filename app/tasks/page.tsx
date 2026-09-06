@@ -17,6 +17,7 @@ import { computeProgress } from "@/lib/progress";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
+import { resolveSeries } from "@/lib/taskSeries";
 import { buildWeekEntries, WeekEntry } from "@/lib/weekPlan";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
@@ -656,6 +657,11 @@ function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpe
     daysBetween(today, task.deadline) < 0;
   const done = task.status === "完了";
   const badge = capabilityBadge(task.aiCapability);
+  // A Task split into a real Series (2026-09-06) — surface its step here so
+  // the several rows a series produces read as one flow at a glance. Labeled
+  // "ステップ" so it's never confused with a book title's own page split
+  // (e.g. "『THE FORMAT』1/2を読む" is book-half 1/2 but series step 1/3).
+  const series = task.seriesId ? resolveSeries(task, allTasks) : null;
   return (
     <button
       type="button"
@@ -673,10 +679,15 @@ function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpe
             {formatMd(task.deadline)}
           </span>
         </div>
-        <div className="mt-1 flex items-center gap-1.5">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[task.area]}`}>
             {task.area}
           </span>
+          {series && (
+            <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-bold text-stone-500">
+              ステップ{series.sequenceNumber}/{series.totalSteps}
+            </span>
+          )}
           {task.importance === "高" && (
             <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black text-white">MAX</span>
           )}
