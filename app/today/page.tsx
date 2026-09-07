@@ -7,9 +7,11 @@ import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
 import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
+import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/executionBaseline";
 import {
   buildCompletionRecord,
   effectiveDeadline,
+  isTaskCommitted,
   isTaskDone,
   isTaskOpen,
   overdueTasks as computeOverdueTasks,
@@ -82,8 +84,9 @@ export default function TodayPage() {
     completeTask,
     uncompleteTask,
     setTaskDisposition,
+    lifecycleOverrides,
   } = useTodayExecution();
-  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides };
+  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   // "Done" = a durable completion record (or an authored-complete fixture
   // Task), OR ticked off on today's list. The durable half is what makes a
   // completed Task stay completed across the day boundary and drop out of
@@ -93,6 +96,15 @@ export default function TodayPage() {
   }
   const today = currentDate;
   const weekday = WEEKDAY_LABEL[new Date(currentDate + "T00:00:00").getDay()];
+
+  // Execution Baseline (§1/§28): 2026-09-08 は DAY 1。それ以前の実行状態は
+  // Execution OS完成前の試行期間なので、Streakにも今日の数値にも持ち込まない。
+  const dayNumber = executionDayNumber(today);
+  const streak = executionStreak(today, (d) =>
+    d === today
+      ? done.size > 0 || recurringDone.size > 0
+      : (history[d]?.completedTaskIds.length ?? 0) > 0 || (history[d]?.recurringDone.length ?? 0) > 0
+  );
 
   const [expanded, setExpanded] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
@@ -183,9 +195,18 @@ export default function TodayPage() {
   const activeTimeBlocksToday = useMemo(() => activeTimeBlocks.filter((tb) => tb.date === today), [today]);
   const scheduledTaskIds = useMemo(() => new Set(activeTimeBlocksToday.map((tb) => tb.taskId)), [activeTimeBlocksToday]);
 
+  // 2026-09-08 (§2): only committed work is today's work. A BACKLOG Task whose
+  // deadline happens to land today has no decided execution time and must not
+  // be counted in today's progress or listed as something to do now.
   const todayTasks = useMemo(
-    () => tasksEffectiveOnDate(today, allTasks, activeTimeBlocks, workDateOverrides),
-    [today, workDateOverrides]
+    () =>
+      tasksEffectiveOnDate(
+        today,
+        allTasks.filter((t) => isTaskCommitted(t, { lifecycleOverrides })),
+        activeTimeBlocks,
+        workDateOverrides
+      ),
+    [today, workDateOverrides, lifecycleOverrides]
   );
 
   // OVERDUE is derived (期限 < 今日 かつ 未完了 かつ 未DROP), never a stored
@@ -228,11 +249,21 @@ export default function TodayPage() {
   // banner (完了／中断／今日へ継続), so showing it a second time in this
   // list with a different action set (今日やる／別日に移す／やめる) would
   // just be a confusing double prompt for the same Task.
-  const carryoverPendingTasks = yesterdayRecord
-    ? pendingCarryoverTasks(yesterday, allTasks, activeTimeBlocks, new Set(yesterdayRecord.completedTaskIds), carryover).filter(
-        (t) => t.id !== startedTaskId
-      )
-    : [];
+  //
+  // §1: a day from before the Execution Baseline never carries over. Those
+  // days ran without a real plan, so their "incomplete" list is not a set of
+  // decisions the user still owes — dragging it into today would recreate
+  // exactly the pile this round is clearing.
+  const carryoverPendingTasks =
+    yesterdayRecord && !isBeforeBaseline(yesterday)
+      ? pendingCarryoverTasks(
+          yesterday,
+          allTasks,
+          activeTimeBlocks,
+          new Set(yesterdayRecord.completedTaskIds),
+          carryover
+        ).filter((t) => t.id !== startedTaskId && isTaskOpen(t, overlays))
+      : [];
 
   // A Task STARTED on a previous day and still not resolved — Plan/Actual
   // are never conflated and it's never auto-completed/reset/dropped (§4);
@@ -315,10 +346,22 @@ export default function TodayPage() {
     nowCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  // §2 (2026-09-08): "今日やるTaskなのに時間未定" is no longer a state this
+  // app displays. A Task without a decided time is BACKLOG and belongs on
+  // TASK MAP, not here. This list therefore only ever holds a genuine plan
+  // error — an ACTIVE Task whose TimeBlock went missing — and says so
+  // instead of quietly presenting it as today's work.
   const unscheduledTodayTasks = useMemo(
-    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !isDone(t) && t.id !== startedTaskId),
+    () =>
+      todayTasks.filter(
+        (t) =>
+          !scheduledTaskIds.has(t.id) &&
+          !isDone(t) &&
+          t.id !== startedTaskId &&
+          isTaskCommitted(t, { lifecycleOverrides })
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todayTasks, scheduledTaskIds, done, completions, startedTaskId]
+    [todayTasks, scheduledTaskIds, done, completions, startedTaskId, lifecycleOverrides]
   );
 
   const preparationCountByTaskId = useMemo(() => {
@@ -401,6 +444,18 @@ export default function TodayPage() {
             <h1 className="mt-0.5 flex items-center gap-2 text-[26px] font-black tracking-tight">
               <span className="text-2xl">☀</span> TODAY
             </h1>
+            {/* Execution Baseline (§1/§28): 9/8 is DAY 1. Everything before it
+                was the period while this OS was being built, and its numbers
+                are not counted as execution. */}
+            {dayNumber !== null && (
+              <p className="mt-1 text-[11px] font-black tracking-widest text-stone-400">
+                DAY {dayNumber}
+                {streak.days > 0 && <span className="ml-2 text-accent-dark">・{streak.days}日連続</span>}
+                {streak.days > 0 && !streak.todayCounted && (
+                  <span className="ml-1 font-bold text-stone-300">（今日はまだ）</span>
+                )}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="tabular-nums text-2xl font-black">{formatMd(today)}</p>
@@ -498,9 +553,20 @@ export default function TodayPage() {
                     <span className={`truncate text-[13px] font-medium ${checked ? "text-stone-300 line-through" : "text-stone-600"}`}>
                       {r.title}
                     </span>
-                    {checked && r.streakDays > 0 && (
-                      <span className="ml-auto shrink-0 text-[10px] font-bold text-accent-dark">{r.streakDays + 1}日連続</span>
-                    )}
+                    {(() => {
+                      // §28: counted from real history since the Execution
+                      // Baseline, never from the fixture's streakDays.
+                      const rs = executionStreak(today, (d) =>
+                        d === today
+                          ? recurringDone.has(r.id)
+                          : (history[d]?.recurringDone ?? []).includes(r.id)
+                      );
+                      return rs.days > 0 ? (
+                        <span className="ml-auto shrink-0 text-[10px] font-bold text-accent-dark">
+                          {rs.days}日連続
+                        </span>
+                      ) : null;
+                    })()}
                   </button>
                 </li>
               );
@@ -592,8 +658,9 @@ export default function TodayPage() {
 
             {unscheduledTodayTasks.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
-                  時間未定（{unscheduledTodayTasks.length}）
+                <p className="mb-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[11px] font-bold leading-relaxed text-danger">
+                  ⚠ 実行時間が決まっていないのに実行計画へ入っているTaskが{unscheduledTodayTasks.length}件あります。
+                  時間を決めるか、Backlogへ戻してください。
                 </p>
                 <ul className="flex flex-col gap-2">
                   {unscheduledTodayTasks.map((t) => (

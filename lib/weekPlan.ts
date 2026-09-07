@@ -25,13 +25,21 @@ function minutesBetween(startTime: string, endTime: string): number {
   return eh * 60 + em - (sh * 60 + sm);
 }
 
+// 2026-09-08 (§2/§3): the week view shows the plan being executed, so only
+// ACTIVE Tasks appear. A BACKLOG Task has no decided execution time — putting
+// its bare deadline on a day says "do this Tuesday" when nothing was ever
+// scheduled, which is exactly what made THE FORMAT keep showing up as this
+// week's reading after the plan had moved on. Backlog work stays visible on
+// TASK MAP's full inventory instead. The caller does the filtering so a Task
+// the user has just archived disappears too, not only the fixture's own.
 export function buildWeekEntries(
   dates: string[],
-  tasks: Task[],
+  allTasks: Task[],
   timeBlocks: TimeBlock[],
   fixedEvents: FixedCalendarEvent[],
   workDateOverrides: Record<string, string>
 ): Map<string, WeekEntry[]> {
+  const tasks = allTasks;
   const dateSet = new Set(dates);
   const map = new Map<string, WeekEntry[]>();
   for (const d of dates) map.set(d, []);

@@ -1,5 +1,60 @@
 export type Area = "営業代行" | "RIALA" | "GENESIS" | "Skill Plus" | "その他";
 
+// The areas that have an Area Home and appear as cards (2026-09-08).
+// "Skill Plus" is deliberately absent: it is a time-limited learning source
+// for 営業代行, not a strategic area of its own (§29). Its historical Tasks
+// keep `area: "Skill Plus"` so nothing is rewritten, but it no longer
+// presents as somewhere the user is heading.
+export type HomeArea = "営業代行" | "RIALA" | "GENESIS";
+
+// Where a Task sits relative to the plan being executed (2026-09-08, §2/§4).
+//
+// ACTIVE is a commitment: it MUST have a deadline, a workDate and a TimeBlock.
+// "今日やるTaskなのに時間未定" is not allowed to exist — anything without a
+// decided time is BACKLOG, and appears nowhere in TODAY / Week View / Day
+// Detail. Everything else is a way of leaving the live plan without erasing
+// what happened.
+export type TaskLifecycle =
+  | "ACTIVE" // 実行計画に入っている（deadline + workDate + TimeBlock 必須）
+  | "BACKLOG" // やる意思はあるが実行日時が未定 — ACTIVE PLANには出さない
+  | "SUPERSEDED" // 状況が変わり、別のTaskに置き換えられた
+  | "MERGED" // 重複していたので別Taskへ統合した
+  | "ARCHIVED" // 現役ではないが記録として残す
+  | "DELETED"; // 誤登録。実績が一切ない場合のみ
+
+export interface TaskLifecycleRecord {
+  taskId: string;
+  lifecycle: TaskLifecycle;
+  reason: string;
+  decidedOnDate: string;
+  decidedAt: string;
+  // Set for MERGED/SUPERSEDED — where the work actually lives now, so a Task
+  // is never a dead end.
+  replacedByTaskId: string | null;
+}
+
+// Why a Task is worth doing, at the grain that actually answers the question
+// (2026-09-08, §13). A single "〜するため" sentence restates the title and
+// tells the user nothing, so all three parts are required on an ACTIVE Task.
+export interface TaskWhy {
+  parentOutcome: string; // 何を達成するためか
+  currentGap: string; // 現在なにが足りないのか
+  whyNow: string; // なぜ今これをやる必要があるのか / 放置するとどうなるか
+}
+
+export type SourceType = "NOTION" | "PDF" | "VIDEO" | "APP" | "SPREADSHEET" | "SLIDE" | "OTHER";
+
+// A real place the work is done or read from (2026-09-08, §17). Only URLs the
+// user has actually given — never construct one that looks plausible. A
+// Source with no confirmed URL still belongs here (url: null) so the user
+// knows where to go, without the app pretending it can link there.
+export interface SourceLink {
+  label: string;
+  url: string | null;
+  sourceType: SourceType;
+  purpose: string; // このTaskでこのSourceを何に使うのか
+}
+
 export type TaskStatus = "未着手" | "進行中" | "待ち" | "完了" | "Archive";
 
 export type AiStatus = "未着手" | "実行中" | "人間確認待ち" | "完了" | "Blocked";
@@ -97,6 +152,16 @@ export interface Task {
   // decide whether it may go into the weekday lunch slot, which is phone-only.
   // null = not yet judged; a planner must not treat null as "anything goes".
   requiredEnvironment: ExecutionEnvironment | null;
+  // --- Live plan membership + explanation (2026-09-08) ---
+  lifecycle: TaskLifecycle;
+  lifecycleReason: string | null; // required whenever lifecycle !== "ACTIVE"
+  replacedByTaskId: string | null; // MERGED/SUPERSEDED → where the work went
+  whyBreakdown: TaskWhy | null; // required on ACTIVE Tasks (§13/§14)
+  sourceLinks: SourceLink[]; // only what this Task actually needs (§17)
+  // Set when a Task cannot be finished because information the user doesn't
+  // have yet is required (e.g. 商品固有の提案内容). Prevents "完成させた
+  // ことにする" — the Task stays honest about what is missing.
+  blockedOnInfo: string | null;
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -151,6 +216,57 @@ export interface Outcome {
   // GENESIS target) coexist with a standing one without either overwriting
   // the other.
   horizon: "WEEK" | "SPRINT" | "STANDING";
+}
+
+// The standing description of an Area — what it is for and what long-term
+// state it is heading toward (2026-09-08, §7). Distinct from Outcome: the
+// Outcome is the dated thing being executed right now, this is the reason the
+// Area exists at all. RIALA's "AI-firstで回せる状態" is the Goal here; the
+// 9/11 migration deadline is the Outcome.
+export interface AreaProfile {
+  area: HomeArea;
+  slug: string; // /area/<slug>
+  purpose: string; // ① 何のためにこのAreaへ取り組んでいるか
+  standingGoal: string; // ② 今どんな状態を目指しているか（長期）
+  currentState: string; // ④ 何ができていて、何がまだできていないか
+  masterLabel: string | null; // ⑦ Sales Master / Operations Master 等
+  masterHref: string | null;
+  knowledge: string[]; // ⑦ Master以外に参照するKnowledge
+  sources: SourceLink[]; // ⑧ 実際の参照元
+  blockers: string[]; // ⑨ 進まない理由・不足情報
+  // ⑩ Outcome に即した進捗の見方。Task完了率と混同させないため、何を数えて
+  // いるのかを言葉で持たせる。
+  progressLabel: string;
+}
+
+// Google Calendar reflection state (2026-09-08, §27). The app still has no
+// Calendar API write, and never claims otherwise: CONFIRMED requires a real
+// calendarEventId. NEEDS_CALENDAR_SYNC is the honest middle state — the time
+// is decided inside AI Work OS, but nothing has been written to Calendar yet.
+export type CalendarSyncState = "NOT_NEEDED" | "NEEDS_CALENDAR_SYNC" | "CONFIRMED";
+
+// GENESIS営業実践事前動画 (§12). The user has confirmed the count and total
+// running time only — 12 videos, 268 minutes. Individual titles, durations
+// and ordering have never been provided, so `videos` stays empty rather than
+// being filled with invented entries; the count is displayed from
+// totalVideos/totalMinutes. A watched video is only useful once its lesson is
+// attached to a phase, so linkedPhaseIds/lesson are part of the record.
+export interface SalesVideo {
+  id: string;
+  title: string;
+  minutes: number | null;
+  watched: boolean;
+  linkedPhaseIds: string[];
+  lesson: string | null;
+  usagePoint: string | null;
+}
+
+export interface SalesVideoLibrary {
+  label: string;
+  totalVideos: number;
+  totalMinutes: number;
+  videos: SalesVideo[];
+  note: string;
 }
 
 export type RecurringFrequency = "DAILY";

@@ -41,6 +41,32 @@ export interface SprintProgress {
   selfFeedbackDone: boolean;
 }
 
+// Coverage at the UNDERSTANDING level (2026-09-08, §10): how many of the 17
+// phases actually have a purpose, an OK state, and a way to draw the
+// information out. Counted from the content itself, not from masteryStatus —
+// a phase is only covered when the field is non-empty. Kept deliberately
+// separate from "使える": filling 17/17 is not the same as being able to run
+// the conversation, and the two must never be shown as one number.
+export interface PhaseCoverage {
+  total: number;
+  purpose: number;
+  okState: number;
+  means: number; // 確認事項 or 質問例 のどちらかが入っている
+  productInfoRequired: number;
+}
+
+export function phaseCoverage(phases: SalesPhase[]): PhaseCoverage {
+  const nonEmpty = (v: string | null) => v !== null && v.trim() !== "";
+  return {
+    total: phases.length,
+    purpose: phases.filter((p) => nonEmpty(p.purpose) || nonEmpty(p.myUnderstanding)).length,
+    okState: phases.filter((p) => nonEmpty(p.okState)).length,
+    means: phases.filter((p) => p.checkPoints.length > 0 || p.sourceQuestions.length > 0 || p.myQuestions.length > 0)
+      .length,
+    productInfoRequired: phases.filter((p) => p.caseSpecificKnowledge.includes("PRODUCT_INFO_REQUIRED")).length,
+  };
+}
+
 export function computeSprintProgress(phases: SalesPhase[], roleplayFeedback: RoleplayFeedback[]): SprintProgress {
   const total = phases.length;
   const structureDone = phases.filter((p) => atLeast(p.masteryStatus, "FILLED")).length;

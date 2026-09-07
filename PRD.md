@@ -1744,3 +1744,95 @@ MOBILE_ONLY または ANY のTaskだけで、「空いているから入れる�
 - **Timerの一時停止／再開**：開始と完了だけで、途中で止める手段が無い
 - **日をまたいだ実績履歴の閲覧画面**：completionレコードは永続化されるが、
   過去日の実績を一覧する画面は無い（当日分と前日Summaryのみ）
+
+# Area Home と Execution Baseline（2026-09-08 第2ラウンド）
+
+「何を目指しているか / 今どこにいるか / 次に何をするか / 何時にやるか /
+何を満たせば完了か」が迷わず分かる状態にするための再設計。UIも変えたが、
+目的は見た目ではなく、毎朝ゼロから考え直す状態をなくすこと。
+
+## Execution Baseline = 2026-09-08（DAY 1）
+
+9/7以前はExecution OSが完成する前の試行期間として扱う。履歴は消さないが、
+TODAY / 今日の前進 / Streak / Carryover / OVERDUE の**現在値には持ち込まない**。
+
+- `lib/executionBaseline.ts`：`EXECUTION_BASELINE_DATE` / `executionDayNumber`
+  / `executionStreak`
+- Streakは `RecurringRule.streakDays`（fixtureの「3日連続」等）をやめ、
+  実際の履歴から後ろ向きに数える。baselineより前は数えない。fixtureの値は
+  全て0へリセット済み
+- baselineより前の日はCarryoverしない（`isBeforeBaseline` ガード）
+
+## Task Lifecycle：ACTIVEは「時間まで決まっている」こと
+
+`Task.lifecycle` を新設：**ACTIVE / BACKLOG / SUPERSEDED / MERGED /
+ARCHIVED / DELETED**。
+
+- **ACTIVE** は約束。deadline・workDate・TimeBlock が3つとも必須
+- 時間が決められないものは **BACKLOG**。TODAY・Week View・Day Detail・
+  今日の前進 のどこにも出さない。「時間未定」という表示自体を廃止した
+- OVERDUEは **ACTIVEにだけ** 適用する。BACKLOGの日付は目標であって破った
+  約束ではない——ここを分けないと、一度も計画していない作業で期限超過
+  リストが埋まる
+- SUPERSEDED / MERGED / ARCHIVED は「未完了」に数えない。ただし消さない。
+  TASK MAPに **整理済み** スコープを追加して必ず見つけられるようにした
+
+## Task削除・整理（components/TaskOrganizeMenu.tsx）
+
+Task Detail末尾に「Taskを整理」を追加。Backlogへ戻す / 実行計画へ戻す /
+Archive / 他のTaskへ統合 / 誤登録として削除。
+
+**削除は2種類を区別する。** 実績（完了記録・計測・開始履歴）が1つでもある
+Taskでは削除ボタン自体が出ず、理由が表示される。Archiveか統合のみ。
+統合は同じAreaの生きているTaskからのみ選べるので、作業の行き先が必ず残る。
+
+## Area Home（/area/sales, /area/riala, /area/genesis）
+
+TASK MAPのAreaカードが入口になり、1画面で
+目的 → 目指す状態(GOAL) → いま必達のOutcome(NOW) → 現在地 → NEXT（時刻付き）
+→ Master → Knowledge → Source → Blocker まで出す。
+
+**GOALとOutcomeを分離**した。RIALAは長期の「AI-firstで回せる状態」が
+Areaカードに出ていたせいで、実際に走っている9/11の移行期限が見えなく
+なっていた。いまは GOAL＝AI-first運営 / NOW＝9/11移行完了 と並ぶ。
+
+TASK MAPの情報順も入れ替えた：**Area Homeカード → 今週の日別Plan →
+全量Task**。月次カレンダーと今月進捗は補助として下へ。
+
+## 営業 9/9 Outcomeの変更
+
+**旧**「自分版営業商談設計書 v1を完成する」→
+**新**「営業17フェーズの目的と手段を理解し、自分用の理解マップを完成する」
+
+商品理解が不足した状態で17フェーズを商品トークとして完成させ、価格・
+オファー・クロージングまで作り切ることを9/9必達にはしない。商品情報が
+必要な箇所は `blockedOnInfo` に **PRODUCT_INFO_REQUIRED** として明示し、
+創作しない。
+
+Sales Masterの9/9 Checkpointも **UNDERSTANDING** 中心へ変更し、
+Purpose / OK State / Means の3つのCoverageを表示する。ロープレと口頭練習は
+次Checkpointへ。「17/17 入力された」と「営業で使える」は分けたまま。
+
+営業動画（12本・268分）は本数と合計時間だけ確認済みなので、個別の
+タイトルは作らない。Video → Phase の紐付けを型として持ち、視聴した回から
+埋めていく。
+
+## Why の3段化
+
+`Task.whyBreakdown`（parentOutcome / currentGap / whyNow）。
+「〜するため」1文で終わらせない。ACTIVE Task 11件すべてに記入済み。
+
+## Source Links
+
+`Task.sourceLinks`（label / url / sourceType / purpose）。RIALAの実Taskに
+本人提供のNotion 5件を、必要なTaskにだけ紐づけた。URLは勝手に作らない
+（未確認のものは url: null で「リンク未確認」と表示）。
+
+## 今回実装していないもの
+
+- **AI Planner本体**（優先順位規則はあるが自動配置はしない）
+- **Google Calendar API実書き込み**（`calendarSyncState` は
+  NOT_NEEDED / NEEDS_CALENDAR_SYNC / CONFIRMED を持つが、CONFIRMEDには
+  実際の calendarEventId が必要で、いまは誰も持っていない）
+- **実績→次回Estimateの補正**
+- **日をまたいだ実績履歴の閲覧画面**

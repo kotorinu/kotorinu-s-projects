@@ -1,6 +1,12 @@
 import { daysBetween, minutesSince } from "./date";
 import { computeVariance } from "./execution";
-import type { Task, TaskCompletionRecord, TaskDispositionRecord } from "./types";
+import type {
+  Task,
+  TaskCompletionRecord,
+  TaskDispositionRecord,
+  TaskLifecycle,
+  TaskLifecycleRecord,
+} from "./types";
 
 // Single source of truth for "what state is this Task actually in right
 // now" (2026-09-06 Execution Management round).
@@ -19,6 +25,52 @@ export interface TaskStateOverlays {
   dispositions: Record<string, TaskDispositionRecord>;
   deadlineOverrides: Record<string, string>;
   workDateOverrides: Record<string, string>;
+  // 2026-09-08: Archive / Merge / Delete decisions made from Task Detail.
+  // The fixture's own `lifecycle` is the authored baseline; this is what the
+  // user has since decided.
+  lifecycleOverrides?: Record<string, TaskLifecycleRecord>;
+}
+
+/** The Task's lifecycle right now: a user decision wins over the fixture. */
+export function effectiveLifecycle(
+  task: Task,
+  overlays: Pick<TaskStateOverlays, "lifecycleOverrides">
+): TaskLifecycle {
+  return overlays.lifecycleOverrides?.[task.id]?.lifecycle ?? task.lifecycle;
+}
+
+/**
+ * Whether this Task belongs to the plan the user is executing. Only ACTIVE
+ * and BACKLOG Tasks are still "live" work; SUPERSEDED / MERGED / ARCHIVED /
+ * DELETED ones are history and must not be counted in progress, overdue,
+ * carryover or Area totals — deleting them would erase what happened, so
+ * they are filtered instead.
+ */
+export function isTaskLive(task: Task, overlays: Pick<TaskStateOverlays, "lifecycleOverrides">): boolean {
+  const lifecycle = effectiveLifecycle(task, overlays);
+  return lifecycle === "ACTIVE" || lifecycle === "BACKLOG";
+}
+
+/** Committed to the live plan: has a decided date and time (§2). */
+export function isTaskCommitted(task: Task, overlays: Pick<TaskStateOverlays, "lifecycleOverrides">): boolean {
+  return effectiveLifecycle(task, overlays) === "ACTIVE";
+}
+
+/**
+ * A Task that has produced real execution evidence can never be hard-deleted
+ * (§4-B) — only archived, so the measurement history survives.
+ */
+export function hasExecutionHistory(
+  task: Task,
+  overlays: Pick<TaskStateOverlays, "completions">,
+  startedTaskIds: Set<string>
+): boolean {
+  return (
+    overlays.completions[task.id] !== undefined ||
+    startedTaskIds.has(task.id) ||
+    task.actualMinutes !== null ||
+    task.completedAt !== null
+  );
 }
 
 /** The deadline that applies now: a 期限再設定 wins, else the authored one. */
@@ -50,12 +102,14 @@ export function isTaskBlocked(task: Task, overlays: Pick<TaskStateOverlays, "dis
 }
 
 /**
- * "Still needs doing": not completed and not dropped. Blocked Tasks are
- * still open — being blocked is a reason it hasn't moved, not a reason to
- * hide it.
+ * "Still needs doing": live work, not completed and not dropped. Blocked
+ * Tasks are still open — being blocked is a reason it hasn't moved, not a
+ * reason to hide it. Superseded/merged/archived ones are not open: they were
+ * decided about, and counting them again is how the old 未完了 numbers stayed
+ * inflated forever.
  */
 export function isTaskOpen(task: Task, overlays: TaskStateOverlays): boolean {
-  return !isTaskDone(task, overlays) && !isTaskDropped(task, overlays);
+  return isTaskLive(task, overlays) && !isTaskDone(task, overlays) && !isTaskDropped(task, overlays);
 }
 
 /**
@@ -66,6 +120,12 @@ export function isTaskOpen(task: Task, overlays: TaskStateOverlays): boolean {
  */
 export function isTaskOverdue(task: Task, today: string, overlays: TaskStateOverlays): boolean {
   if (!isTaskOpen(task, overlays)) return false;
+  // 2026-09-08: only a commitment can be overdue. A BACKLOG Task has no
+  // decided execution time, so a date sitting on it is a target, not a
+  // promise that was broken — putting those in the overdue inbox is how the
+  // list filled up with work the user never actually planned. They stay
+  // visible on TASK MAP (未スケジュール / 全部), just not as failures.
+  if (!isTaskCommitted(task, overlays)) return false;
   const deadline = effectiveDeadline(task, overlays);
   if (deadline === null) return false;
   return daysBetween(today, deadline) < 0;

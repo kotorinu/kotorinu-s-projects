@@ -14,6 +14,7 @@ import type {
   CarryoverRecord,
   TaskCompletionRecord,
   TaskDispositionRecord,
+  TaskLifecycleRecord,
   VarianceReason,
 } from "./types";
 
@@ -74,6 +75,12 @@ interface RolloverState {
   completions: Record<string, TaskCompletionRecord>; // taskId -> record
   dispositions: Record<string, TaskDispositionRecord>; // taskId -> BLOCKED/DROPPED
   deadlineOverrides: Record<string, string>; // taskId -> re-set deadline (original is kept on the Task)
+  // --- Task organisation (2026-09-08, §4) ---
+  // Archive / Merge / Delete decisions made from Task Detail. The fixture's
+  // own `lifecycle` is the authored baseline; this is what the user has since
+  // decided. A Task with real execution history is never hard-deleted — the
+  // record stays here so the measurement survives, and only the UI hides it.
+  lifecycleOverrides: Record<string, TaskLifecycleRecord>;
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
@@ -121,6 +128,7 @@ function emptyRolloverState(): RolloverState {
     completions: {},
     dispositions: {},
     deadlineOverrides: {},
+    lifecycleOverrides: {},
   };
 }
 
@@ -184,6 +192,7 @@ interface TodayExecutionApi {
   completions: Record<string, TaskCompletionRecord>;
   dispositions: Record<string, TaskDispositionRecord>;
   deadlineOverrides: Record<string, string>;
+  lifecycleOverrides: Record<string, TaskLifecycleRecord>;
   history: Record<string, DayRecord>;
 
   setDone: (updater: SetUpdater<Set<string>>) => void;
@@ -212,6 +221,11 @@ interface TodayExecutionApi {
   uncompleteTask: (taskId: string) => void;
   setTaskDisposition: (record: TaskDispositionRecord | null, taskId: string) => void;
   setDeadlineOverride: (taskId: string, deadline: string) => void;
+  // --- Task organisation (2026-09-08, §4) ---
+  // Archive / Merge / mark-as-mis-entry. `replacedByTaskId` says where the
+  // work went for MERGED/SUPERSEDED, so a Task is never a dead end. Pass null
+  // to undo a decision and put the Task back where the fixture had it.
+  setTaskLifecycle: (record: TaskLifecycleRecord | null, taskId: string) => void;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -233,6 +247,7 @@ interface PersistedShape {
   completions: Record<string, TaskCompletionRecord>;
   dispositions: Record<string, TaskDispositionRecord>;
   deadlineOverrides: Record<string, string>;
+  lifecycleOverrides: Record<string, TaskLifecycleRecord>;
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -253,6 +268,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     completions: state.completions,
     dispositions: state.dispositions,
     deadlineOverrides: state.deadlineOverrides,
+    lifecycleOverrides: state.lifecycleOverrides,
   };
 }
 
@@ -276,6 +292,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     completions: parsed.completions ?? {},
     dispositions: parsed.dispositions ?? {},
     deadlineOverrides: parsed.deadlineOverrides ?? {},
+    lifecycleOverrides: parsed.lifecycleOverrides ?? {},
   };
 }
 
@@ -381,6 +398,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     completions: state.completions,
     dispositions: state.dispositions,
     deadlineOverrides: state.deadlineOverrides,
+    lifecycleOverrides: state.lifecycleOverrides,
     history: state.history,
 
     setDone: (updater) =>
@@ -472,6 +490,22 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
     setDeadlineOverride: (taskId, deadline) =>
       setState((s) => ({ ...s, deadlineOverrides: { ...s.deadlineOverrides, [taskId]: deadline } })),
+    setTaskLifecycle: (record, taskId) =>
+      setState((s) => {
+        const next = { ...s.lifecycleOverrides };
+        if (record === null) delete next[taskId];
+        else next[taskId] = record;
+        // Leaving the live plan also stops the Task running: a Task that has
+        // been archived can't still be the STARTED one.
+        const stillStarted =
+          record === null || record.lifecycle === "ACTIVE" || record.lifecycle === "BACKLOG";
+        return {
+          ...s,
+          lifecycleOverrides: next,
+          startedTaskId: !stillStarted && s.startedTaskId === taskId ? null : s.startedTaskId,
+          startedTaskDate: !stillStarted && s.startedTaskId === taskId ? null : s.startedTaskDate,
+        };
+      }),
   };
 
   return <TodayExecutionContext.Provider value={api}>{children}</TodayExecutionContext.Provider>;

@@ -12,6 +12,7 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } from "@/lib/workPrinciples";
 import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
+import TaskOrganizeMenu from "@/components/TaskOrganizeMenu";
 import type { Task, VarianceReason } from "@/lib/types";
 
 const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
@@ -137,10 +138,31 @@ export default function TaskDetailSheet({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
           <Section title="何をする？">
             <p className="text-[13px] leading-relaxed text-stone-700">{task.description}</p>
+            {task.blockedOnInfo && (
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+                ⚠ 情報待ち：{task.blockedOnInfo}
+              </p>
+            )}
           </Section>
 
-          <Section title="なぜやる？">
-            <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
+          {/* §13: a single "〜するため" sentence just restates the title. An
+              ACTIVE Task explains the parent Outcome, what is currently
+              missing, and why it has to happen now. */}
+          <Section title="なぜ今やるのか">
+            {task.whyBreakdown ? (
+              <div className="flex flex-col gap-2">
+                <WhyPart label="この先にあるOutcome" body={task.whyBreakdown.parentOutcome} />
+                <WhyPart label="いま足りていないこと" body={task.whyBreakdown.currentGap} />
+                <WhyPart label="なぜ今なのか" body={task.whyBreakdown.whyNow} tone="accent" />
+              </div>
+            ) : (
+              <>
+                <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
+                <p className="mt-1.5 text-[10px] text-stone-400">
+                  このTaskはまだ Outcome / 現在のGap / なぜ今 に分解されていません
+                </p>
+              </>
+            )}
           </Section>
 
           {task.workContext && (
@@ -217,6 +239,37 @@ export default function TaskDetailSheet({
                   </p>
                 )
               )}
+            </Section>
+          )}
+
+          {task.sourceLinks.length > 0 && (
+            <Section title="参照元・作業する場所">
+              <ul className="flex flex-col gap-1.5">
+                {task.sourceLinks.map((src) => (
+                  <li key={src.label}>
+                    {src.url ? (
+                      <a
+                        href={src.url}
+                        target={src.url.startsWith("/") ? undefined : "_blank"}
+                        rel={src.url.startsWith("/") ? undefined : "noopener noreferrer"}
+                        className="block rounded-xl bg-stone-50 px-3 py-2.5"
+                      >
+                        <p className="text-[12px] font-bold text-accent-dark">
+                          {src.label}
+                          {!src.url.startsWith("/") && " ↗"}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">{src.purpose}</p>
+                      </a>
+                    ) : (
+                      <div className="rounded-xl bg-stone-50 px-3 py-2.5">
+                        <p className="text-[12px] font-bold text-stone-600">{src.label}</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="mt-0.5 text-[10px] font-bold text-stone-400">リンク未確認</p>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </Section>
           )}
 
@@ -445,12 +498,25 @@ export default function TaskDetailSheet({
               </p>
             </Section>
           )}
+
+          <TaskOrganizeMenu task={task} onDone={onClose} />
         </div>
       </div>
 
       {outcomeSheetOpen && outcome && (
         <OutcomeDetailSheet outcome={outcome} onClose={() => setOutcomeSheetOpen(false)} />
       )}
+    </div>
+  );
+}
+
+function WhyPart({ label, body, tone = "normal" }: { label: string; body: string; tone?: "normal" | "accent" }) {
+  return (
+    <div className={`rounded-xl px-3 py-2.5 ${tone === "accent" ? "bg-accent-soft" : "bg-stone-50"}`}>
+      <p className={`text-[10px] font-black tracking-wide ${tone === "accent" ? "text-accent-dark" : "text-stone-400"}`}>
+        {label}
+      </p>
+      <p className="mt-0.5 text-[12px] leading-relaxed text-stone-700">{body}</p>
     </div>
   );
 }

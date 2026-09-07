@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { roleplayFeedback, salesPhases, salesSprint } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
-import { computeSprintProgress, masteryStatusLabel } from "@/lib/sales";
-import ProgressBar from "@/components/ProgressBar";
+import { computeSprintProgress, masteryStatusLabel, phaseCoverage } from "@/lib/sales";
 import SalesPhaseDetailSheet from "@/components/SalesPhaseDetailSheet";
 import type { SalesPhase } from "@/lib/types";
 
@@ -21,6 +20,7 @@ const masteryDot: Record<SalesPhase["masteryStatus"], string> = {
 export default function SalesMasterPage() {
   const [selected, setSelected] = useState<SalesPhase | null>(null);
   const progress = computeSprintProgress(salesPhases, roleplayFeedback);
+  const coverage = phaseCoverage(salesPhases);
 
   return (
     <div className="flex flex-col pb-8">
@@ -43,32 +43,44 @@ export default function SalesMasterPage() {
         )}
         <p className="mt-2 text-[12px] leading-relaxed text-stone-600">{salesSprint.goal}</p>
 
+        {/* 2026-09-08 (§10): this checkpoint targets UNDERSTANDING, not
+            USABLE/PRACTICING. What it measures is therefore Purpose / OK State
+            / Means coverage across the 17 phases. Roleplay moved to the next
+            checkpoint — committing to it while the product is not yet
+            understood would only produce invented talk. */}
+        <div className="mt-3 border-t border-stone-100 pt-3">
+          <p className="mb-2 text-[10px] font-black tracking-widest text-stone-400">
+            9/9の到達目標：UNDERSTANDING
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <CoverageTile label="目的" done={coverage.purpose} total={coverage.total} />
+            <CoverageTile label="OK状態" done={coverage.okState} total={coverage.total} />
+            <CoverageTile label="確認事項・質問" done={coverage.means} total={coverage.total} />
+          </div>
+          {coverage.productInfoRequired > 0 && (
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
+              商品情報待ち {coverage.productInfoRequired}フェーズ（価格・オファー・クロージング表現は商品理解が必要）
+            </p>
+          )}
+        </div>
+
         <div className="mt-3 flex flex-col gap-2 border-t border-stone-100 pt-3">
-          <ProgressRow
-            label="Structure Coverage"
-            done={progress.structureCoverage.done}
-            total={progress.structureCoverage.total}
-          />
-          <ProgressRow
-            label="Practice Coverage"
-            done={progress.practiceCoverage.done}
-            total={progress.practiceCoverage.total}
-          />
+          <p className="text-[10px] font-black tracking-widest text-stone-400">次のCheckpoint（未着手）</p>
           <div className="flex items-center justify-between text-[12px]">
-            <span className="font-bold text-stone-500">Roleplay</span>
-            <span className={`font-bold ${progress.roleplayDone ? "text-accent-dark" : "text-stone-400"}`}>
-              {progress.roleplayDone ? "実施済み" : "未実施"}
+            <span className="font-bold text-stone-500">Practice Coverage（口頭練習）</span>
+            <span className="tabular-nums font-bold text-stone-400">
+              {progress.practiceCoverage.done} / {progress.practiceCoverage.total}
             </span>
           </div>
           <div className="flex items-center justify-between text-[12px]">
-            <span className="font-bold text-stone-500">Self Feedback</span>
-            <span className={`font-bold ${progress.selfFeedbackDone ? "text-accent-dark" : "text-stone-400"}`}>
-              {progress.selfFeedbackDone ? "完成" : "未完成"}
+            <span className="font-bold text-stone-500">通しロープレ</span>
+            <span className={`font-bold ${progress.roleplayDone ? "text-accent-dark" : "text-stone-400"}`}>
+              {progress.roleplayDone ? "実施済み" : "次Checkpointへ"}
             </span>
           </div>
         </div>
-        <p className="mt-2 text-[10px] text-stone-400">
-          17/17入力＝営業習得100%ではありません。Structure（書けた数）とPractice（練習した数）は別に見ます。
+        <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+          「17/17 入力された」ことと「営業で使える」ことは別に扱います。9/9は理解（目的・OK状態・引き出す情報・聞き方）までが目標で、口頭練習とロープレは次のCheckpointです。
         </p>
       </section>
 
@@ -107,19 +119,14 @@ export default function SalesMasterPage() {
   );
 }
 
-function ProgressRow({ label, done, total }: { label: string; done: number; total: number }) {
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+function CoverageTile({ label, done, total }: { label: string; done: number; total: number }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-[12px]">
-        <span className="font-bold text-stone-500">{label}</span>
-        <span className="tabular-nums font-bold text-stone-700">
-          {done}/{total}
-        </span>
-      </div>
-      <div className="mt-1">
-        <ProgressBar pct={pct} size="sm" />
-      </div>
+    <div className="rounded-2xl bg-stone-50 px-2.5 py-2 text-center">
+      <p className="text-[10px] font-bold text-stone-400">{label}</p>
+      <p className="mt-0.5 text-[15px] font-black tabular-nums text-stone-800">
+        {done}
+        <span className="text-[11px] font-bold text-stone-400"> / {total}</span>
+      </p>
     </div>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   activeTimeBlocks,
+  areaProfiles,
   fixedCalendarEvents,
   monthEndStates,
   outcomes,
   tasks as allTasks,
 } from "@/lib/dummy-data";
-import { pickAreaOutcome } from "@/lib/outcomeSelection";
+import { buildAreaHome } from "@/lib/areaHome";
 import {
   dayOfMonth,
   daysBetween,
@@ -28,9 +30,12 @@ import { resolveSeries } from "@/lib/taskSeries";
 import { tasksEffectiveOnDate } from "@/lib/dayPlan";
 import {
   effectiveDeadline,
+  effectiveLifecycle,
   effectiveWorkDate,
   isTaskBlocked,
+  isTaskCommitted,
   isTaskDone,
+  isTaskLive,
   isTaskOpen,
   overdueTasks as computeOverdueTasks,
 } from "@/lib/taskState";
@@ -48,9 +53,13 @@ type QuickFilter = "全部" | "未着手" | "進行中" | "AI" | "7日以内";
 
 // 全量Task表示のスコープ (§6). "Taskが存在しているのに画面上から見つけ
 // られない状態は禁止" — 「全部」は完了・やめたものも含めて必ず全件出す。
-type Scope = "今月" | "全部" | "今日" | "今週" | "期限超過" | "未スケジュール" | "完了";
+type Scope = "今月" | "全部" | "今日" | "今週" | "期限超過" | "Backlog" | "完了" | "整理済み";
 
-const SCOPES: Scope[] = ["今月", "全部", "今日", "今週", "期限超過", "未スケジュール", "完了"];
+// 2026-09-08: 「未スケジュール」became 「Backlog」— an unscheduled Task is no
+// longer an anomaly to chase, it is an explicit state (§2). 「整理済み」holds
+// the superseded / merged / archived ones so that nothing ever becomes
+// unfindable (§6), while 「全部」stays literally everything.
+const SCOPES: Scope[] = ["今月", "全部", "今日", "今週", "期限超過", "Backlog", "完了", "整理済み"];
 
 const AREAS: Area[] = ["営業代行", "RIALA", "GENESIS", "Skill Plus", "その他"];
 const PRIORITIES: Priority[] = ["高", "中", "低"];
@@ -103,8 +112,9 @@ export default function TaskMapPage() {
     dispositions,
     deadlineOverrides,
     taskStartedAt,
+    lifecycleOverrides,
   } = useTodayExecution();
-  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides };
+  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [monthOffset, setMonthOffset] = useState(0);
   const [scope, setScope] = useState<Scope>("今月");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("全部");
@@ -121,12 +131,16 @@ export default function TaskMapPage() {
 
   const monthKey = monthKeyOf(monthOffset);
 
+  // 2026-09-08: month figures count live work only. A Task that was
+  // superseded, merged away or archived is not "未完了" — counting it kept the
+  // monthly numbers permanently inflated and made 完了率 meaningless.
   const monthTasks = useMemo(
     () =>
       allTasks.filter(
-        (t): t is Task & { deadline: string } => t.deadline !== null && isSameMonth(t.deadline, monthKey)
+        (t): t is Task & { deadline: string } =>
+          t.deadline !== null && isSameMonth(t.deadline, monthKey) && isTaskLive(t, { lifecycleOverrides })
       ),
-    [monthKey]
+    [monthKey, lifecycleOverrides]
   );
 
   const progress = useMemo(() => computeProgress(monthTasks), [monthTasks]);
@@ -182,39 +196,28 @@ export default function TaskMapPage() {
   const weekStart = useMemo(() => startOfWeek(today), [today]);
   const weekDateList = useMemo(() => weekDates(weekStart), [weekStart]);
   const weekEntries = useMemo(
-    () => buildWeekEntries(weekDateList, allTasks, activeTimeBlocks, fixedCalendarEvents, workDateOverrides),
-    [weekDateList, workDateOverrides]
+    () =>
+      buildWeekEntries(
+        weekDateList,
+        // Only committed work belongs in "今週" (§2/§3).
+        allTasks.filter((t) => isTaskCommitted(t, { lifecycleOverrides })),
+        activeTimeBlocks,
+        fixedCalendarEvents,
+        workDateOverrides
+      ),
+    [weekDateList, workDateOverrides, lifecycleOverrides]
   );
 
-  // Area/Project サマリー (§5). Every figure is derived from the real Task
-  // set — an Area with no linked Outcome says so rather than being given
-  // an invented one.
-  const areaSummaries = useMemo(() => {
-    return AREAS.map((area) => {
-      const areaTasks = allTasks.filter((t) => t.area === area);
-      const open = areaTasks.filter((t) => isTaskOpen(t, overlays));
-      if (areaTasks.length === 0) return null;
-      const withDeadline = open
-        .map((t) => ({ t, d: effectiveDeadline(t, overlays) }))
-        .filter((x): x is { t: Task; d: string } => x.d !== null)
-        .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
-      // The Area's own current Outcome — not "whichever Outcome an open Task
-      // happens to point at", which showed the standing RIALA outcome instead
-      // of the migration deadline the user is actually working to.
-      const areaOutcome = pickAreaOutcome(area, outcomes);
-      return {
-        area,
-        outcomeTitle: areaOutcome?.title ?? null,
-        outcomeDeadline: areaOutcome?.deadline ?? null,
-        nearestDeadline: withDeadline[0]?.d ?? null,
-        nextTask: withDeadline[0]?.t ?? open[0] ?? null,
-        openCount: open.length,
-        overdueCount: open.filter((t) => overdue.some((o) => o.id === t.id)).length,
-        blockedCount: open.filter((t) => isTaskBlocked(t, overlays)).length,
-      };
-    }).filter((s): s is NonNullable<typeof s> => s !== null && s.openCount > 0);
+  // Area Home cards (2026-09-08, §20/§21). These are now the top of TASK MAP
+  // and the entry point into each Area Home — the first thing the user needs
+  // is 何を目指していて次に何をするか, not a count of open tasks. Every figure
+  // is derived from the real Task set; an Area with no Outcome says so
+  // rather than being given an invented one.
+  const areaCards = useMemo(
+    () => areaProfiles.map((p) => buildAreaHome(p.area, today, overlays)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overdue, completions, dispositions, deadlineOverrides]);
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]
+  );
 
   const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
     (v) => v !== "全部"
@@ -231,10 +234,15 @@ export default function TaskMapPage() {
       case "今月":
         return monthTasks;
       case "今日":
-        return tasksEffectiveOnDate(today, allTasks, activeTimeBlocks, workDateOverrides);
+        return tasksEffectiveOnDate(
+          today,
+          allTasks.filter((t) => isTaskCommitted(t, overlays)),
+          activeTimeBlocks,
+          workDateOverrides
+        );
       case "今週":
         return allTasks.filter((t) => {
-          if (!isTaskOpen(t, overlays)) return false;
+          if (!isTaskOpen(t, overlays) || !isTaskCommitted(t, overlays)) return false;
           const deadline = effectiveDeadline(t, overlays);
           const workDate = effectiveWorkDate(t, overlays);
           const inWeek = (d: string | null) => d !== null && d >= weekStart && d <= weekEnd;
@@ -243,20 +251,20 @@ export default function TaskMapPage() {
         });
       case "期限超過":
         return overdue;
-      case "未スケジュール":
-        // Exists, still open, but placed nowhere: no work date and no
-        // TimeBlock. These are the Tasks that quietly go missing.
+      case "Backlog":
+        // やる意思はあるが、実行日時をまだ決めていないもの。ACTIVE PLANには
+        // 出さないが、ここには必ず全部出す。
         return allTasks.filter(
-          (t) =>
-            isTaskOpen(t, overlays) &&
-            effectiveWorkDate(t, overlays) === null &&
-            !activeTimeBlocks.some((tb) => tb.taskId === t.id)
+          (t) => isTaskOpen(t, overlays) && effectiveLifecycle(t, overlays) === "BACKLOG"
         );
       case "完了":
         return allTasks.filter((t) => isTaskDone(t, overlays));
+      case "整理済み":
+        // 置き換え / 統合 / Archive / 削除。消さずに、ここで必ず見つけられる。
+        return allTasks.filter((t) => !isTaskLive(t, overlays));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, monthTasks, today, weekStart, weekDateList, overdue, completions, dispositions, deadlineOverrides, workDateOverrides]);
+  }, [scope, monthTasks, today, weekStart, weekDateList, overdue, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]);
 
   function applyFilters(list: Task[]): Task[] {
     let out = list;
@@ -334,6 +342,71 @@ export default function TaskMapPage() {
         </div>
       </header>
 
+      {/* §21 information order: Area Home cards → this week's day-by-day plan
+          → the full Task inventory. The monthly deadline calendar and the
+          month's progress are support material and moved below. What the user
+          needs first is 何を目指していて次に何をするか. */}
+      <section className="mt-1 px-5">
+        <h2 className="mb-2 text-sm font-bold text-stone-800">Areaごとの現在地</h2>
+        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-3 lg:gap-2">
+          {areaCards.map((a) => {
+            const next = a.next[0];
+            return (
+              <Link
+                key={a.profile.area}
+                href={`/area/${a.profile.slug}`}
+                className="block rounded-2xl bg-white px-4 py-3 shadow-sm transition active:scale-[0.99]"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[a.profile.area]}`}>
+                    {a.profile.area}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-bold text-stone-300">›</span>
+                </div>
+
+                <p className="mt-1.5 truncate text-[10px] font-bold text-stone-400">
+                  GOAL {a.profile.standingGoal}
+                </p>
+                {a.outcome ? (
+                  <p className="mt-1 text-[12px] font-bold leading-snug text-stone-800">
+                    {a.outcome.title}
+                    {a.outcome.deadline && (
+                      <span className="ml-1.5 whitespace-nowrap font-black text-accent-dark">
+                        〜{formatMd(a.outcome.deadline)}
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-stone-400">Outcome未設定</p>
+                )}
+
+                {next && (
+                  <p className="mt-1.5 truncate text-[12px] font-medium text-accent-dark">
+                    次：{next.task.title}
+                    {next.block && (
+                      <span className="ml-1 font-black tabular-nums text-stone-400">
+                        {formatMd(next.block.date)} {next.block.startTime}
+                      </span>
+                    )}
+                  </p>
+                )}
+
+                <p className="mt-1.5 text-[10px] font-bold text-stone-400">
+                  実行中の計画 {a.activeCount}件・Backlog {a.backlogCount}件
+                  {a.overdueCount > 0 && <span className="text-danger">・期限超過 {a.overdueCount}件</span>}
+                  {a.blockedCount > 0 && <span>・Blocked {a.blockedCount}件</span>}
+                </p>
+                {a.profile.blockers.length > 0 && (
+                  <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-stone-400">
+                    ⚠ {a.profile.blockers[0]}
+                  </p>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <WeekView
         dates={weekDateList}
         entriesByDate={weekEntries}
@@ -344,51 +417,6 @@ export default function TaskMapPage() {
         }}
         onOpenDay={(date) => setSelectedDate(date)}
       />
-
-      {/* Area / Project サマリー (§5): 「このAreaはいつまでに何を達成する
-          のか、次の一手は何か」を1枚で。Outcomeが未設定のAreaには
-          Outcomeを捏造せず、その旨を出す。 */}
-      <section className="mt-3 px-5">
-        <h2 className="mb-2 text-sm font-bold text-stone-800">Areaごとの現在地</h2>
-        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2">
-          {areaSummaries.map((s) => (
-            <div key={s.area} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[s.area]}`}>
-                  {s.area}
-                </span>
-                <span className={`text-[11px] font-bold ${s.overdueCount > 0 ? "text-danger" : "text-stone-400"}`}>
-                  {s.nearestDeadline ? `直近期限 ${formatMd(s.nearestDeadline)}` : "期限未設定"}
-                </span>
-              </div>
-              {s.outcomeTitle ? (
-                <p className="mt-1.5 text-[12px] font-bold text-stone-700">
-                  {s.outcomeTitle}
-                  {s.outcomeDeadline && (
-                    <span className="ml-1.5 font-bold text-stone-400">〜{formatMd(s.outcomeDeadline)}</span>
-                  )}
-                </p>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-stone-400">Outcome未設定</p>
-              )}
-              {s.nextTask && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedTask(s.nextTask!)}
-                  className="mt-1 block w-full truncate text-left text-[12px] font-medium text-accent-dark"
-                >
-                  次：{s.nextTask.title}
-                </button>
-              )}
-              <p className="mt-1.5 text-[10px] font-bold text-stone-400">
-                未完了 {s.openCount}件
-                {s.overdueCount > 0 && <span className="text-danger">・期限超過 {s.overdueCount}件</span>}
-                {s.blockedCount > 0 && <span>・Blocked {s.blockedCount}件</span>}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切カレンダー</p>
