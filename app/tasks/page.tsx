@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fixedCalendarEvents, monthEndStates, outcomes, tasks as allTasks, timeBlocks } from "@/lib/dummy-data";
+import {
+  activeTimeBlocks,
+  fixedCalendarEvents,
+  monthEndStates,
+  outcomes,
+  tasks as allTasks,
+} from "@/lib/dummy-data";
+import { pickAreaOutcome } from "@/lib/outcomeSelection";
 import {
   dayOfMonth,
   daysBetween,
@@ -175,7 +182,7 @@ export default function TaskMapPage() {
   const weekStart = useMemo(() => startOfWeek(today), [today]);
   const weekDateList = useMemo(() => weekDates(weekStart), [weekStart]);
   const weekEntries = useMemo(
-    () => buildWeekEntries(weekDateList, allTasks, timeBlocks, fixedCalendarEvents, workDateOverrides),
+    () => buildWeekEntries(weekDateList, allTasks, activeTimeBlocks, fixedCalendarEvents, workDateOverrides),
     [weekDateList, workDateOverrides]
   );
 
@@ -191,11 +198,14 @@ export default function TaskMapPage() {
         .map((t) => ({ t, d: effectiveDeadline(t, overlays) }))
         .filter((x): x is { t: Task; d: string } => x.d !== null)
         .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
-      const outcomeTitle =
-        outcomes.find((o) => open.some((t) => t.outcomeId === o.id))?.title ?? null;
+      // The Area's own current Outcome — not "whichever Outcome an open Task
+      // happens to point at", which showed the standing RIALA outcome instead
+      // of the migration deadline the user is actually working to.
+      const areaOutcome = pickAreaOutcome(area, outcomes);
       return {
         area,
-        outcomeTitle,
+        outcomeTitle: areaOutcome?.title ?? null,
+        outcomeDeadline: areaOutcome?.deadline ?? null,
         nearestDeadline: withDeadline[0]?.d ?? null,
         nextTask: withDeadline[0]?.t ?? open[0] ?? null,
         openCount: open.length,
@@ -221,14 +231,14 @@ export default function TaskMapPage() {
       case "今月":
         return monthTasks;
       case "今日":
-        return tasksEffectiveOnDate(today, allTasks, timeBlocks, workDateOverrides);
+        return tasksEffectiveOnDate(today, allTasks, activeTimeBlocks, workDateOverrides);
       case "今週":
         return allTasks.filter((t) => {
           if (!isTaskOpen(t, overlays)) return false;
           const deadline = effectiveDeadline(t, overlays);
           const workDate = effectiveWorkDate(t, overlays);
           const inWeek = (d: string | null) => d !== null && d >= weekStart && d <= weekEnd;
-          const scheduled = timeBlocks.some((tb) => tb.taskId === t.id && tb.date >= weekStart && tb.date <= weekEnd);
+          const scheduled = activeTimeBlocks.some((tb) => tb.taskId === t.id && tb.date >= weekStart && tb.date <= weekEnd);
           return inWeek(deadline) || inWeek(workDate) || scheduled;
         });
       case "期限超過":
@@ -240,7 +250,7 @@ export default function TaskMapPage() {
           (t) =>
             isTaskOpen(t, overlays) &&
             effectiveWorkDate(t, overlays) === null &&
-            !timeBlocks.some((tb) => tb.taskId === t.id)
+            !activeTimeBlocks.some((tb) => tb.taskId === t.id)
         );
       case "完了":
         return allTasks.filter((t) => isTaskDone(t, overlays));
@@ -352,7 +362,12 @@ export default function TaskMapPage() {
                 </span>
               </div>
               {s.outcomeTitle ? (
-                <p className="mt-1.5 text-[12px] font-bold text-stone-700">{s.outcomeTitle}</p>
+                <p className="mt-1.5 text-[12px] font-bold text-stone-700">
+                  {s.outcomeTitle}
+                  {s.outcomeDeadline && (
+                    <span className="ml-1.5 font-bold text-stone-400">〜{formatMd(s.outcomeDeadline)}</span>
+                  )}
+                </p>
               ) : (
                 <p className="mt-1.5 text-[11px] text-stone-400">Outcome未設定</p>
               )}

@@ -93,6 +93,10 @@ export interface Task {
   pageFrom: number | null;
   pageTo: number | null;
   currentPage: number | null;
+  // What this Task needs in order to be executable (2026-09-08). Used to
+  // decide whether it may go into the weekday lunch slot, which is phone-only.
+  // null = not yet judged; a planner must not treat null as "anything goes".
+  requiredEnvironment: ExecutionEnvironment | null;
   source: string;
   createdAt: string;
   updatedAt: string;
@@ -137,6 +141,16 @@ export interface Outcome {
   why: string;
   achievementCriteria: string[];
   status: OutcomeStatus;
+  // The date this Outcome has to be true by, when the user has committed to
+  // one (2026-09-08). null when it is a standing target with no single date
+  // (e.g. RIALA's AI-ops outcome) — never back-fill a date to make an Outcome
+  // look scheduled. An Area can hold several Outcomes; the nearest-dated
+  // ACTIVE one is the Area's current headline.
+  deadline: string | null;
+  // How far out this Outcome reaches. Lets a near-term Outcome (this week's
+  // GENESIS target) coexist with a standing one without either overwriting
+  // the other.
+  horizon: "WEEK" | "SPRINT" | "STANDING";
 }
 
 export type RecurringFrequency = "DAILY";
@@ -360,7 +374,36 @@ export interface WeeklyReview {
 // exists only to occupy time on the Timeline. Exactly one of
 // taskId/recurringRuleId should be set, or neither; never both.
 export type TimeBlockStatus = "PLANNED" | "IN_PROGRESS" | "DONE" | "SKIPPED";
-export type TimeBlockSource = "AI_WORK_OS" | "GOOGLE_CALENDAR" | "USER";
+
+// Where this block came from (2026-09-08, P0-2). GOOGLE_CALENDAR means
+// "currently corresponds to an event in Google Calendar" — NOT "was confirmed
+// against Calendar at some point in the past". A block may only claim
+// GOOGLE_CALENDAR while it also carries a real calendarEventId; anything that
+// was once Calendar-confirmed but no longer reflects the live plan is
+// HISTORICAL_CALENDAR, and anything carried over from early fixture data with
+// no confirmed origin is LEGACY_FIXTURE.
+export type TimeBlockSource =
+  | "USER" // 本人が直接この時間に決めた
+  | "AI_WORK_OS" // このアプリが提案・生成した
+  | "GOOGLE_CALENDAR" // 現在Google Calendarのイベントと対応している（calendarEventId必須）
+  | "HISTORICAL_CALENDAR" // 過去にCalendarで確認したが、現在の計画ではない
+  | "LEGACY_FIXTURE"; // 初期fixture由来。実データの裏付けが取れていない
+
+// Whether this block is part of the plan being executed right now (P0-1).
+// ACTIVE is the only lifecycle that TODAY / Day Detail / Week View / overlap
+// detection may read. Superseded and historical blocks are kept — deleting
+// them would erase history — but they must never be presented as the current
+// plan, or the OS reports conflicts against schedules that no longer exist.
+export type TimeBlockLifecycle =
+  | "ACTIVE" // 現在の実行計画
+  | "SUPERSEDED" // 後から計画が変わり、置き換えられた
+  | "HISTORICAL"; // 過去日の記録（すでに実行済み/実行されなかった）
+
+export type ExecutionEnvironment =
+  | "MOBILE_ONLY" // スマホだけで完結する（昼休みスマホ枠で実行可能）
+  | "PC_AVAILABLE" // PCが必要
+  | "OUTSIDE" // 外出・移動中に行う
+  | "ANY"; // 環境を選ばない
 
 export interface TimeBlock {
   id: string;
@@ -383,6 +426,17 @@ export interface TimeBlock {
   calendarSyncEnabled: boolean;
   calendarEventId: string | null;
   source: TimeBlockSource;
+  // --- Live plan vs history (2026-09-08, P0-1) ---
+  lifecycle: TimeBlockLifecycle;
+  // Why this stopped being part of the live plan, in the user's terms.
+  // Required whenever lifecycle !== "ACTIVE" so a removed block can always be
+  // explained rather than just disappearing.
+  supersededReason: string | null;
+  supersededOn: string | null; // YYYY-MM-DD the decision was made
+  // What can actually be done in this slot. A 12:00-13:00 lunch block on a
+  // workday is MOBILE_ONLY: only Tasks whose requiredEnvironment is
+  // MOBILE_ONLY or ANY may be placed there.
+  executionEnvironment: ExecutionEnvironment;
 }
 
 // --- Day Rollover / Carryover (2026-09-06) ---

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, outcomes, tasks as allTasks, timeBlocks, workPrinciples } from "@/lib/dummy-data";
+import { goals, monthEndStates, outcomes, tasks as allTasks, activeTimeBlocks, workPrinciples } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
@@ -61,7 +61,7 @@ export default function TaskDetailSheet({
   }, []);
 
   const { currentDate: today, calendarSyncOverrides, setCalendarSyncEnabled } = useTodayExecution();
-  const linkedTimeBlocks = timeBlocks
+  const linkedTimeBlocks = activeTimeBlocks
     .filter((tb) => tb.taskId === task.id)
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
   const series = resolveSeries(task, allTasks);

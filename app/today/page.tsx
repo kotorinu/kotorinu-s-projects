@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fixedCalendarEvents, goals, outcomes, recurringRules, timeBlocks, tasks as allTasks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, goals, outcomes, recurringRules, activeTimeBlocks, tasks as allTasks } from "@/lib/dummy-data";
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince, nowHm } from "@/lib/date";
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
@@ -180,11 +180,11 @@ export default function TodayPage() {
   // counts as today's work even if its own workDate/deadline points
   // elsewhere — the TimeBlock is the stronger, more current signal. Also
   // includes any Task re-placed onto today via a Carryover decision (§10).
-  const timeBlocksToday = useMemo(() => timeBlocks.filter((tb) => tb.date === today), [today]);
-  const scheduledTaskIds = useMemo(() => new Set(timeBlocksToday.map((tb) => tb.taskId)), [timeBlocksToday]);
+  const activeTimeBlocksToday = useMemo(() => activeTimeBlocks.filter((tb) => tb.date === today), [today]);
+  const scheduledTaskIds = useMemo(() => new Set(activeTimeBlocksToday.map((tb) => tb.taskId)), [activeTimeBlocksToday]);
 
   const todayTasks = useMemo(
-    () => tasksEffectiveOnDate(today, allTasks, timeBlocks, workDateOverrides),
+    () => tasksEffectiveOnDate(today, allTasks, activeTimeBlocks, workDateOverrides),
     [today, workDateOverrides]
   );
 
@@ -215,7 +215,7 @@ export default function TodayPage() {
   // identities) without any real performance benefit.
   const yesterday = addDaysToYmd(today, -1);
   const yesterdayRecord = history[yesterday] ?? null;
-  const yesterdayScheduledTasks = tasksScheduledOnDate(yesterday, allTasks, timeBlocks);
+  const yesterdayScheduledTasks = tasksScheduledOnDate(yesterday, allTasks, activeTimeBlocks);
   const yesterdayCompletedCount = yesterdayRecord?.completedTaskIds.length ?? 0;
   const yesterdayTotalCount = yesterdayScheduledTasks.length;
   const yesterdayActualMinutesTotal = yesterdayRecord
@@ -229,7 +229,7 @@ export default function TodayPage() {
   // list with a different action set (今日やる／別日に移す／やめる) would
   // just be a confusing double prompt for the same Task.
   const carryoverPendingTasks = yesterdayRecord
-    ? pendingCarryoverTasks(yesterday, allTasks, timeBlocks, new Set(yesterdayRecord.completedTaskIds), carryover).filter(
+    ? pendingCarryoverTasks(yesterday, allTasks, activeTimeBlocks, new Set(yesterdayRecord.completedTaskIds), carryover).filter(
         (t) => t.id !== startedTaskId
       )
     : [];
@@ -276,8 +276,8 @@ export default function TodayPage() {
   const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
 
   const timeline = useMemo(
-    () => buildTimeline(timeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue, startedTaskId),
-    [timeBlocksToday, fixedEventsTimedToday, nowHmValue, startedTaskId]
+    () => buildTimeline(activeTimeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue, startedTaskId),
+    [activeTimeBlocksToday, fixedEventsTimedToday, nowHmValue, startedTaskId]
   );
 
   // A STARTED Task with no TimeBlock today (started from the 時間未定 list,

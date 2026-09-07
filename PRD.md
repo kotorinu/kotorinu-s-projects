@@ -1682,3 +1682,65 @@ Outcomeを捏造しない。
   までで、実際のAPI連携は未実施。
 - **同種Taskの実績からの見積り補正（§17）**：`actualMinutes`は
   completionレコードに蓄積されるが、次回Estimateへ反映する仕組みは未実装。
+
+# Live Plan と履歴の分離（2026-09-08）
+
+Execution Management機能そのものは動いていたが、入力データに古いfixtureが
+混ざっていた。重複検知もTODAYも正しく動いた結果、**存在しない予定に対して
+正しく警告する**という状態になっていた。今回はUIを増やさず、表示している
+Task / TimeBlock / Calendar情報を現在の実行計画と一致させる。
+
+## TimeBlockは「全記録」、実行するのは activeTimeBlocks
+
+`timeBlocks` は履歴を含む全記録になり、`lifecycle` を持つ：
+
+- `ACTIVE` — 現在の実行計画。TODAY / Day Detail / Week View / 重複検知が
+  読むのはこれだけ
+- `SUPERSEDED` — 後から計画が変わって置き換えられた
+- `HISTORICAL` — 過去日の記録
+
+消さずに残すが、現在予定としては出さない。`supersededReason` /
+`supersededOn` を必須にしてあるので、消えた予定は必ず理由を説明できる。
+画面側はすべて `activeTimeBlocks` を読む（`timeBlocks` を直接読む画面は
+無い）。
+
+## source は「今」Calendarに在ることを意味する
+
+`GOOGLE_CALENDAR` は「昔Calendarで確認した」ではなく「現在Calendarの
+イベントと対応している」に限定し、`calendarEventId` を伴わない限り名乗ら
+ない。区分は USER / AI_WORK_OS / GOOGLE_CALENDAR / HISTORICAL_CALENDAR /
+LEGACY_FIXTURE。このアプリはまだCalendar同期を持たないので、以前
+GOOGLE_CALENDAR だったものは全て HISTORICAL_CALENDAR へ落ちた。
+
+## 勤務時間と昼スマホ枠（lib/schedulingWindows.ts）
+
+平日日中は会社員として勤務している。09:20-10:20 のような枠に個人Taskを
+置く計画は計画ではない。
+
+- 昼スマホ枠：平日 11:30-13:30 の範囲内、最大60分、`MOBILE_ONLY`
+- 勤務ブロック：平日日中（09:00-18:00 は **PROVISIONAL** ——本人が正確な
+  時刻を確定していないため、確定値として扱わない）
+
+`Task.requiredEnvironment` と `TimeBlock.executionEnvironment`
+（MOBILE_ONLY / PC_AVAILABLE / OUTSIDE / ANY）を追加。昼枠に置けるのは
+MOBILE_ONLY または ANY のTaskだけで、「空いているから入れる」は禁止。
+`auditPlacements()` が勤務時間衝突・昼枠60分超過・環境ミスマッチを検出する
+（`npx tsx scripts/audit-plan.ts`）。**判定ロジックであってPlannerではない。**
+
+## Areaの現在Outcome（lib/outcomeSelection.ts）
+
+1つのAreaが「常設Outcome」と「今週実行しているOutcome」を同時に持てる
+ようにし（`horizon`: WEEK / SPRINT / STANDING、`deadline`）、TASK MAPは
+近い方を出す。「開いているTaskがたまたま指しているOutcome」を出す実装を
+やめた——RIALAで常設の「AI中心で回せる状態にする」が出て、実際に走って
+いる移行対応の締切が見えていなかった。
+
+## 今回実装していないもの
+
+- **AI Planner本体**：昼Taskの自動選定（48時間以内の締切 → 今週の最重要
+  Outcome → 夜の前倒し → 期限付きコンテンツ → 読書 → その他）は優先順位
+  規則として合意済みだが、選定を実行するコードは無い。9/8〜9/11の昼Taskは
+  本人が指定したものをそのまま入れている
+- **Timerの一時停止／再開**：開始と完了だけで、途中で止める手段が無い
+- **日をまたいだ実績履歴の閲覧画面**：completionレコードは永続化されるが、
+  過去日の実績を一覧する画面は無い（当日分と前日Summaryのみ）

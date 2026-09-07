@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { fixedCalendarEvents, recurringRules, tasks as allTasks, timeBlocks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, recurringRules, tasks as allTasks, activeTimeBlocks } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
 import { findOverlaps } from "@/lib/overlap";
 import { effectiveDeadline, effectiveWorkDate, isTaskDone, isTaskOpen } from "@/lib/taskState";
@@ -36,7 +36,7 @@ export default function DayDetailSheet({
     };
   }, []);
 
-  const dayBlocks = timeBlocks
+  const dayBlocks = activeTimeBlocks
     .filter((tb) => tb.date === date)
     .sort((a, b) => (a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0));
   const overlaps = findOverlaps(dayBlocks);
