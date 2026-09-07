@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { __setClockOverrideForTesting, todayStr } from "./date";
 import type {
   CarryoverDisposition,
@@ -87,9 +94,24 @@ function emptyDay(date: string): CurrentDay {
   };
 }
 
+// The date used for the very first render pass only (2026-09-08 fix).
+//
+// Every page is statically prerendered, so anything computed during render is
+// frozen into the HTML at BUILD time. `todayStr()` was being called from the
+// store's useState initializer, which meant the shipped HTML carried the build
+// machine's date — Vercel builds in UTC, so a build at 07:06 JST baked in the
+// previous day — and the browser then rendered the real local date. That is a
+// hydration mismatch (React #418), and worse, it recurs every day after a
+// deploy, because static HTML never advances.
+//
+// So the first pass uses a fixed placeholder that is identical on the server
+// and in the browser, and the real date is written in a layout effect below,
+// before the browser paints. Never call todayStr() during render.
+const HYDRATION_PLACEHOLDER_DATE = "1970-01-01";
+
 function emptyRolloverState(): RolloverState {
   return {
-    current: emptyDay(todayStr()),
+    current: emptyDay(HYDRATION_PLACEHOLDER_DATE),
     history: {},
     startedTaskId: null,
     startedTaskDate: null,
@@ -259,35 +281,40 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
 
 const TodayExecutionContext = createContext<TodayExecutionApi | null>(null);
 
+// useLayoutEffect warns when React renders on the server. This provider is a
+// client component, but static prerendering still runs it there, so fall back
+// to useEffect in that pass — where there is no paint to beat anyway.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function TodayExecutionProvider({ children }: { children: ReactNode }) {
-  // Starts empty for `todayStr()` on every render path (server, first
-  // client render, a fresh tab) — hydration-safe, matching the pre-fix
-  // behavior — then a client-only effect below restores any snapshot and
-  // rolls it forward through as many day boundaries as have actually
-  // elapsed since it was saved.
+  // Starts on HYDRATION_PLACEHOLDER_DATE with everything empty, identically on
+  // the server and on the first client render, then the layout effect below
+  // puts in the real date, restores any saved snapshot, and rolls it forward
+  // through as many day boundaries as have actually elapsed since it was saved.
   const [state, setState] = useState<RolloverState>(emptyRolloverState);
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    const load = () => {
+  // useLayoutEffect, not useEffect: this runs before the browser paints, so
+  // the placeholder date is never visible. With useEffect the user would see
+  // one frame of 1970-01-01 with an empty plan on every load.
+  useIsomorphicLayoutEffect(() => {
+    // Resolved synchronously, before paint — deferring this (setTimeout /
+    // useEffect) shows the placeholder date for a frame.
+    setState((prev) => {
+      const today = todayStr();
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          let restored = fromPersisted(JSON.parse(raw) as PersistedShape);
-          const today = todayStr();
-          if (restored.current.date !== today) {
-            restored = rollover(restored, today);
-          }
-          setState(restored);
+          const restored = fromPersisted(JSON.parse(raw) as PersistedShape);
+          return restored.current.date === today ? restored : rollover(restored, today);
         }
       } catch {
-        // Corrupt JSON or storage blocked (private mode etc.) — fall back
-        // to empty state; SPA-navigation persistence via Context still works.
+        // Corrupt JSON or storage blocked (private mode etc.) — fall through
+        // to a fresh day; SPA-navigation persistence via Context still works.
       }
-      setHydrated(true);
-    };
-    const id = setTimeout(load, 0);
-    return () => clearTimeout(id);
+      return { ...prev, current: { ...prev.current, date: today } };
+    });
+    setHydrated(true);
   }, []);
 
   // A long-open tab needs its own periodic rollover check — hydration alone
