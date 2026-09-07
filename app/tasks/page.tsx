@@ -18,15 +18,32 @@ import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusL
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import { resolveSeries } from "@/lib/taskSeries";
+import { tasksEffectiveOnDate } from "@/lib/dayPlan";
+import {
+  effectiveDeadline,
+  effectiveWorkDate,
+  isTaskBlocked,
+  isTaskDone,
+  isTaskOpen,
+  overdueTasks as computeOverdueTasks,
+} from "@/lib/taskState";
 import { buildWeekEntries, WeekEntry } from "@/lib/weekPlan";
 import ProgressBar from "@/components/ProgressBar";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
+import OverdueInbox from "@/components/OverdueInbox";
+import DayDetailSheet from "@/components/DayDetailSheet";
 import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
 
 const WEEKDAY_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
 type QuickFilter = "全部" | "未着手" | "進行中" | "AI" | "7日以内";
+
+// 全量Task表示のスコープ (§6). "Taskが存在しているのに画面上から見つけ
+// られない状態は禁止" — 「全部」は完了・やめたものも含めて必ず全件出す。
+type Scope = "今月" | "全部" | "今日" | "今週" | "期限超過" | "未スケジュール" | "完了";
+
+const SCOPES: Scope[] = ["今月", "全部", "今日", "今週", "期限超過", "未スケジュール", "完了"];
 
 const AREAS: Area[] = ["営業代行", "RIALA", "GENESIS", "Skill Plus", "その他"];
 const PRIORITIES: Priority[] = ["高", "中", "低"];
@@ -72,8 +89,17 @@ export default function TaskMapPage() {
   // todayStr() — this page is statically prerendered, so a module const
   // would bake in the deploy-time date and never advance for any viewer
   // (期限超過/7日以内 would silently go stale after deploy day).
-  const { currentDate: today, workDateOverrides } = useTodayExecution();
+  const {
+    currentDate: today,
+    workDateOverrides,
+    completions,
+    dispositions,
+    deadlineOverrides,
+    taskStartedAt,
+  } = useTodayExecution();
+  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides };
   const [monthOffset, setMonthOffset] = useState(0);
+  const [scope, setScope] = useState<Scope>("今月");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("全部");
   const [refineOpen, setRefineOpen] = useState(false);
   const [areaFilter, setAreaFilter] = useState<Area | "全部">("全部");
@@ -83,6 +109,7 @@ export default function TaskMapPage() {
   const [sort, setSort] = useState<SortKey>("期限順");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [fixedScheduleOpen, setFixedScheduleOpen] = useState(false);
 
   const monthKey = monthKeyOf(monthOffset);
@@ -95,23 +122,31 @@ export default function TaskMapPage() {
     [monthKey]
   );
 
-  const undatedTasks = useMemo(() => allTasks.filter((t) => t.deadline === null), []);
-
   const progress = useMemo(() => computeProgress(monthTasks), [monthTasks]);
 
+  const overdue = useMemo(
+    () => computeOverdueTasks(allTasks, today, overlays),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides]
+  );
+
+  // Stats now derive from real execution state rather than the immutable
+  // fixture `status` (which is always 未着手, so 進行中 used to be
+  // permanently 0): 進行中 = actually started and not finished.
   const stats = useMemo(() => {
-    const inProgress = monthTasks.filter((t) => t.status === "進行中").length;
-    const notStarted = monthTasks.filter((t) => t.status === "未着手").length;
-    const aiOwned = monthTasks.filter((t) => t.aiCapability !== "HUMAN").length;
-    const overdue = monthTasks.filter(
-      (t) => t.status !== "完了" && t.status !== "Archive" && daysBetween(today, t.deadline) < 0
-    ).length;
-    const within7 = monthTasks.filter((t) => {
-      const diff = daysBetween(today, t.deadline);
-      return t.status !== "完了" && t.status !== "Archive" && diff >= 0 && diff <= 7;
+    const open = monthTasks.filter((t) => isTaskOpen(t, overlays));
+    const inProgress = open.filter((t) => taskStartedAt.has(t.id)).length;
+    const notStarted = open.length - inProgress;
+    const aiOwned = open.filter((t) => t.aiCapability !== "HUMAN").length;
+    const within7 = open.filter((t) => {
+      const deadline = effectiveDeadline(t, overlays);
+      if (deadline === null) return false;
+      const diff = daysBetween(today, deadline);
+      return diff >= 0 && diff <= 7;
     }).length;
-    return { inProgress, notStarted, aiOwned, overdue, within7 };
-  }, [monthTasks, today]);
+    return { inProgress, notStarted, aiOwned, within7 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthTasks, today, completions, dispositions, deadlineOverrides, taskStartedAt]);
 
   // Monthly Calendar Map (2026-09-06 readability round): a real day-by-day
   // grid replaces the old "1週目/2週目/3週目/4週目" quartile-bucket rows —
@@ -144,19 +179,88 @@ export default function TaskMapPage() {
     [weekDateList, workDateOverrides]
   );
 
+  // Area/Project サマリー (§5). Every figure is derived from the real Task
+  // set — an Area with no linked Outcome says so rather than being given
+  // an invented one.
+  const areaSummaries = useMemo(() => {
+    return AREAS.map((area) => {
+      const areaTasks = allTasks.filter((t) => t.area === area);
+      const open = areaTasks.filter((t) => isTaskOpen(t, overlays));
+      if (areaTasks.length === 0) return null;
+      const withDeadline = open
+        .map((t) => ({ t, d: effectiveDeadline(t, overlays) }))
+        .filter((x): x is { t: Task; d: string } => x.d !== null)
+        .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+      const outcomeTitle =
+        outcomes.find((o) => open.some((t) => t.outcomeId === o.id))?.title ?? null;
+      return {
+        area,
+        outcomeTitle,
+        nearestDeadline: withDeadline[0]?.d ?? null,
+        nextTask: withDeadline[0]?.t ?? open[0] ?? null,
+        openCount: open.length,
+        overdueCount: open.filter((t) => overdue.some((o) => o.id === t.id)).length,
+        blockedCount: open.filter((t) => isTaskBlocked(t, overlays)).length,
+      };
+    }).filter((s): s is NonNullable<typeof s> => s !== null && s.openCount > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overdue, completions, dispositions, deadlineOverrides]);
+
   const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
     (v) => v !== "全部"
   ).length;
 
-  function applyFilters<T extends Task>(list: T[]): T[] {
+  // The Task inventory for the selected scope (§6). Everything downstream
+  // (quick filter, refine, sort) narrows this — so switching to 「全部」
+  // genuinely shows every Task that exists, including completed ones.
+  const scopedTasks = useMemo(() => {
+    const weekEnd = weekDateList[6];
+    switch (scope) {
+      case "全部":
+        return allTasks;
+      case "今月":
+        return monthTasks;
+      case "今日":
+        return tasksEffectiveOnDate(today, allTasks, timeBlocks, workDateOverrides);
+      case "今週":
+        return allTasks.filter((t) => {
+          if (!isTaskOpen(t, overlays)) return false;
+          const deadline = effectiveDeadline(t, overlays);
+          const workDate = effectiveWorkDate(t, overlays);
+          const inWeek = (d: string | null) => d !== null && d >= weekStart && d <= weekEnd;
+          const scheduled = timeBlocks.some((tb) => tb.taskId === t.id && tb.date >= weekStart && tb.date <= weekEnd);
+          return inWeek(deadline) || inWeek(workDate) || scheduled;
+        });
+      case "期限超過":
+        return overdue;
+      case "未スケジュール":
+        // Exists, still open, but placed nowhere: no work date and no
+        // TimeBlock. These are the Tasks that quietly go missing.
+        return allTasks.filter(
+          (t) =>
+            isTaskOpen(t, overlays) &&
+            effectiveWorkDate(t, overlays) === null &&
+            !timeBlocks.some((tb) => tb.taskId === t.id)
+        );
+      case "完了":
+        return allTasks.filter((t) => isTaskDone(t, overlays));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, monthTasks, today, weekStart, weekDateList, overdue, completions, dispositions, deadlineOverrides, workDateOverrides]);
+
+  function applyFilters(list: Task[]): Task[] {
     let out = list;
-    if (quickFilter === "未着手") out = out.filter((t) => t.status === "未着手");
-    else if (quickFilter === "進行中") out = out.filter((t) => t.status === "進行中");
+    if (quickFilter === "未着手")
+      out = out.filter((t) => isTaskOpen(t, overlays) && !taskStartedAt.has(t.id));
+    else if (quickFilter === "進行中")
+      out = out.filter((t) => isTaskOpen(t, overlays) && taskStartedAt.has(t.id));
     else if (quickFilter === "AI") out = out.filter((t) => t.aiCapability !== "HUMAN");
     else if (quickFilter === "7日以内")
       out = out.filter((t) => {
-        if (t.status === "完了" || t.status === "Archive" || t.deadline === null) return false;
-        const diff = daysBetween(today, t.deadline);
+        if (!isTaskOpen(t, overlays)) return false;
+        const deadline = effectiveDeadline(t, overlays);
+        if (deadline === null) return false;
+        const diff = daysBetween(today, deadline);
         return diff >= 0 && diff <= 7;
       });
 
@@ -168,22 +272,19 @@ export default function TaskMapPage() {
   }
 
   const visibleTasks = useMemo(() => {
-    const list = applyFilters(monthTasks);
-    const sorted = [...list];
-    if (sort === "期限順") sorted.sort((a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : 0));
+    const sorted = [...applyFilters(scopedTasks)];
+    if (sort === "期限順")
+      sorted.sort((a, b) => {
+        // Undated Tasks sort last rather than disappearing.
+        const da = effectiveDeadline(a, overlays) ?? "9999-12-31";
+        const db = effectiveDeadline(b, overlays) ?? "9999-12-31";
+        return da < db ? -1 : da > db ? 1 : 0;
+      });
     else if (sort === "重要度") sorted.sort((a, b) => priorityRank[b.importance] - priorityRank[a.importance]);
     else sorted.sort((a, b) => priorityRank[b.urgency] - priorityRank[a.urgency]);
     return sorted;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
-
-  const visibleUndatedTasks = useMemo(() => {
-    const list = applyFilters(undatedTasks);
-    if (sort === "重要度") return [...list].sort((a, b) => priorityRank[b.importance] - priorityRank[a.importance]);
-    if (sort === "緊急度") return [...list].sort((a, b) => priorityRank[b.urgency] - priorityRank[a.urgency]);
-    return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [undatedTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort]);
+  }, [scopedTasks, quickFilter, areaFilter, capFilter, importanceFilter, urgencyFilter, sort, taskStartedAt, completions, dispositions, deadlineOverrides]);
 
   const endStates = monthEndStates.filter((s) => s.monthKey === monthKey);
   const monthFixedEvents = eventsForMonth(fixedCalendarEvents, monthKey);
@@ -231,7 +332,48 @@ export default function TaskMapPage() {
           const t = allTasks.find((task) => task.id === taskId);
           if (t) setSelectedTask(t);
         }}
+        onOpenDay={(date) => setSelectedDate(date)}
       />
+
+      {/* Area / Project サマリー (§5): 「このAreaはいつまでに何を達成する
+          のか、次の一手は何か」を1枚で。Outcomeが未設定のAreaには
+          Outcomeを捏造せず、その旨を出す。 */}
+      <section className="mt-3 px-5">
+        <h2 className="mb-2 text-sm font-bold text-stone-800">Areaごとの現在地</h2>
+        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2">
+          {areaSummaries.map((s) => (
+            <div key={s.area} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[s.area]}`}>
+                  {s.area}
+                </span>
+                <span className={`text-[11px] font-bold ${s.overdueCount > 0 ? "text-danger" : "text-stone-400"}`}>
+                  {s.nearestDeadline ? `直近期限 ${formatMd(s.nearestDeadline)}` : "期限未設定"}
+                </span>
+              </div>
+              {s.outcomeTitle ? (
+                <p className="mt-1.5 text-[12px] font-bold text-stone-700">{s.outcomeTitle}</p>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-stone-400">Outcome未設定</p>
+              )}
+              {s.nextTask && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(s.nextTask!)}
+                  className="mt-1 block w-full truncate text-left text-[12px] font-medium text-accent-dark"
+                >
+                  次：{s.nextTask.title}
+                </button>
+              )}
+              <p className="mt-1.5 text-[10px] font-bold text-stone-400">
+                未完了 {s.openCount}件
+                {s.overdueCount > 0 && <span className="text-danger">・期限超過 {s.overdueCount}件</span>}
+                {s.blockedCount > 0 && <span>・Blocked {s.blockedCount}件</span>}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切カレンダー</p>
@@ -245,10 +387,12 @@ export default function TaskMapPage() {
             c === null ? (
               <span key={`blank-${i}`} />
             ) : (
-              <div
+              <button
                 key={c.date}
+                type="button"
+                onClick={() => setSelectedDate(c.date)}
                 className={`mx-auto flex h-9 w-9 flex-col items-center justify-center gap-0.5 rounded-lg lg:h-14 lg:w-14 ${
-                  c.date === today ? "bg-accent-soft ring-1 ring-accent" : ""
+                  c.date === today ? "bg-accent-soft ring-1 ring-accent" : "hover:bg-stone-100"
                 }`}
               >
                 <span className={`text-[10px] font-bold ${c.date === today ? "text-accent-dark" : "text-stone-500"}`}>
@@ -262,7 +406,7 @@ export default function TaskMapPage() {
                     {c.areas.length > 3 && <span className="text-[7px] font-bold text-stone-400">+{c.areas.length - 3}</span>}
                   </div>
                 )}
-              </div>
+              </button>
             )
           )}
         </div>
@@ -309,14 +453,36 @@ export default function TaskMapPage() {
             onClick={() => setQuickFilter((f) => (f === "7日以内" ? "全部" : "7日以内"))}
           />
         </div>
-        {stats.overdue > 0 && (
-          <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-danger-soft px-3 py-1.5 text-xs font-bold text-danger">
-            <span>⚠</span> 期限超過 {stats.overdue}件
-          </div>
-        )}
       </section>
 
-      <section className="mt-2.5 px-5">
+      {/* 期限超過Inbox (§13): the same resolvable inbox as TODAY, so an
+          overdue Task can be finished or re-planned from the management
+          screen too — never a dead-end counter. */}
+      {overdue.length > 0 && (
+        <section className="mx-5 mt-2.5">
+          <OverdueInbox tasks={overdue} today={today} />
+        </section>
+      )}
+
+      {/* 全量Taskスコープ (§6) */}
+      <section className="mt-3 px-5">
+        <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1">
+          {SCOPES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setScope(s)}
+              className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${
+                scope === s ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-2 px-5">
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -381,26 +547,28 @@ export default function TaskMapPage() {
       </section>
 
       <section className="mt-2.5 flex flex-col gap-1.5 px-5">
+        <p className="mb-0.5 text-[11px] font-bold text-stone-400">
+          {scope}：{visibleTasks.length}件 / 全{allTasks.length}件
+        </p>
         {visibleTasks.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-stone-200 py-10 text-center">
             <span className="text-3xl">📭</span>
             <p className="text-sm text-stone-400">該当するタスクはありません</p>
           </div>
         ) : (
-          visibleTasks.map((t) => <TaskListRow key={t.id} task={t} today={today} onOpen={() => setSelectedTask(t)} />)
+          visibleTasks.map((t) => (
+            <TaskListRow
+              key={t.id}
+              task={t}
+              today={today}
+              deadline={effectiveDeadline(t, overlays)}
+              done={isTaskDone(t, overlays)}
+              blocked={isTaskBlocked(t, overlays)}
+              onOpen={() => setSelectedTask(t)}
+            />
+          ))
         )}
       </section>
-
-      {visibleUndatedTasks.length > 0 && (
-        <section className="mt-5 px-5">
-          <h2 className="mb-2 text-xs font-bold text-stone-400">期限未設定（{visibleUndatedTasks.length}）</h2>
-          <div className="flex flex-col gap-1.5">
-            {visibleUndatedTasks.map((t) => (
-              <TaskListRow key={t.id} task={t} today={today} onOpen={() => setSelectedTask(t)} />
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="mt-6 px-5 pb-4">
         <h2 className="mb-2.5 text-sm font-bold text-stone-800">{monthLabel(monthKey)}末、こうなっていたい</h2>
@@ -495,6 +663,16 @@ export default function TaskMapPage() {
         />
       )}
       {selectedOutcome && <OutcomeDetailSheet outcome={selectedOutcome} onClose={() => setSelectedOutcome(null)} />}
+      {selectedDate && (
+        <DayDetailSheet
+          date={selectedDate}
+          onClose={() => setSelectedDate(null)}
+          onOpenTask={(t) => {
+            setSelectedDate(null);
+            setSelectedTask(t);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -515,11 +693,14 @@ function WeekView({
   entriesByDate,
   today,
   onOpenTask,
+  onOpenDay,
 }: {
   dates: string[];
   entriesByDate: Map<string, WeekEntry[]>;
   today: string;
   onOpenTask: (taskId: string) => void;
+  /** Tapping the date header opens that whole day (§7). */
+  onOpenDay: (date: string) => void;
 }) {
   const todayRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -554,9 +735,15 @@ function WeekView({
               }`}
               style={{ scrollSnapAlign: "start" }}
             >
-              <p className={`text-[11px] font-bold ${isToday ? "text-accent-dark" : "text-stone-400"}`}>
+              <button
+                type="button"
+                onClick={() => onOpenDay(d)}
+                className={`w-full text-left text-[11px] font-bold underline-offset-2 hover:underline ${
+                  isToday ? "text-accent-dark" : "text-stone-400"
+                }`}
+              >
                 {weekday} <span className="tabular-nums">{dayOfMonth(d)}</span>
-              </p>
+              </button>
               <div className="mt-1.5 flex flex-col gap-1">
                 {entries.length === 0 ? (
                   <p className="text-[10px] text-stone-300">—</p>
@@ -649,13 +836,24 @@ function StatFilterButton({
   );
 }
 
-function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpen: () => void }) {
-  const overdue =
-    task.deadline !== null &&
-    task.status !== "完了" &&
-    task.status !== "Archive" &&
-    daysBetween(today, task.deadline) < 0;
-  const done = task.status === "完了";
+function TaskListRow({
+  task,
+  today,
+  deadline,
+  done,
+  blocked,
+  onOpen,
+}: {
+  task: Task;
+  today: string;
+  /** Effective deadline (a 期限再設定 already applied). */
+  deadline: string | null;
+  /** Derived from the durable completion record, not the fixture status. */
+  done: boolean;
+  blocked: boolean;
+  onOpen: () => void;
+}) {
+  const overdue = deadline !== null && !done && daysBetween(today, deadline) < 0;
   const badge = capabilityBadge(task.aiCapability);
   // A Task split into a real Series (2026-09-06) — surface its step here so
   // the several rows a series produces read as one flow at a glance. Labeled
@@ -676,7 +874,7 @@ function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpe
             {task.title}
           </p>
           <span className={`shrink-0 text-[11px] font-bold ${overdue ? "text-danger" : "text-stone-400"}`}>
-            {formatMd(task.deadline)}
+            {formatMd(deadline)}
           </span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -688,7 +886,10 @@ function TaskListRow({ task, today, onOpen }: { task: Task; today: string; onOpe
               ステップ{series.sequenceNumber}/{series.totalSteps}
             </span>
           )}
-          {task.importance === "高" && (
+          {blocked && (
+            <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[10px] font-bold text-white">Blocked</span>
+          )}
+          {task.importance === "高" && !done && (
             <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black text-white">MAX</span>
           )}
           <span className="text-[10px] font-medium text-stone-400">{capabilityOwnerLabel(task.aiCapability)}</span>

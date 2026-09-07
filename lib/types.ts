@@ -402,6 +402,46 @@ export interface CarryoverRecord {
   decidedAt: string; // ISO — when the user actually made this decision
 }
 
+// --- Execution Management (2026-09-06) ---
+// A Task's completion is durable runtime state, not fixture data: the
+// `tasks` array in dummy-data.ts is immutable (its `status` is always the
+// originally-authored one), so "this Task is finished" has to live here.
+// This is what makes an OVERDUE Task completable and makes it leave the
+// overdue list afterwards — while still never rewriting history into
+// "finished on time".
+//
+// deadlineAtCompletion is the deadline that actually applied at the moment
+// of completion (a 期限再設定 may have moved it); originalDeadline is the
+// Task's own authored deadline and is never overwritten. delayDays is
+// derived from those two so "9/4締切を9/7に完了＝3日遅れ" survives.
+export interface TaskCompletionRecord {
+  taskId: string;
+  completedAt: string; // ISO timestamp
+  completedOnDate: string; // YYYY-MM-DD (the execution day it was completed on)
+  originalDeadline: string | null; // the Task's authored deadline — never rewritten
+  deadlineAtCompletion: string | null; // the effective deadline when it was completed
+  delayDays: number | null; // >0 = completed after the deadline; null when there was no deadline
+  // 達成基準を満たして完了 (true) vs 未達だが終了 (false). A false here must
+  // never be presented as a clean completion.
+  metDefinitionOfDone: boolean;
+  estimateMinutes: number | null;
+  actualMinutes: number | null;
+  varianceMinutes: number | null;
+}
+
+// What the user decided about a Task that is not being completed now.
+// BLOCKED: can't proceed (waiting on someone/something). DROPPED: 今回は
+// やめる — recorded as a decision, never a silent delete.
+export type TaskDisposition = "BLOCKED" | "DROPPED";
+
+export interface TaskDispositionRecord {
+  taskId: string;
+  disposition: TaskDisposition;
+  decidedOnDate: string;
+  decidedAt: string; // ISO
+  note: string | null;
+}
+
 // --- Work Principles / 仕事の型 — Knowledge Layer (2026-09-05, PRD.md §26) ---
 // Not a Task, not a Calendar Event: a small reusable "how to communicate/
 // judge quality" reference. The point is that the user shouldn't have to

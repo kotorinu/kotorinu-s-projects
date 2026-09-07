@@ -2,7 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { __setClockOverrideForTesting, todayStr } from "./date";
-import type { CarryoverDisposition, CarryoverRecord, VarianceReason } from "./types";
+import type {
+  CarryoverDisposition,
+  CarryoverRecord,
+  TaskCompletionRecord,
+  TaskDispositionRecord,
+  VarianceReason,
+} from "./types";
 
 // TODAY execution state, lifted out of app/today/page.tsx into a Provider
 // mounted once in the root layout (2026-09-05 bug fix, revised 2026-09-06
@@ -52,6 +58,15 @@ interface RolloverState {
   // the fixture's static calendarSyncEnabled default (which starts false
   // for everything; nothing is pre-confirmed on the user's behalf).
   calendarSyncOverrides: Record<string, boolean>; // timeBlockId -> enabled
+  // --- Execution Management (2026-09-06) ---
+  // Durable, cross-day completion. `current.done` stays as "what was ticked
+  // off on this particular day" (it drives today's progress and rolls into
+  // history); `completions` is the Task-level truth that survives the day
+  // boundary, so an overdue Task completed late actually leaves the overdue
+  // list instead of reappearing forever.
+  completions: Record<string, TaskCompletionRecord>; // taskId -> record
+  dispositions: Record<string, TaskDispositionRecord>; // taskId -> BLOCKED/DROPPED
+  deadlineOverrides: Record<string, string>; // taskId -> re-set deadline (original is kept on the Task)
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
@@ -81,6 +96,9 @@ function emptyRolloverState(): RolloverState {
     carryover: {},
     workDateOverrides: {},
     calendarSyncOverrides: {},
+    completions: {},
+    dispositions: {},
+    deadlineOverrides: {},
   };
 }
 
@@ -141,6 +159,9 @@ interface TodayExecutionApi {
   carryover: Record<string, CarryoverRecord>;
   workDateOverrides: Record<string, string>;
   calendarSyncOverrides: Record<string, boolean>;
+  completions: Record<string, TaskCompletionRecord>;
+  dispositions: Record<string, TaskDispositionRecord>;
+  deadlineOverrides: Record<string, string>;
   history: Record<string, DayRecord>;
 
   setDone: (updater: SetUpdater<Set<string>>) => void;
@@ -159,6 +180,16 @@ interface TodayExecutionApi {
   continueStartedTaskToday: () => void;
   recordCarryover: (fromDate: string, taskId: string, disposition: CarryoverDisposition, toDate: string | null) => void;
   setCalendarSyncEnabled: (timeBlockId: string, enabled: boolean) => void;
+  // --- Execution Management (2026-09-06) ---
+  // Completing a Task always writes a durable record (including how late it
+  // was and whether the DoD was actually met), marks it done for the day,
+  // and clears any BLOCKED/DROPPED disposition it had.
+  completeTask: (record: TaskCompletionRecord) => void;
+  // Undo: removes the completion record and today's done tick together, so
+  // the two can never disagree.
+  uncompleteTask: (taskId: string) => void;
+  setTaskDisposition: (record: TaskDispositionRecord | null, taskId: string) => void;
+  setDeadlineOverride: (taskId: string, deadline: string) => void;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -177,6 +208,9 @@ interface PersistedShape {
   carryover: Record<string, CarryoverRecord>;
   workDateOverrides: Record<string, string>;
   calendarSyncOverrides: Record<string, boolean>;
+  completions: Record<string, TaskCompletionRecord>;
+  dispositions: Record<string, TaskDispositionRecord>;
+  deadlineOverrides: Record<string, string>;
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -194,6 +228,9 @@ function toPersisted(state: RolloverState): PersistedShape {
     carryover: state.carryover,
     workDateOverrides: state.workDateOverrides,
     calendarSyncOverrides: state.calendarSyncOverrides,
+    completions: state.completions,
+    dispositions: state.dispositions,
+    deadlineOverrides: state.deadlineOverrides,
   };
 }
 
@@ -214,6 +251,9 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     carryover: parsed.carryover ?? {},
     workDateOverrides: parsed.workDateOverrides ?? {},
     calendarSyncOverrides: parsed.calendarSyncOverrides ?? {},
+    completions: parsed.completions ?? {},
+    dispositions: parsed.dispositions ?? {},
+    deadlineOverrides: parsed.deadlineOverrides ?? {},
   };
 }
 
@@ -311,6 +351,9 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     carryover: state.carryover,
     workDateOverrides: state.workDateOverrides,
     calendarSyncOverrides: state.calendarSyncOverrides,
+    completions: state.completions,
+    dispositions: state.dispositions,
+    deadlineOverrides: state.deadlineOverrides,
     history: state.history,
 
     setDone: (updater) =>
@@ -354,6 +397,54 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
         ...s,
         calendarSyncOverrides: { ...s.calendarSyncOverrides, [timeBlockId]: enabled },
       })),
+    completeTask: (record) =>
+      setState((s) => {
+        const nextDone = new Set(s.current.done);
+        nextDone.add(record.taskId);
+        const nextCompletedAt = new Map(s.current.taskCompletedAt).set(record.taskId, record.completedAt);
+        const nextActual = new Map(s.current.taskActualMinutes);
+        if (record.actualMinutes !== null) nextActual.set(record.taskId, record.actualMinutes);
+        // A completed Task is no longer BLOCKED/DROPPED — the decision it
+        // supersedes is dropped from `dispositions` (the completion record
+        // itself is the newer, stronger fact).
+        const nextDispositions = { ...s.dispositions };
+        delete nextDispositions[record.taskId];
+        return {
+          ...s,
+          current: {
+            ...s.current,
+            done: nextDone,
+            taskCompletedAt: nextCompletedAt,
+            taskActualMinutes: nextActual,
+          },
+          completions: { ...s.completions, [record.taskId]: record },
+          dispositions: nextDispositions,
+          // A Task that was the running one stops being "in progress".
+          startedTaskId: s.startedTaskId === record.taskId ? null : s.startedTaskId,
+          startedTaskDate: s.startedTaskId === record.taskId ? null : s.startedTaskDate,
+        };
+      }),
+    uncompleteTask: (taskId) =>
+      setState((s) => {
+        const nextDone = new Set(s.current.done);
+        nextDone.delete(taskId);
+        const nextCompletions = { ...s.completions };
+        delete nextCompletions[taskId];
+        return {
+          ...s,
+          current: { ...s.current, done: nextDone },
+          completions: nextCompletions,
+        };
+      }),
+    setTaskDisposition: (record, taskId) =>
+      setState((s) => {
+        const nextDispositions = { ...s.dispositions };
+        if (record === null) delete nextDispositions[taskId];
+        else nextDispositions[taskId] = record;
+        return { ...s, dispositions: nextDispositions };
+      }),
+    setDeadlineOverride: (taskId, deadline) =>
+      setState((s) => ({ ...s, deadlineOverrides: { ...s.deadlineOverrides, [taskId]: deadline } })),
   };
 
   return <TodayExecutionContext.Provider value={api}>{children}</TodayExecutionContext.Provider>;

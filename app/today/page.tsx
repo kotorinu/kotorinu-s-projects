@@ -7,10 +7,19 @@ import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
 import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
+import {
+  buildCompletionRecord,
+  effectiveDeadline,
+  isTaskDone,
+  isTaskOpen,
+  overdueTasks as computeOverdueTasks,
+} from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import type { CarryoverDisposition, FixedEventType, RecurringRule, Task } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
+import OverdueInbox from "@/components/OverdueInbox";
+import TaskCompleteDialog from "@/components/TaskCompleteDialog";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import RecurringDetailSheet from "@/components/RecurringDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
@@ -38,9 +47,9 @@ type Celebration =
   | { kind: "recurring"; total: number; label: string }
   | { kind: "today" };
 
-function isOpen(t: Task) {
-  return t.status !== "完了" && t.status !== "Archive";
-}
+// Note: "is this Task still open?" now lives in lib/taskState.ts
+// (isTaskOpen), because it has to account for the runtime completion /
+// disposition overlays, not just the immutable fixture status.
 
 export default function TodayPage() {
   // Task status / started / completed / actualMinutes / varianceReason all
@@ -51,14 +60,12 @@ export default function TodayPage() {
   const {
     currentDate,
     done,
-    setDone,
     recurringDone,
     setRecurringDone,
     taskStartedAt,
     setTaskStartedAt,
     setTaskCompletedAt,
     taskActualMinutes,
-    setTaskActualMinutes,
     varianceReasonByTaskId,
     setVarianceReasonByTaskId,
     startedTaskId,
@@ -69,12 +76,25 @@ export default function TodayPage() {
     workDateOverrides,
     recordCarryover,
     history,
+    completions,
+    dispositions,
+    deadlineOverrides,
+    completeTask,
+    uncompleteTask,
+    setTaskDisposition,
   } = useTodayExecution();
+  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides };
+  // "Done" = a durable completion record (or an authored-complete fixture
+  // Task), OR ticked off on today's list. The durable half is what makes a
+  // completed Task stay completed across the day boundary and drop out of
+  // the overdue list.
+  function isDone(task: Task) {
+    return isTaskDone(task, overlays) || done.has(task.id);
+  }
   const today = currentDate;
   const weekday = WEEKDAY_LABEL[new Date(currentDate + "T00:00:00").getDay()];
 
   const [expanded, setExpanded] = useState(false);
-  const [overdueOpen, setOverdueOpen] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringRule | null>(null);
@@ -86,6 +106,8 @@ export default function TodayPage() {
   // confirmation sheet shouldn't reappear after navigating back) — it stays
   // page-local, unlike the execution state above.
   const [switchConfirmTaskId, setSwitchConfirmTaskId] = useState<string | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [yesterdaySummaryOpen, setYesterdaySummaryOpen] = useState(false);
   const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
   const [rescheduleDateValue, setRescheduleDateValue] = useState("");
@@ -114,14 +136,38 @@ export default function TodayPage() {
     if (switchConfirmTaskId) reallyStart(switchConfirmTaskId);
   }
 
-  function completeStartedTask(task: Task) {
-    const startedIso = taskStartedAt.get(task.id);
-    if (startedIso) {
-      setTaskActualMinutes((prev) => new Map(prev).set(task.id, minutesSince(startedIso)));
-    }
+  // Completion always goes through the DoD confirmation now (§11): the user
+  // sees the 達成基準 at the moment of completing, and "未達のまま終了" is
+  // routed to a re-plan/Blocked/やめる decision instead of being recorded
+  // as a finished Task.
+  function requestComplete(task: Task) {
+    setCompletingTask(task);
+  }
+
+  function confirmComplete(task: Task, metDefinitionOfDone: boolean) {
     setTaskCompletedAt((prev) => new Map(prev).set(task.id, new Date().toISOString()));
-    if (startedTaskId === task.id) setStartedTaskId(null);
-    toggle(task);
+    completeTask(
+      buildCompletionRecord(task, {
+        today,
+        startedIso: taskStartedAt.get(task.id),
+        metDefinitionOfDone,
+        deadlineOverrides,
+      })
+    );
+    setCompletingTask(null);
+    fireCompletionCelebration(task);
+  }
+
+  function undoComplete(task: Task) {
+    uncompleteTask(task.id);
+  }
+
+  function disposeTask(task: Task, disposition: "BLOCKED" | "DROPPED") {
+    setTaskDisposition(
+      { taskId: task.id, disposition, decidedOnDate: today, decidedAt: new Date().toISOString(), note: null },
+      task.id
+    );
+    setCompletingTask(null);
   }
 
   function decideCarryover(taskId: string, disposition: CarryoverDisposition, toDate: string | null) {
@@ -142,19 +188,25 @@ export default function TodayPage() {
     [today, workDateOverrides]
   );
 
-  const overdueTasks = useMemo(
-    () => allTasks.filter((t) => isOpen(t) && t.deadline !== null && daysBetween(today, t.deadline) < 0),
-    [today]
+  // OVERDUE is derived (期限 < 今日 かつ 未完了 かつ 未DROP), never a stored
+  // status — so completing a late Task removes it here immediately.
+  const overdue = useMemo(
+    () => computeOverdueTasks(allTasks, today, overlays),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides]
   );
 
   const upcomingTasks = useMemo(() => {
     const todayIds = new Set(todayTasks.map((t) => t.id));
     return allTasks.filter((t) => {
-      if (!isOpen(t) || todayIds.has(t.id) || t.deadline === null) return false;
-      const diff = daysBetween(today, t.deadline);
+      if (!isTaskOpen(t, overlays) || todayIds.has(t.id)) return false;
+      const deadline = effectiveDeadline(t, overlays);
+      if (deadline === null) return false;
+      const diff = daysBetween(today, deadline);
       return diff >= 1 && diff <= 2;
     });
-  }, [todayTasks, today]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayTasks, today, completions, dispositions, deadlineOverrides]);
 
   // --- Day Rollover: Yesterday Summary / Carryover (2026-09-06) ---
   // Not useMemo'd: these are cheap array scans over a small fixed fixture,
@@ -192,8 +244,9 @@ export default function TodayPage() {
   // Timeline, dimmed — they must not also appear in this footer, or a
   // completed scheduled Task would show twice.
   const doneTodayTasks = useMemo(
-    () => todayTasks.filter((t) => done.has(t.id) && !scheduledTaskIds.has(t.id)),
-    [todayTasks, done, scheduledTaskIds]
+    () => todayTasks.filter((t) => isDone(t) && !scheduledTaskIds.has(t.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayTasks, done, completions, scheduledTaskIds]
   );
   const [doneListOpen, setDoneListOpen] = useState(false);
 
@@ -234,7 +287,7 @@ export default function TodayPage() {
   // A Task started on a *previous* day gets its own cross-midnight banner
   // (with 完了／中断／今日へ継続) instead — never both at once.
   const pinnedNowTask =
-    startedTask && !startedAcrossMidnight && !scheduledTaskIds.has(startedTask.id) && !done.has(startedTask.id)
+    startedTask && !startedAcrossMidnight && !scheduledTaskIds.has(startedTask.id) && !isDone(startedTask)
       ? startedTask
       : null;
   const pinnedNowStartedIso = pinnedNowTask ? taskStartedAt.get(pinnedNowTask.id) : undefined;
@@ -263,8 +316,9 @@ export default function TodayPage() {
   }, []);
 
   const unscheduledTodayTasks = useMemo(
-    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !done.has(t.id) && t.id !== startedTaskId),
-    [todayTasks, scheduledTaskIds, done, startedTaskId]
+    () => todayTasks.filter((t) => !scheduledTaskIds.has(t.id) && !isDone(t) && t.id !== startedTaskId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayTasks, scheduledTaskIds, done, completions, startedTaskId]
   );
 
   const preparationCountByTaskId = useMemo(() => {
@@ -276,30 +330,29 @@ export default function TodayPage() {
     return map;
   }, []);
 
-  const doneCount = todayTasks.filter((t) => done.has(t.id)).length;
+  const doneCount = todayTasks.filter((t) => isDone(t)).length;
   const totalCount = todayTasks.length;
   const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
   const recurringDoneCount = recurringRules.filter((r) => recurringDone.has(r.id)).length;
 
-  function toggle(task: Task) {
-    const completing = !done.has(task.id);
-    setDone((prev) => {
-      const next = new Set(prev);
-      if (next.has(task.id)) next.delete(task.id);
-      else next.add(task.id);
-      return next;
-    });
-    if (!completing) return;
+  // 今日の実行サマリー (§14): every number below is a plain count over real
+  // data — no opaque score. A Task completed after its deadline counts as
+  // completed here (the delay is recorded separately on its completion
+  // record), so the figure can't be dragged down by work that's actually
+  // finished.
+  const todayEstimateMinutes = todayTasks.reduce((sum, t) => sum + (t.estimateMinutes ?? 0), 0);
+  const todayActualMinutes = todayTasks.reduce((sum, t) => sum + (taskActualMinutes.get(t.id) ?? 0), 0);
+  const todayLateCompletions = todayTasks.filter((t) => (completions[t.id]?.delayDays ?? 0) > 0).length;
 
+  function fireCompletionCelebration(task: Task) {
     if (totalCount > 0 && doneCount + 1 === totalCount) {
       fireCelebration({ kind: "today" }, 1100);
       return;
     }
-
     const goal = task.goalId ? goals.find((g) => g.id === task.goalId) : null;
     if (goal) {
       const linked = allTasks.filter((t) => t.goalId === goal.id);
-      const doneAmongLinked = linked.filter((t) => t.status === "完了" || t.id === task.id || done.has(t.id)).length;
+      const doneAmongLinked = linked.filter((t) => t.id === task.id || isDone(t)).length;
       const total = linked.length;
       const goalPct = total === 0 ? 0 : Math.round((doneAmongLinked / total) * 100);
       fireCelebration(
@@ -377,6 +430,41 @@ export default function TodayPage() {
         {totalCount - doneCount > 0 && (
           <p className="mt-1.5 text-[11px] font-medium text-stone-400">残り{totalCount - doneCount}件</p>
         )}
+
+        {/* Explainable summary (§14): the percentage above is just
+            完了数÷予定数 over today's real Tasks. Opening this shows every
+            number it's made of, so it's never an opaque score — and a Task
+            completed after its deadline counts as completed (the delay is
+            recorded separately, not as a penalty that can't be cleared). */}
+        <button
+          type="button"
+          onClick={() => setSummaryOpen((v) => !v)}
+          className="mt-2 text-[10px] font-bold text-stone-400"
+        >
+          内訳 {summaryOpen ? "▾" : "▸"}
+        </button>
+        {summaryOpen && (
+          <dl className="mt-1.5 flex flex-col gap-1 rounded-xl bg-stone-50 px-3 py-2.5 text-[11px]">
+            <SummaryRow label="今日の予定Task" value={`${totalCount}件`} />
+            <SummaryRow label="完了" value={`${doneCount}件`} />
+            <SummaryRow label="未完了" value={`${totalCount - doneCount}件`} />
+            <SummaryRow
+              label="予定時間"
+              value={todayEstimateMinutes > 0 ? formatDurationHm(todayEstimateMinutes) : "未設定"}
+            />
+            <SummaryRow
+              label="実績時間"
+              value={todayActualMinutes > 0 ? formatDurationHm(todayActualMinutes) : "未計測"}
+            />
+            <SummaryRow label="期限超過（未処理）" value={`${overdue.length}件`} />
+            {todayLateCompletions > 0 && (
+              <SummaryRow label="期限後に完了" value={`${todayLateCompletions}件`} />
+            )}
+            <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+              {pct}% ＝ 完了{doneCount} ÷ 予定{totalCount}。期限後に完了したTaskも完了として数え、遅延は実績として別に記録します。
+            </p>
+          </dl>
+        )}
       </section>
 
       {recurringRules.length > 0 && (
@@ -438,7 +526,7 @@ export default function TodayPage() {
               task={startedTask}
               elapsedMinutes={startedAcrossMidnightElapsedMinutes}
               startedDate={startedTaskDate}
-              onComplete={() => completeStartedTask(startedTask)}
+              onComplete={() => requestComplete(startedTask)}
               onInterrupt={() => setStartedTaskId(null)}
               onContinueToday={continueStartedTaskToday}
               onOpen={() => setSelectedTask(startedTask)}
@@ -451,7 +539,7 @@ export default function TodayPage() {
             <PinnedNowCard
               task={pinnedNowTask}
               elapsedMinutes={pinnedNowElapsedMinutes}
-              onComplete={() => completeStartedTask(pinnedNowTask)}
+              onComplete={() => requestComplete(pinnedNowTask)}
               onOpen={() => setSelectedTask(pinnedNowTask)}
               preparationCount={preparationCountByTaskId.get(pinnedNowTask.id) ?? 0}
             />
@@ -473,13 +561,13 @@ export default function TodayPage() {
                     {item.kind === "task" ? (
                       <TimelineTaskCard
                         item={item}
-                        checked={done.has(item.task.id)}
+                        checked={isDone(item.task)}
                         started={startedTaskId === item.task.id}
                         actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
                         nowHmValue={nowHmValue}
                         onStart={() => requestStart(item.task.id)}
-                        onComplete={() => completeStartedTask(item.task)}
-                        onUndo={() => toggle(item.task)}
+                        onComplete={() => requestComplete(item.task)}
+                        onUndo={() => undoComplete(item.task)}
                         onOpen={() => setSelectedTask(item.task)}
                         preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
                         nowRef={item.status === "NOW" ? nowCardRef : undefined}
@@ -543,7 +631,7 @@ export default function TodayPage() {
                         checked={true}
                         started={false}
                         onStart={() => {}}
-                        onUndo={() => toggle(t)}
+                        onUndo={() => undoComplete(t)}
                         onOpen={() => setSelectedTask(t)}
                         preparationCount={preparationCountByTaskId.get(t.id) ?? 0}
                       />
@@ -662,18 +750,18 @@ export default function TodayPage() {
         </section>
       )}
 
-      <section className="mx-5 mt-4 lg:col-start-2">
+      {/* 期限超過Inbox (§12/§13): every overdue Task carries the full
+          decision set (完了／今日やる／日付指定／Blocked／やめる) so it can
+          always be resolved — this replaces the old read-only list that
+          made overdue Tasks impossible to complete. */}
+      {overdue.length > 0 && (
+        <section className="mx-5 mt-4 lg:col-start-2">
+          <OverdueInbox tasks={overdue} today={today} />
+        </section>
+      )}
+
+      <section className="mx-5 mt-3 lg:col-start-2">
         <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setOverdueOpen((v) => !v)}
-            className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ${
-              overdueTasks.length > 0 ? "text-danger" : "text-stone-300"
-            }`}
-          >
-            ⚠ 期限超過 {overdueTasks.length}
-          </button>
-          <span className="h-3 w-px bg-stone-200" />
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -682,17 +770,6 @@ export default function TodayPage() {
             ◷ 2日以内 {upcomingTasks.length}
           </button>
         </div>
-
-        {overdueOpen && overdueTasks.length > 0 && (
-          <ul className="mt-1.5 flex flex-col gap-1.5">
-            {overdueTasks.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-danger-soft/60 px-3 py-2 text-xs">
-                <span className="truncate font-medium text-stone-700">{t.title}</span>
-                <span className="shrink-0 font-bold text-danger">期限 {formatMd(t.deadline)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {expanded && (
           <ul className="mt-1.5 flex flex-col gap-1.5">
@@ -704,7 +781,9 @@ export default function TodayPage() {
               upcomingTasks.map((t) => (
                 <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 text-xs">
                   <span className="truncate font-medium text-stone-600">{t.title}</span>
-                  <span className="shrink-0 font-bold text-stone-500">期限 {formatMd(t.deadline)}</span>
+                  <span className="shrink-0 font-bold text-stone-500">
+                    期限 {formatMd(effectiveDeadline(t, overlays))}
+                  </span>
                 </li>
               ))
             )}
@@ -712,6 +791,23 @@ export default function TodayPage() {
         )}
       </section>
       </div>
+
+      {completingTask && (
+        <TaskCompleteDialog
+          task={completingTask}
+          deadlineAtCompletion={effectiveDeadline(completingTask, overlays)}
+          today={today}
+          onCompleteMetDoD={() => confirmComplete(completingTask, true)}
+          onCompleteNoDoD={() => confirmComplete(completingTask, false)}
+          onReschedule={(date) => {
+            recordCarryover(today, completingTask.id, date === today ? "MOVED_TODAY" : "RESCHEDULED", date);
+            setCompletingTask(null);
+          }}
+          onBlock={() => disposeTask(completingTask, "BLOCKED")}
+          onDrop={() => disposeTask(completingTask, "DROPPED")}
+          onCancel={() => setCompletingTask(null)}
+        />
+      )}
 
       <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
 
@@ -857,6 +953,15 @@ function CelebrationToast({
           <p className="mt-1 text-[11px] text-white/80">今日もやりきりました。</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <dt className="text-stone-500">{label}</dt>
+      <dd className="tabular-nums font-bold text-stone-700">{value}</dd>
     </div>
   );
 }

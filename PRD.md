@@ -1594,3 +1594,91 @@ TaskDetailSheetの各TimeBlock行に「確定する/確定済み」ボタンを�
 明示的な許可を得てから実施する方針を取り、今回のセッションでは実行して
 いない（実行する場合の確認は最終報告を参照）。将来的にサーバー側の
 OAuth連携を実装すれば、アプリ単体からユーザーの操作なしに反映できる。
+
+# Execution Management OS（2026-09-06）
+
+「タスクを眺めるアプリ」から、目標→Outcome→Task→達成基準→Work Date→
+TimeBlock→実行計測→完了→実績/差分 まで一気通貫で扱うOSへの転換。
+
+## 完了は「その日のチェック」ではなく永続レコード
+
+最大の不具合の原因はここだった。完了は`current.done`（その日限りの
+Set）にしか書かれず、期限超過判定は不変のfixture `status`を読んでいた。
+そのため **期限超過Taskは完了操作そのものが無く、仮に完了しても一覧から
+消えなかった**。
+
+`TaskCompletionRecord`（`lib/types.ts`）を新設し、
+`todayExecutionStore`の`completions`へ永続保存する：
+
+- `originalDeadline`（本来の期限。絶対に書き換えない）
+- `deadlineAtCompletion`（再設定後の実効期限）
+- `delayDays`（遅延日数。9/4締切を9/7完了なら3）
+- `metDefinitionOfDone`（達成基準を満たしたか）
+- `estimateMinutes` / `actualMinutes` / `varianceMinutes`
+
+「期限内に完了した」ことには書き換えず、遅延は実績として残す。
+
+## 状態の導出を1か所へ（lib/taskState.ts）
+
+fixtureは不変なので、完了・Blocked・やめる・期限再設定・別日移動はすべて
+storeのオーバーレイ。画面ごとにバラバラに読んでいたのを
+`isTaskDone` / `isTaskOpen` / `isTaskOverdue` / `effectiveDeadline` /
+`effectiveWorkDate` に集約した。OVERDUEは状態ではなく
+「実効期限 < 今日 かつ 未完了 かつ 未DROP」という計算結果。
+
+## 期限超過Inbox（TODAY / TASK MAP 共通）
+
+`components/OverdueInbox.tsx`。1件ごとに
+**完了／今日やる／日付を指定（この日にやる・期限を再設定）／Blocked／やめる**
+を必ず表示する。「やめる」は削除ではなくDROPPEDの決定として記録。
+Blockedは超過のまま残る（超過であることは事実）が、記録済みバッジを出す。
+
+## 完了時の達成基準確認（components/TaskCompleteDialog.tsx）
+
+完了前にDoDを提示し、
+「達成基準を満たして完了」と「未達のまま終了…」を分ける。
+未達はDONEにせず、別日へ再配置／Blocked／やめる のいずれかへ送る。
+期限超過分には「期限内完了にはしません」と明示する。
+
+## TODAY Scoreの監査結果
+
+**独立した「TODAY Score」は存在しなかった**。あるのは「今日の前進」＝
+完了数÷予定数のみ。今回これを不透明な点数にせず、内訳（予定Task数／
+完了／未完了／予定時間／実績時間／未処理の期限超過／期限後に完了した数）
+を開閉できるようにし、計算式そのものを画面に書いた。期限後に完了した
+Taskも完了として数える（遅延は別途実績として保持）ため、処理不能な
+超過Taskでスコアが下がり続けることはなくなった。
+
+## 全量Task（§6）
+
+TASK MAPにスコープ切替を追加：
+**今月／全部／今日／今週／期限超過／未スケジュール／完了**。
+「全部」は完了・やめた分も含めて全件出す（存在するのに見つけられない
+状態を作らない）。件数は常に「◯件 / 全◯件」で表示。
+Statタイル（進行中/未着手）も、不変fixtureの`status`ではなく実際の
+実行状態（開始済みか）から算出するよう修正した。
+
+## Day Detail（§7）と重複検知（§19）
+
+Week Viewの日付ヘッダーとMonthly Calendarのセルがクリック可能になり、
+`components/DayDetailSheet.tsx`がその日を時刻順に全件表示する（Task・
+Area・予定時間・期限・達成基準）。Work Dateだけ設定され時間未定のTaskも
+同じ画面に出す。`lib/overlap.ts`が同日TimeBlockの重複を検出し、何分
+重なっているかを警告する（自動では動かさない）。
+
+## Areaごとの現在地（§5）
+
+Area別に 直近期限／Outcome／次の一手／未完了・期限超過・Blocked件数 を表示。
+Outcomeが無いArea（営業代行・Skill Plus）は「Outcome未設定」と出し、
+Outcomeを捏造しない。
+
+## 今回実装していないもの
+
+- **AI Task Manager（§15/§16）の自動計画生成**：優先順位規則とデータ構造
+  （estimate・実績・Deadline・Dependency・Capability）は揃っているが、
+  「明日のタスクを自動で組む」実行部分は未実装。デプロイ版アプリにLLMは
+  無く、規則ベースのプランナーも今回は入れていない。
+- **Google Calendarへの実書き込み**：前ラウンドどおりスキーマ＋確定トグル
+  までで、実際のAPI連携は未実施。
+- **同種Taskの実績からの見積り補正（§17）**：`actualMinutes`は
+  completionレコードに蓄積されるが、次回Estimateへ反映する仕組みは未実装。
