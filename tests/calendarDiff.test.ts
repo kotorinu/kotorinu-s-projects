@@ -200,3 +200,34 @@ test("G: yesterday's disagreements stay out of the queue", () => {
     "and neither are the calendar's own past events"
   );
 });
+
+test("G: a stale event is reported once, as DELETE — not twice", () => {
+  const moved = makeBlock({
+    id: "b-new",
+    taskId: "t-1",
+    label: "営業 17フェーズ",
+    date: "2026-09-10",
+    startTime: "20:00",
+    endTime: "21:00",
+    calendarSyncEnabled: true,
+  });
+  const old = makeBlock({
+    id: "b-old",
+    taskId: "t-1",
+    label: "営業 17フェーズ",
+    date: "2026-09-09",
+    startTime: "19:00",
+    endTime: "21:10",
+    calendarEventId: "p0nh30q6j3join6m3ue5ehb830",
+    lifecycle: "SUPERSEDED",
+  });
+  const items = calendarDiff({
+    planBlocks: [moved],
+    supersededBlocks: [old],
+    snapshot,
+    from: "2026-09-09",
+  });
+  const forEvent = items.filter((i) => i.eventId === "p0nh30q6j3join6m3ue5ehb830");
+  assert.equal(forEvent.length, 1, "one event, one row");
+  assert.equal(forEvent[0].type, "DELETE");
+});

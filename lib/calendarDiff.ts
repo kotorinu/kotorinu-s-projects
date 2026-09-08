@@ -172,6 +172,9 @@ export function calendarDiff({
     if (claimed.has(block.calendarEventId)) continue;
     const event = byId.get(block.calendarEventId);
     if (!event) continue;
+    // Claimed here too, so the orphan pass below does not ALSO report it as
+    // "Calendar has this, the OS does not" — it is one problem, not two.
+    claimed.add(event.id);
     items.push({
       type: "DELETE",
       blockId: block.id,
