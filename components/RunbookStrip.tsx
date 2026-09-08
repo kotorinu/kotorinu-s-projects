@@ -26,14 +26,14 @@ export default function RunbookStrip({
     <div className="mt-1.5 rounded-xl bg-white/70 px-2.5 py-2">
       {current ? (
         <>
-          <p className="text-[9px] font-black tracking-widest text-accent-dark">
+          <p className="text-[10px] font-black tracking-widest text-accent-dark">
             いまここ {current.startTime}〜{current.endTime}
           </p>
           <p className="mt-0.5 text-[12px] font-bold leading-snug text-stone-800">{current.label}</p>
           <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">→ {current.outputs}</p>
         </>
       ) : (
-        <p className="text-[9px] font-black tracking-widest text-stone-400">この枠の進め方</p>
+        <p className="text-[10px] font-black tracking-widest text-stone-400">この枠の進め方</p>
       )}
 
       {next && (
@@ -69,7 +69,7 @@ export default function RunbookStrip({
           ))}
         </ol>
       )}
-      {runbook.note && <p className="mt-1 text-[9px] leading-relaxed text-stone-400">{runbook.note}</p>}
+      {runbook.note && <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{runbook.note}</p>}
     </div>
   );
 }

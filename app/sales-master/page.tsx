@@ -64,7 +64,7 @@ export default function SalesMasterPage() {
                 {coverage.purpose}
                 <span className="text-[11px] font-bold text-stone-400"> / {coverage.total}</span>
               </p>
-              <p className="mt-0.5 text-[9px] leading-relaxed text-stone-400">
+              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">
                 目的・OK状態・確認事項・質問例・NG例
               </p>
             </div>
@@ -74,7 +74,7 @@ export default function SalesMasterPage() {
                 {coverage.ownVersionDone}
                 <span className="text-[11px] font-bold text-stone-400"> / {coverage.ownVersionAchievable}</span>
               </p>
-              <p className="mt-0.5 text-[9px] leading-relaxed text-stone-500">自分の理解＋自分の質問</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">自分の理解＋自分の質問</p>
             </div>
           </div>
           {coverage.productInfoRequired > 0 && (

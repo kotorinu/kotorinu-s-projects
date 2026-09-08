@@ -540,7 +540,7 @@ export default function TaskMapPage() {
         <p className="mb-2.5 mt-2 text-[10px] text-stone-400">補助情報です。実行の判断はArea Controlと今週のPlanで行います。</p>
         <div className="grid grid-cols-7 gap-y-1.5 text-center">
           {WEEKDAY_LABEL.map((w) => (
-            <span key={w} className="text-[9px] font-bold text-stone-300">
+            <span key={w} className="text-[10px] font-bold text-stone-300">
               {w}
             </span>
           ))}
@@ -946,7 +946,7 @@ function WeekView({
                   ))
                 )}
                 {entries.length > 4 && (
-                  <p className="text-[9px] font-bold text-stone-400">+{entries.length - 4}件</p>
+                  <p className="text-[10px] font-bold text-stone-400">+{entries.length - 4}件</p>
                 )}
               </div>
             </div>
