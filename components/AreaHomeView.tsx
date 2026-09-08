@@ -5,7 +5,13 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { gapItems, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
 import GapBoard from "@/components/GapBoard";
-import { GAP_OWNER_LABEL } from "@/lib/gapBoard";
+import { resolveGaps } from "@/lib/gapBoard";
+import { AREA_THEME, ACTIVITY_THEME } from "@/lib/areaTheme";
+import { tasks as allTasks } from "@/lib/dummy-data";
+import MilestoneStepper from "@/components/MilestoneStepper";
+import PhaseProgressGrid from "@/components/PhaseProgressGrid";
+import SalesPhaseDetailSheet from "@/components/SalesPhaseDetailSheet";
+import type { SalesPhase } from "@/lib/types";
 import { daysBetween, formatMd } from "@/lib/date";
 import { areaProfileBySlug, buildAreaHome } from "@/lib/areaHome";
 import { phaseCoverage } from "@/lib/sales";
@@ -34,9 +40,11 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     workDateOverrides,
     lifecycleOverrides,
     phaseOwnVersions,
+    taskStartedAt,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<SalesPhase | null>(null);
 
   const profile = areaProfileBySlug(slug);
   const data = useMemo(
@@ -64,6 +72,10 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   // migration — real state, no invented number.
   const milestones =
     data.outcome !== null ? outcomeMilestones.filter((m) => m.outcomeId === data.outcome!.id) : [];
+  const gaps = profile
+    ? resolveGaps(gapItems, profile.area, allTasks, overlays, new Set(taskStartedAt.keys()))
+    : [];
+  const theme = profile ? AREA_THEME[profile.area] : AREA_THEME["その他"];
   const gapProgressOverride =
     coverage !== null
       ? {
@@ -110,12 +122,16 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:px-5">
         <div className="flex flex-col gap-2.5 px-5 lg:px-0">
-          {/* 追っている数字 */}
-          <section className="rounded-3xl bg-stone-800 px-4 py-3.5 text-white">
-            <p className="text-[10px] font-black tracking-widest text-white/50">追っている数字</p>
-            <p className="mt-0.5 text-[13px] font-bold text-white/80">{headline.label}</p>
-            <p className="mt-0.5 text-[28px] font-black leading-none tabular-nums">{headline.value}</p>
-            <p className="mt-1.5 text-[10px] leading-relaxed text-white/50">{headline.sub}</p>
+          {/* 追っている数字 — §8: 大面積の黒はやめ、Areaの淡いTintにする */}
+          <section
+            className="rounded-2xl border px-4 py-3.5"
+            style={{ backgroundColor: theme.soft, borderColor: theme.border, borderLeftWidth: 3, borderLeftColor: theme.primary }}
+          >
+            <p className="text-[11px] font-bold text-stone-500">{headline.label}</p>
+            <p className="mt-0.5 text-[30px] font-black leading-none tabular-nums" style={{ color: theme.text }}>
+              {headline.value}
+            </p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{headline.sub}</p>
           </section>
 
           {/* いま必達のOutcome */}
@@ -189,32 +205,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
           {/* §7: Outcomeの工程進捗（人数が取れない間の現在地） */}
           {milestones.length > 0 && (
-            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-stone-400">Outcomeの工程</p>
-              <ol className="mt-1.5 flex flex-col gap-1">
-                {milestones.map((m) => (
-                  <li key={m.id} className="flex items-start gap-2">
-                    <span
-                      className={`mt-0.5 shrink-0 text-[12px] font-black ${
-                        m.status === "DONE"
-                          ? "text-emerald-600"
-                          : m.status === "DOING"
-                            ? "text-accent-dark"
-                            : "text-stone-300"
-                      }`}
-                    >
-                      {m.status === "DONE" ? "✓" : m.status === "DOING" ? "▶" : "□"}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[12px] font-bold text-stone-700">{m.title}</span>
-                      <span className="block text-[10px] leading-relaxed text-stone-400">
-                        {m.doneWhen}・{GAP_OWNER_LABEL[m.owner]}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+            <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <MilestoneStepper milestones={milestones} />
+              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
                 対象者の総数が確認できたら「分類済み N / 総数」へ切り替えます。数字は作りません。
               </p>
             </section>
@@ -226,11 +219,10 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               足りていないもの（Gap Board）
             </p>
             <GapBoard
-              items={gapItems}
-              area={profile.area}
+              gaps={gaps}
               progressOverride={gapProgressOverride}
               onOpenTask={(taskId) => {
-                const t = data.next.find((n) => n.task.id === taskId)?.task ?? null;
+                const t = allTasks.find((x) => x.id === taskId) ?? null;
                 if (t) setSelectedTask(t);
               }}
             />
@@ -238,29 +230,21 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
           {/* 営業の学習状況 — 基礎と自分版を分けて出す */}
           {coverage && (
-            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-stone-400">17フェーズの状態</p>
-              <div className="mt-1.5 grid grid-cols-2 gap-2">
-                <div className="rounded-2xl bg-stone-50 px-3 py-2.5">
-                  <p className="text-[10px] font-bold text-stone-400">① 基礎（ワークシート）</p>
-                  <p className="mt-0.5 text-[17px] font-black tabular-nums text-stone-800">
-                    {coverage.purpose}
-                    <span className="text-[11px] font-bold text-stone-400"> / {coverage.total}</span>
-                  </p>
-                  <p className="mt-0.5 text-[9px] text-stone-400">目的・OK状態・確認事項・質問例</p>
-                </div>
-                <div className="rounded-2xl bg-accent-soft px-3 py-2.5">
-                  <p className="text-[10px] font-bold text-accent-dark">② 自分版（これから）</p>
-                  <p className="mt-0.5 text-[17px] font-black tabular-nums text-stone-800">
-                    {coverage.ownVersionDone}
-                    <span className="text-[11px] font-bold text-stone-400"> / {coverage.ownVersionAchievable}</span>
-                  </p>
-                  <p className="mt-0.5 text-[9px] text-stone-500">自分の理解＋自分の質問</p>
-                </div>
+            <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[12px] font-bold text-stone-500">17フェーズの自分版</p>
+                <p className="tabular-nums text-[13px] font-black text-stone-700">
+                  {coverage.ownFieldsFilled}
+                  <span className="text-[10px] font-bold text-stone-300"> / {coverage.ownFieldsTotal} 項目</span>
+                </p>
               </div>
-              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
-                ①が埋まっていることと「営業で使える」ことは別です。進捗として見るのは②の方。
-                商品情報が必要な{coverage.productInfoRequired}フェーズは分母から外してあります。
+              <p className="mb-2 mt-0.5 text-[11px] text-stone-400">
+                タップして「自分の言葉の目的 / OK状態 / 質問」を書くと増えます
+              </p>
+              <PhaseProgressGrid phases={salesPhases} ownVersions={phaseOwnVersions} onOpenPhase={setSelectedPhase} />
+              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+                ①基礎はワークシートから17/17。①が埋まっていることと「営業で使える」ことは別です。
+                商品情報が必要な{coverage.productInfoRequired}フェーズは分母から外しています。
               </p>
               <Collapsible
                 label="参考にする動画"
@@ -283,8 +267,18 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           )}
 
           {currentReading && (
-            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-stone-400">今週の読書</p>
+            <section
+              className="rounded-2xl border px-4 py-3.5"
+              style={{
+                backgroundColor: ACTIVITY_THEME.READING.soft,
+                borderColor: ACTIVITY_THEME.READING.border,
+                borderLeftWidth: 3,
+                borderLeftColor: ACTIVITY_THEME.READING.primary,
+              }}
+            >
+              <p className="text-[11px] font-bold" style={{ color: ACTIVITY_THEME.READING.text }}>
+                今週の読書（GENESIS）
+              </p>
               <p className="mt-0.5 text-[15px] font-black text-stone-800">『{currentReading.bookTitle}』</p>
               <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">
                 読む → 学び → 具体例 → 次Action まで通して1冊
@@ -375,6 +369,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
       </div>
 
       {selectedTask && <TaskDetailSheet task={selectedTask} onClose={() => setSelectedTask(null)} />}
+      {selectedPhase && <SalesPhaseDetailSheet phase={selectedPhase} onClose={() => setSelectedPhase(null)} />}
     </div>
   );
 }

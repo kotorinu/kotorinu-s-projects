@@ -10,8 +10,9 @@ import {
   tasks as allTasks,
 } from "@/lib/dummy-data";
 import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/areaHome";
-import { gapItems } from "@/lib/dummy-data";
-import { mainGap } from "@/lib/gapBoard";
+import { gapItems, outcomeMilestones } from "@/lib/dummy-data";
+import { mainGap, resolveGaps } from "@/lib/gapBoard";
+import { AREA_THEME } from "@/lib/areaTheme";
 import { liveTimeBlocks } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
 import { needsCalendarSyncCount } from "@/lib/calendarSync";
@@ -143,6 +144,7 @@ export default function TaskMapPage() {
   const [fixedScheduleOpen, setFixedScheduleOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState<HomeArea>("営業代行");
   const [monthlyOpen, setMonthlyOpen] = useState(false);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
 
   // The live schedule includes blocks created by rescheduling and excludes
   // the ones they replaced (§10).
@@ -172,6 +174,21 @@ export default function TaskMapPage() {
     () => needsCalendarSyncCount(planBlocks, calendarSyncOverrides, new Set(Object.keys(timeBlockOverrides))),
     [planBlocks, calendarSyncOverrides, timeBlockOverrides]
   );
+
+  // §33: a Task-backed gap takes its status from the Task, so the board and
+  // the task list can never disagree.
+  const gapsByArea = useMemo(() => {
+    const started = new Set(taskStartedAt.keys());
+    return Object.fromEntries(
+      areaProfiles.map((prof) => [prof.area, resolveGaps(gapItems, prof.area, allTasks, overlays, started)])
+    ) as Record<HomeArea, ReturnType<typeof resolveGaps>>;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskStartedAt, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]);
+
+  const milestoneProgress = useMemo(() => {
+    const ms = outcomeMilestones.filter((m) => m.outcomeId === "o-riala-migration");
+    return { done: ms.filter((m) => m.status === "DONE").length, total: ms.length };
+  }, []);
 
   const replanTasks = useMemo(
     () =>
@@ -434,18 +451,42 @@ export default function TaskMapPage() {
         </p>
       )}
 
+      {/* §14: 今月末どうなっていたいか。1〜2行だけ。 */}
       <section className="mt-2 px-5">
+        <h2 className="mb-1.5 text-[13px] font-bold text-stone-500">{monthLabel(monthKey)}末、こうなっていたい</h2>
+        <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-3">
+          {areaCards.map((a) => {
+            const th = AREA_THEME[a.profile.area];
+            return (
+              <div
+                key={a.profile.area}
+                className="rounded-xl border border-stone-150 bg-white px-3 py-2"
+                style={{ borderLeftWidth: 3, borderLeftColor: th.primary }}
+              >
+                <p className="text-[10px] font-bold" style={{ color: th.text }}>
+                  {th.label}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-stone-700">
+                  {a.outcome?.title ?? "Outcome未設定"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mt-3 px-5">
         <h2 className="mb-2 text-sm font-bold text-stone-800">Areaの現在地</h2>
-        <div className="flex flex-col gap-2 lg:grid lg:grid-cols-3 lg:gap-2">
+        <div className="grid grid-cols-1 items-stretch gap-2 lg:grid-cols-3">
           {areaCards.map((a) => (
             <AreaControlCard
               key={a.profile.area}
               data={a}
               today={today}
-              headline={areaHeadline(a.profile.area, a.profile.area === "営業代行" ? salesOwn : null)}
-              mainGap={mainGap(gapItems, a.profile.area)}
+              headline={areaHeadline(a.profile.area, a.profile.area === "営業代行" ? salesOwn : null, milestoneProgress)}
+              mainGap={mainGap(gapsByArea[a.profile.area] ?? [])}
               nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks)}
-              risks={areaRisks(a, gapItems)}
+              riskCount={areaRisks(a, gapItems).length}
               selected={selectedArea === a.profile.area}
               onSelect={() => setSelectedArea(a.profile.area)}
             />
@@ -455,14 +496,15 @@ export default function TaskMapPage() {
 
       <section className="mt-2.5 px-5">
         <div className="mb-1.5 flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-bold text-stone-800">{selectedArea}に足りていないもの</h2>
+          <h2 className="text-sm font-bold" style={{ color: AREA_THEME[selectedArea].text }}>
+            {selectedArea}｜いま足りていないもの
+          </h2>
           <Link href={`/area/${areaCards.find((a) => a.profile.area === selectedArea)?.profile.slug ?? "sales"}`} className="text-[11px] font-bold text-accent-dark">
             Area Home ›
           </Link>
         </div>
         <GapBoard
-          items={gapItems}
-          area={selectedArea}
+          gaps={gapsByArea[selectedArea] ?? []}
           progressOverride={gapProgressOverride}
           onOpenTask={(taskId) => {
             const t = allTasks.find((task) => task.id === taskId);
@@ -585,8 +627,27 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {/* 全量Taskスコープ (§6) */}
+      {/* §56: Advanced Inventory. Scope / Filter / Sort / Archive live in
+          here, not on the Control Tower surface. */}
       <section className="mt-3 px-5">
+        <button
+          type="button"
+          onClick={() => setInventoryOpen((v) => !v)}
+          className="flex w-full items-center justify-between rounded-2xl border border-stone-150 bg-white px-4 py-3 text-left"
+        >
+          <span>
+            <span className="block text-[13px] font-bold text-stone-700">全Taskを見る</span>
+            <span className="mt-0.5 block text-[11px] text-stone-400">
+              絞り込み・並び替え・Archive・完了履歴（全{allTasks.length}件）
+            </span>
+          </span>
+          <span className="text-[12px] text-stone-300">{inventoryOpen ? "▾" : "▸"}</span>
+        </button>
+      </section>
+
+      {inventoryOpen && (
+      <>
+      <section className="mt-2 px-5">
         <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1">
           {SCOPES.map((s) => (
             <button
@@ -690,9 +751,11 @@ export default function TaskMapPage() {
           ))
         )}
       </section>
+      </>
+      )}
 
       <section className="mt-6 px-5 pb-4">
-        <h2 className="mb-2.5 text-sm font-bold text-stone-800">{monthLabel(monthKey)}末、こうなっていたい</h2>
+        <h2 className="mb-2.5 text-sm font-bold text-stone-500">Outcomeの詳細</h2>
         <div className="flex flex-col gap-2">
           {endStates.length === 0 && outcomes.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-4 text-center text-xs text-stone-400">

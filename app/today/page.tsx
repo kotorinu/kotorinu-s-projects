@@ -3,13 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince, nowHm } from "@/lib/date";
-import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
+import { capabilityBadge } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
 import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
 import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/executionBaseline";
 import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
 import RunbookStrip from "@/components/RunbookStrip";
+import CompletionToast from "@/components/CompletionToast";
+import { themeFor } from "@/lib/areaTheme";
+import { buildCompletionFeedback, type CompletionFeedback } from "@/lib/completionFeedback";
+import { phaseCoverage } from "@/lib/sales";
+import { salesPhases } from "@/lib/dummy-data";
 import {
   buildCompletionRecord,
   effectiveDeadline,
@@ -89,6 +94,7 @@ export default function TodayPage() {
     lifecycleOverrides,
     timeBlockOverrides,
     supersededBlockIds,
+    phaseOwnVersions,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   // "Done" = a durable completion record (or an authored-complete fixture
@@ -124,6 +130,8 @@ export default function TodayPage() {
   const [switchConfirmTaskId, setSwitchConfirmTaskId] = useState<string | null>(null);
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  // §49: what changed, shown for a few seconds after finishing something.
+  const [completionFeedback, setCompletionFeedback] = useState<CompletionFeedback | null>(null);
   const [yesterdaySummaryOpen, setYesterdaySummaryOpen] = useState(false);
   const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
   const [rescheduleDateValue, setRescheduleDateValue] = useState("");
@@ -160,19 +168,6 @@ export default function TodayPage() {
     setCompletingTask(task);
   }
 
-  function confirmComplete(task: Task, metDefinitionOfDone: boolean) {
-    setTaskCompletedAt((prev) => new Map(prev).set(task.id, new Date().toISOString()));
-    completeTask(
-      buildCompletionRecord(task, {
-        today,
-        startedIso: taskStartedAt.get(task.id),
-        metDefinitionOfDone,
-        deadlineOverrides,
-      })
-    );
-    setCompletingTask(null);
-    fireCompletionCelebration(task);
-  }
 
   function undoComplete(task: Task) {
     uncompleteTask(task.id);
@@ -216,6 +211,34 @@ export default function TodayPage() {
       ),
     [today, workDateOverrides, lifecycleOverrides, planBlocks]
   );
+
+  function confirmComplete(task: Task, metDefinitionOfDone: boolean) {
+    const record = buildCompletionRecord(task, {
+      today,
+      startedIso: taskStartedAt.get(task.id),
+      metDefinitionOfDone,
+      deadlineOverrides,
+    });
+    setTaskCompletedAt((prev) => new Map(prev).set(task.id, new Date().toISOString()));
+    completeTask(record);
+    setCompletingTask(null);
+
+    // §49: say what actually changed — figures, not praise. Everything here
+    // comes from the record and the real remaining plan; nothing invented.
+    const remaining = todayTasks.filter((t) => t.id !== task.id && !isDone(t)).length;
+    const next = todayTasks.find((t) => t.id !== task.id && !isDone(t)) ?? null;
+    setCompletionFeedback(
+      buildCompletionFeedback({
+        task,
+        record,
+        salesCoverage: task.linkedSalesMaster ? phaseCoverage(salesPhases, phaseOwnVersions) : null,
+        remainingToday: remaining,
+        nextTaskTitle: next?.title ?? null,
+        streakDays: streak.days,
+      })
+    );
+    fireCompletionCelebration(task);
+  }
 
   // OVERDUE is derived (期限 < 今日 かつ 未完了 かつ 未DROP), never a stored
   // status — so completing a late Task removes it here immediately.
@@ -895,6 +918,10 @@ export default function TodayPage() {
 
       <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
 
+      {completionFeedback && (
+        <CompletionToast feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
+      )}
+
       {selectedTask && (
         <TaskDetailSheet
           task={selectedTask}
@@ -1190,21 +1217,28 @@ function TimelineTaskCard({
   // badge — either it's the time-based NOW slot, or the user actually
   // pressed 今から開始 on it (which can happen on any NEXT/LATER/PAST card).
   const isFocused = isNow || started;
-  const badge = capabilityBadge(task.aiCapability);
   const execState = execStateOf(checked, started);
   const variance =
     checked && actualMinutes !== null ? computeVariance(task.estimateMinutes, actualMinutes) : null;
   // nowHmValue comes from the page's hydration-safe state, not a direct
   // nowHm() call here — see NowIndicator's comment for why that matters.
   const remaining = isFocused ? minutesUntil(endTime, nowHmValue) : null;
+  // §35: the surface colour is the Activity's when it has one (reading is
+  // yellow), otherwise the Area's — matching TASK MAP, Area Home and the
+  // Google Calendar colour ids.
+  const { surface, area: areaTheme } = themeFor(task.area, task.activityType);
 
   return (
     <li
       ref={nowRef as React.Ref<HTMLLIElement>}
-      className={`rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ${
-        isFocused ? "ring-2 ring-accent-soft" : ""
-      }`}
-      style={{ opacity: isPast && !isFocused ? 0.55 : checked ? 0.55 : 1 }}
+      className="rounded-2xl border bg-white px-3.5 py-3 transition-shadow duration-200"
+      style={{
+        borderColor: isFocused ? surface.primary : "#EAE8E6",
+        borderLeftWidth: 3,
+        borderLeftColor: surface.primary,
+        boxShadow: isFocused ? "0 4px 16px -8px rgba(0,0,0,0.18)" : "0 1px 2px rgba(0,0,0,0.04)",
+        opacity: isPast && !isFocused ? 0.55 : checked ? 0.5 : 1,
+      }}
     >
       <div className="flex items-start gap-3">
         <TaskStateButton state={execState} onStart={onStart} onComplete={onComplete} onUndo={onUndo} />
@@ -1214,10 +1248,12 @@ function TimelineTaskCard({
               {startTime}〜{endTime}
             </span>
             {started ? (
-              <span className="text-accent-dark">実行中</span>
+              <span style={{ color: surface.text }}>実行中</span>
             ) : (
               timelineStatusLabel[status] && (
-                <span className={isNow ? "text-accent-dark" : "text-stone-400"}>{timelineStatusLabel[status]}</span>
+                <span style={isNow ? { color: surface.text } : undefined} className={isNow ? "" : "text-stone-400"}>
+                  {timelineStatusLabel[status]}
+                </span>
               )
             )}
             {isPast && !checked && !started && <span className="text-stone-400">・未確認</span>}
@@ -1226,23 +1262,29 @@ function TimelineTaskCard({
             {task.title}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
-            {badge.tone && (
+            {task.activityType && surface.label !== areaTheme.label && (
               <span
-                className={`rounded-full px-2 py-0.5 font-bold ${
-                  badge.tone === "warning" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-dark"
-                }`}
+                className="rounded-full px-2 py-0.5 font-bold"
+                style={{ backgroundColor: surface.soft, color: surface.text }}
               >
-                {badge.label}
+                {surface.label}
               </span>
             )}
+            <span
+              className="rounded-full px-2 py-0.5 font-bold"
+              style={{ backgroundColor: areaTheme.soft, color: areaTheme.text }}
+            >
+              {areaTheme.label}
+            </span>
             {/* A genuinely time-based NOW slot can never have negative
                 remaining (by construction, now < endTime). Negative only
                 shows up when a Task is Early-Started well past its own
                 planned window — "残り-357分" there is just noise, not a
                 useful overrun warning, so it's suppressed. */}
             {isFocused && !checked && remaining !== null && remaining >= 0 && (
-              <span className="ml-auto font-bold text-accent-dark">残り{remaining}分</span>
+              <span className="ml-auto font-bold" style={{ color: surface.text }}>
+                残り{remaining}分
+              </span>
             )}
             {checked && actualMinutes !== null && (
               <span className="ml-auto font-bold text-stone-400">
@@ -1258,23 +1300,13 @@ function TimelineTaskCard({
             <RunbookStrip runbook={runbook} nowHmValue={nowHmValue} />
           )}
 
-          {isFocused && !checked && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
-              {task.definitionOfDone.length > 0 && (
-                <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
-              )}
-              {preparationCount > 0 && (
-                <span className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
-                  準備{preparationCount}件
-                </span>
-              )}
-              {task.contextTags.map((tag) => (
-                <span key={tag} className="shrink-0 rounded-full bg-stone-100 px-1.5 py-0.5 font-bold text-stone-500">
-                  {tag}
-                </span>
-              ))}
-              <span className="shrink-0 font-bold text-stone-500">{capabilityOwnerLabel(task.aiCapability)}</span>
-            </div>
+          {isFocused && !checked && task.definitionOfDone.length > 0 && (
+            <p className="mt-1.5 line-clamp-1 text-[11px] text-stone-500">
+              完了条件　{task.definitionOfDone[0]}
+            </p>
+          )}
+          {isFocused && !checked && preparationCount > 0 && (
+            <p className="mt-1 text-[10px] font-bold text-stone-400">準備Task {preparationCount}件</p>
           )}
         </button>
       </div>

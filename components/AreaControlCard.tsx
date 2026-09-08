@@ -1,125 +1,131 @@
 "use client";
 
-import Link from "next/link";
 import { daysBetween, formatMd } from "@/lib/date";
-import { GAP_OWNER_LABEL } from "@/lib/gapBoard";
+import { AREA_THEME } from "@/lib/areaTheme";
+import { GAP_OWNER_LABEL, type ResolvedGap } from "@/lib/gapBoard";
 import type { AreaHomeData } from "@/lib/areaHome";
-import type { GapItem, TimeBlock } from "@/lib/types";
+import type { TimeBlock } from "@/lib/types";
 
 const WEEKDAY = ["日", "月", "火", "水", "木", "金", "土"];
 
-const areaStyle: Record<string, string> = {
-  営業代行: "bg-sky-50 text-sky-700",
-  RIALA: "bg-violet-50 text-violet-700",
-  GENESIS: "bg-teal-50 text-teal-700",
-};
-
-// Area Control Card (2026-09-08, §3).
+// Area Control Card (2026-09-08 第5ラウンド, §15).
 //
-// Answers, without reading a paragraph: 何を目指し / 今どこで / 何が足りず /
-// 次に何を / いつやるか / 何で止まっているか. Every line is a state, not prose
-// — the previous version led with three sentences of description and the user
-// could not tell the areas apart at a glance.
+// Three cards, one layout, one height. Everything on the face is a state, not
+// prose: the earlier version led with paragraphs and the areas were
+// indistinguishable at a glance.
+//
+// Colour carries the identity (§4): a tinted header strip and a left rule in
+// the Area's hue, matching TODAY, Area Home and — once it exists — Google
+// Calendar. No large dark fills (§8).
 export default function AreaControlCard({
   data,
   today,
   headline,
   mainGap,
   nextBlock,
-  risks,
+  riskCount,
   selected,
   onSelect,
 }: {
   data: AreaHomeData;
   today: string;
-  headline: { label: string; value: string };
-  mainGap: GapItem | null;
+  headline: { label: string; value: string; note?: string };
+  mainGap: ResolvedGap | null;
   nextBlock: { block: TimeBlock; taskTitle: string } | null;
-  risks: string[];
+  riskCount: number;
   selected: boolean;
   onSelect: () => void;
 }) {
+  const theme = AREA_THEME[data.profile.area];
   const daysLeft = data.outcome?.deadline != null ? daysBetween(today, data.outcome.deadline) : null;
+  const overdue = daysLeft !== null && daysLeft < 0;
 
   return (
-    <div
-      className={`rounded-2xl bg-white shadow-sm transition ${selected ? "ring-2 ring-accent" : ""}`}
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-white text-left transition-all duration-200 ${
+        selected ? "shadow-md" : "shadow-sm hover:shadow-md"
+      }`}
+      style={{
+        borderColor: selected ? theme.primary : "#EAE8E6",
+        borderLeftWidth: 3,
+        borderLeftColor: theme.primary,
+      }}
     >
-      <button type="button" onClick={onSelect} className="block w-full px-4 py-3 text-left">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[data.profile.area]}`}>
-            {data.profile.area}
+      {/* Header strip — the Area's colour, kept light (§8) */}
+      <div className="flex items-baseline justify-between gap-2 px-3.5 py-2" style={{ backgroundColor: theme.soft }}>
+        <span className="text-[12px] font-black tracking-wide" style={{ color: theme.text }}>
+          {theme.label}
+        </span>
+        {data.outcome?.deadline && (
+          <span
+            className={`shrink-0 text-[11px] font-bold ${overdue ? "text-danger" : ""}`}
+            style={overdue ? undefined : { color: theme.text }}
+          >
+            {formatMd(data.outcome.deadline)}
+            {daysLeft !== null && (daysLeft >= 0 ? `・あと${daysLeft}日` : `・${-daysLeft}日超過`)}
           </span>
-          {data.outcome?.deadline && (
-            <span
-              className={`shrink-0 text-[11px] font-black ${
-                daysLeft !== null && daysLeft < 0 ? "text-danger" : "text-accent-dark"
-              }`}
-            >
-              〜{formatMd(data.outcome.deadline)}
-              {daysLeft !== null && (daysLeft >= 0 ? `・あと${daysLeft}日` : `・${-daysLeft}日超過`)}
-            </span>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* Current Outcome */}
-        <p className="mt-1.5 text-[13px] font-black leading-snug text-stone-800">
+      <div className="flex flex-1 flex-col gap-2 px-3.5 py-3">
+        {/* Current Outcome — two lines max */}
+        <p className="line-clamp-2 text-[13px] font-bold leading-snug text-stone-800">
           {data.outcome?.title ?? "Outcome未設定"}
         </p>
 
-        {/* Current State — one number, never a task-completion percentage */}
-        <div className="mt-2 flex items-baseline gap-1.5 rounded-xl bg-stone-800 px-2.5 py-1.5">
-          <span className="text-[9px] font-bold text-white/50">{headline.label}</span>
-          <span className="ml-auto tabular-nums text-[15px] font-black leading-none text-white">
+        {/* Headline metric */}
+        <div className="flex items-baseline gap-2 border-y border-stone-100 py-2">
+          <span className="text-[11px] text-stone-400">{headline.label}</span>
+          <span className="ml-auto tabular-nums text-[20px] font-black leading-none" style={{ color: theme.text }}>
             {headline.value}
           </span>
         </div>
 
         {/* Main Gap */}
         {mainGap && (
-          <p className="mt-1.5 text-[11px] leading-snug text-stone-600">
-            <span className="font-black text-stone-400">足りない：</span>
+          <p className="line-clamp-1 text-[11px] text-stone-500">
+            <span className="font-bold text-stone-400">足りない　</span>
             {mainGap.title}
-            <span className="ml-1 font-bold text-stone-300">{GAP_OWNER_LABEL[mainGap.owner]}</span>
+            <span className="ml-1 text-stone-300">{GAP_OWNER_LABEL[mainGap.owner]}</span>
           </p>
         )}
 
-        {/* Next 1-3 with their time */}
-        {data.next.length > 0 && (
-          <ul className="mt-1.5 flex flex-col gap-0.5">
-            {data.next.slice(0, 3).map(({ task, block }) => (
-              <li key={task.id} className="flex gap-1.5 text-[11px] leading-snug">
-                <span className="shrink-0 tabular-nums font-black text-accent-dark">
-                  {block ? `${formatMd(block.date)} ${block.startTime}` : "時間未設定"}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-stone-600">{task.title}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* NEXT — max 2 (§15) */}
+        <ul className="flex flex-col gap-1">
+          {data.next.slice(0, 2).map(({ task, block }) => (
+            <li key={task.id} className="flex items-baseline gap-1.5 text-[11px] leading-snug">
+              <span className="shrink-0 tabular-nums font-bold" style={{ color: theme.primary }}>
+                {block ? `${formatMd(block.date)} ${block.startTime}` : "時間未設定"}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-stone-600">{task.title}</span>
+            </li>
+          ))}
+          {data.next.length === 0 && <li className="text-[11px] text-stone-300">実行中の予定はありません</li>}
+        </ul>
 
-        {/* 今日または次のTimeBlock */}
-        {nextBlock && (
-          <p className="mt-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[10px] font-bold text-accent-dark">
-            次の枠 {formatMd(nextBlock.block.date)}（
-            {WEEKDAY[new Date(nextBlock.block.date + "T00:00:00").getDay()]}）{nextBlock.block.startTime}〜
-            {nextBlock.block.endTime}・{nextBlock.taskTitle}
-          </p>
-        )}
-
-        {/* Blocked / Risk */}
-        {risks.length > 0 && (
-          <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-danger">⚠ {risks[0]}</p>
-        )}
-      </button>
-
-      <Link
-        href={`/area/${data.profile.slug}`}
-        className="flex items-center justify-between border-t border-stone-100 px-4 py-2 text-[11px] font-bold text-stone-400"
-      >
-        Area Homeを開く
-        <span>›</span>
-      </Link>
-    </div>
+        {/* 次のTimeBlock — pinned to the bottom so all three cards align */}
+        <div className="mt-auto pt-1">
+          {nextBlock ? (
+            <p
+              className="truncate rounded-lg px-2 py-1.5 text-[10px] font-bold"
+              style={{ backgroundColor: theme.soft, color: theme.text }}
+            >
+              次の枠 {formatMd(nextBlock.block.date)}（
+              {WEEKDAY[new Date(nextBlock.block.date + "T00:00:00").getDay()]}）{nextBlock.block.startTime}〜
+              {nextBlock.block.endTime}
+            </p>
+          ) : (
+            <p className="rounded-lg bg-stone-50 px-2 py-1.5 text-[10px] font-bold text-stone-300">
+              次の枠は未設定
+            </p>
+          )}
+          {riskCount > 0 && (
+            <p className="mt-1 text-[10px] font-bold text-stone-400">気になっていること {riskCount}件</p>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }

@@ -152,6 +152,8 @@ export interface Task {
   // decide whether it may go into the weekday lunch slot, which is phone-only.
   // null = not yet judged; a planner must not treat null as "anything goes".
   requiredEnvironment: ExecutionEnvironment | null;
+  // 何をしている時間か（Areaとは独立）。null = 通常のArea作業。
+  activityType: ActivityType | null;
   // --- Live plan membership + explanation (2026-09-08) ---
   lifecycle: TaskLifecycle;
   lifecycleReason: string | null; // required whenever lifecycle !== "ACTIVE"
@@ -1000,3 +1002,10 @@ export interface TimeBlockOverride {
   replacesBlockId: string | null;
   reason: string;
 }
+
+// What kind of time this is, independent of which Area it serves
+// (2026-09-08 第5ラウンド, §5/§7). Reading for growth belongs to GENESIS —
+// it is not its own Area — but it should still be recognisable as reading at
+// a glance, and yellow on the Calendar. Keeping the two axes apart is what
+// lets "何のための時間か" and "何をしている時間か" both survive.
+export type ActivityType = "READING" | "OS" | "PLANNING" | "DEEP_WORK" | "OPERATION";

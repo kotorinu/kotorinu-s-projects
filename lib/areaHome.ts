@@ -105,7 +105,8 @@ export function buildAreaHome(
  */
 export function areaHeadline(
   area: HomeArea,
-  salesOwn: { done: number; total: number } | null
+  salesOwn: { done: number; total: number } | null,
+  milestoneProgress?: { done: number; total: number }
 ): { label: string; value: string; sub: string } {
   if (area === "営業代行") {
     return {
@@ -116,9 +117,9 @@ export function areaHeadline(
   }
   if (area === "RIALA") {
     return {
-      label: "移行対応の工程",
-      value: "工程で表示",
-      sub: "対象者の総数が未確認のため、人数では出さない",
+      label: "完了した工程",
+      value: milestoneProgress ? `${milestoneProgress.done} / ${milestoneProgress.total}` : "-",
+      sub: "対象者の総数が未確認のため、人数ではなく工程で見る",
     };
   }
   return {

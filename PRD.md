@@ -1988,3 +1988,100 @@ TASK MAP上部に未反映件数を出す。
 ## 今回やっていないこと
 
 大規模DB化 / グラフ画面 / 完全なAI Planner / Google Calendar OAuth・API実装
+
+# Visual System と Personal Execution OS 化（2026-09-08 第5ラウンド）
+
+「動く」から「毎日開きたくなる」へ。今回の中心は Visual System / 色の一貫性
+/ TASK MAPの単純化 / Areaの明確さ / 読書のGENESIS統合 / 日報 / Task⇄Gap連動
+/ TODAYの明快さ / 完了体験。
+
+## 色は Navigation（lib/areaTheme.ts）
+
+色を1箇所に集約し、Google Calendarのcolour idまで一緒に持たせた。
+componentが `bg-sky-50` をハードコードすることはもう無い。
+
+| | 色 | Calendar ID |
+|---|---|---|
+| 営業代行 | 青 #5484ED | 9 |
+| RIALA | 緑 #51B749 | 10 |
+| GENESIS | 紫 #A96BE0 / #DBADFF | 3 |
+| 読書（Activity） | 黄 #FBD75B | 5 |
+| AI Work OS | 水色 #46D6DB | 7 |
+| 翌日計画 | グレー #E1E1E1 | 8 |
+
+**2軸を混ぜない（§7）**：Area＝何系の仕事か、Activity＝何をしている時間か。
+GENESISの読書は表面が黄色、チップに紫のGENESIS——「何のための時間か」と
+「何をしている時間か」が両方残る。Statusの色（進行中/待ち…）とDangerは
+さらに別。赤は本当の期限問題だけ（§51）。
+
+## 読書は GENESIS（§5/§28）
+
+読書Taskを独立Areaにせず、`area: "GENESIS"` + `activityType: "READING"` へ
+統一（10件）。Area HomeのGENESIS内に「今週の読書」として出る。
+
+## 日報（§27）
+
+`r-004 日報を提出する` をDAILYのRecurring Ruleとして追加し、毎日の積み上げ
+は 3本 → **4本** に。提出先とテンプレートは未共有なので作らず、
+`allowedMedium: ["未確認"]` のまま保持する。
+
+## 黒い大面積をやめた（§8）
+
+`bg-stone-800` の大パネル（Area Homeの「追っている数字」、Gap Boardの見出し
+チップ）を廃止し、白＋Areaの淡いTint＋左3pxのルール＋十分な余白へ。濃色は
+文字・アイコン・小さなチップだけ。
+
+## TASK MAP の情報順（§12）
+
+```
+再計画が必要（あれば）
+↓
+9月末こうなっていたい（1〜2行 ×3）
+↓
+Areaの現在地（Control Card ×3・同じ高さ）
+↓
+選択Areaの Gap Board
+↓
+今週の実行Plan
+↓
+全Taskを見る（折りたたみ：Scope/絞り込み/並び替え/Archive）
+↓
+補助（締切一覧・今月の前進・Outcome詳細）
+```
+
+## Gap Board（§30-§33）
+
+列名を日本語主体に：**進行中 / 次にやれる / 待ち / あとで / 完了**。
+スマホは前3つだけ表示し、あとで・完了は1タップ。
+
+カード表面は Title / Progress / Owner だけ。完了条件・待ち理由・noteは
+タップ後。**Task-backedなGapはTask状態から導出**するので、同じ事実を2箇所で
+更新することがなくなった（未開始ACTIVE→次にやれる／実行中→進行中／
+Blocked→待ち／BACKLOG→あとで／完了→完了）。
+
+## 17フェーズの見える化（§17/§18）
+
+`PhaseProgressGrid` で17個を格子表示。各Phaseが 0/3・1/3・2/3・3/3 で、
+色と文字の両方で状態が分かる（完成＝緑 / 書きかけ＝青 / 未着手＝グレー /
+商品情報待ち＝黄「待」）。タップでPhase詳細へ。**0/11は3項目から導出**、
+手動カウンターは無い。
+
+## RIALA は Stepper（§23）
+
+工程を縦のレールで表示。対象者の総数が未確認の間は人数を作らない。
+
+## 完了体験（§49/§50）
+
+完了すると数字で何が変わったかを出す：
+
+- 「完了。前に進みました。」／「今日の予定を全部終えました」
+- 「予定より74分早く完了」「期限から3日遅れで完了」
+- 「営業の自分版 3 / 11」
+- 「次は『◯◯』」
+
+**褒めない・幼稚にしない・毎回Confettiを撒かない。** 事実だけ。
+Milestone（その日を終えた等）のときだけ少しだけ温度を上げる。
+
+## 今回やっていないこと
+
+大規模DB化 / グラフ画面 / 完全なAI Planner / Google Calendar OAuth・API実装

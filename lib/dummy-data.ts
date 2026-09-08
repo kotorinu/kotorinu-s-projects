@@ -855,6 +855,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "RIALAはAI-firstで運営する方針が確定済み。「何をAIに任せるか決める」こと自体をTaskとして持ち続けない（AIが先に実行し、権限・人間判断・情報不足・最終送信だけを人へ返す）",
@@ -928,6 +929,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "9/9 Outcomeを「商品トークv1完成」から「17フェーズの目的と手段の理解」へ変更したため、商品理解が必要な自分版トーク作成は現在の必達から外した",
@@ -1001,6 +1003,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1093,6 +1096,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1177,6 +1181,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1250,6 +1255,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1342,6 +1348,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "同上。商品理解が不足した状態で17フェーズを商品トークとして完成させることを9/9必達にしない",
@@ -1409,6 +1416,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1507,6 +1515,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1588,6 +1597,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "MOBILE_ONLY",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1668,6 +1678,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1747,6 +1758,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "MOBILE_ONLY",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1829,6 +1841,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "MOBILE_ONLY",
+    activityType: null,
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1910,6 +1923,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "MOBILE_ONLY",
+    activityType: "READING",
     lifecycle: "ACTIVE",
     lifecycleReason: null,
     replacedByTaskId: null,
@@ -1988,6 +2002,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "MERGED",
     lifecycleReason:
       "9/5の「移行対応を進める」は、現在の未移行者確定＋DM送信Taskと同じ作業。重複を残さず統合",
@@ -2052,6 +2067,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "読了そのものではなく「学び3つ＋変える行動1つを記録する」が現在の実行内容。15分枠で160p読了というDoD不一致を解消するため作り直した",
@@ -2120,6 +2136,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "今週の読書は『全米トップ校』。THE FORMATの実行日時が未確定のためACTIVEにしない",
@@ -2183,6 +2200,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "同上。実行日時が決まるまでACTIVE PLANへ入れない",
@@ -2246,6 +2264,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "同上。実行日時が決まるまでACTIVE PLANへ入れない",
@@ -2313,6 +2332,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "旧・地頭力読書枠がSUPERSEDED済みで実行日時が未確定",
@@ -2376,6 +2396,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "旧・地頭力読書枠がSUPERSEDED済みで実行日時が未確定",
@@ -2439,6 +2460,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "旧・地頭力読書枠がSUPERSEDED済みで実行日時が未確定",
@@ -2503,6 +2525,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: "READING",
     lifecycle: "BACKLOG",
     lifecycleReason:
       "実行枠がCalendar上で未確認。期限10/2は生きているが実行日時が決まるまでACTIVEにしない",
@@ -2566,6 +2589,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ARCHIVED",
     lifecycleReason:
       "Skill Plusを戦略Areaから外し、営業のための期限付き学習Sourceとして扱う方針に変更。9/5期限のこのTaskは9/10の営業コンテンツ最終回収へ集約",
@@ -2634,6 +2658,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ARCHIVED",
     lifecycleReason:
       "同上。9/10の営業コンテンツ最終回収へ集約",
@@ -2702,6 +2727,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ARCHIVED",
     lifecycleReason:
       "同上。9/10の営業コンテンツ最終回収へ集約",
@@ -2770,6 +2796,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "ARCHIVED",
     lifecycleReason:
       "同上。9/10の営業コンテンツ最終回収へ集約",
@@ -2842,6 +2869,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "ANY",
+    activityType: null,
     lifecycle: "MERGED",
     lifecycleReason:
       "「17フェーズを通しで読む」は、目的とOK状態を理解するTaskの中に含まれる",
@@ -2910,6 +2938,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "MERGED",
     lifecycleReason:
       "「型を自分の言葉で説明できるようにする」は理解Taskへ統合。商品トーク化は現在の必達から外した",
@@ -2974,6 +3003,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "MERGED",
     lifecycleReason:
       "「分からないフェーズを特定する」は、目的とOK状態を理解する過程そのもの",
@@ -3050,6 +3080,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "旧・商談設計書v1前半。9/9 Outcome変更により現在の実行計画から外した",
@@ -3127,6 +3158,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "SUPERSEDED",
     lifecycleReason:
       "旧・商談設計書v1後半。9/9 Outcome変更により現在の実行計画から外した",
@@ -3193,6 +3225,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "BACKLOG",
     lifecycleReason:
       "実践者FBのPhase紐付けは必要だが、9/9の理解Outcomeの必達ではない。実行日時が決まるまでBACKLOG",
@@ -3256,6 +3289,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "MOBILE_ONLY",
+    activityType: null,
     lifecycle: "BACKLOG",
     lifecycleReason:
       "口頭練習はPRACTICING段階。9/9はUNDERSTANDING中心のため次Checkpointへ",
@@ -3319,6 +3353,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "BACKLOG",
     lifecycleReason:
       "ロープレは9/9の必須条件から外した（商品理解が不足した状態で通しロープレを必達にしない）",
@@ -3395,6 +3430,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "BACKLOG",
     lifecycleReason:
       "ロープレ自己FBはロープレ実施が前提。ロープレを外したため同じく次Checkpointへ",
@@ -3458,6 +3494,7 @@ export const tasks: Task[] = [
     pageTo: null,
     currentPage: null,
     requiredEnvironment: "PC_AVAILABLE",
+    activityType: null,
     lifecycle: "BACKLOG",
     lifecycleReason:
       "FB会で聞く質問は、17フェーズ理解の過程で出てくる詰まりから作る。理解Taskの完了後に実行日時を決める",
@@ -3648,6 +3685,22 @@ export const recurringRules: RecurringRule[] = [
     why: "「多分大丈夫」ではなく、実在する時間と期限から逆算して行動できる自分になるため。",
     outcomeId: "o-genesis-60day",
     streakDays: 0, // Execution Baseline 2026-09-08 でリセット。実績から計算する
+  },
+  {
+    // 2026-09-08 (§27): 日報を毎日の積み上げへ追加。提出先とテンプレートは
+    // 未確認なので作らない——URLもフォーマットも推測しない。
+    id: "r-004",
+    title: "日報を提出する",
+    frequency: "DAILY",
+    area: "GENESIS",
+    estimateMinutes: null,
+    aiCapability: "HUMAN",
+    description: "その日の日報を提出する。",
+    definitionOfDone: ["その日の日報が提出済み"],
+    allowedMedium: ["未確認"],
+    why: "実行した事実をその日のうちに残し、翌日の判断材料にするため。",
+    outcomeId: "o-genesis-60day",
+    streakDays: 0,
   },
 ];
 
