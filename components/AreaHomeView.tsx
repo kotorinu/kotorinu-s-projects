@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
 import { daysBetween, formatMd } from "@/lib/date";
@@ -12,12 +13,16 @@ import type { Task } from "@/lib/types";
 
 const WEEKDAY = ["日", "月", "火", "水", "木", "金", "土"];
 
-// Area Home (2026-09-08, §6-§8/§18/§19).
+// Area Home (2026-09-08, revised same day after mobile feedback).
 //
-// One screen per area answering, in this order: 何のため → 何を目指す →
-// いつまでに何を → 今どこ → 次に何を → 何時に → どのMaster → どのSource →
-// 何で止まっている. The order is the point: a task list that starts with
-// "未完了8件" tells the user nothing about where they are.
+// The first version put four long paragraphs — 目的 / GOAL / Outcome /
+// 現在地 — above anything actionable. On a phone that is a wall of text, and
+// the user could not tell what the screen was for.
+//
+// So the order is now: 追っている数字 → いま必達のOutcome → 次にやること(時刻付き)
+// → あとは全部たたむ. The prose (why this area exists, where it stands) is
+// still here and unchanged, just not in front of the answer. Nothing was
+// deleted to make it fit.
 export default function AreaHomeView({ slug }: { slug: string }) {
   const {
     currentDate: today,
@@ -49,13 +54,33 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   }
 
   const outcomeDaysLeft =
-    data.outcome?.deadline !== null && data.outcome?.deadline !== undefined
-      ? daysBetween(today, data.outcome.deadline)
-      : null;
+    data.outcome?.deadline != null ? daysBetween(today, data.outcome.deadline) : null;
 
   const coverage = profile.area === "営業代行" ? phaseCoverage(salesPhases) : null;
   const currentReading =
     profile.area === "GENESIS" ? weeklyReadings.find((r) => r.status === "IN_PROGRESS") ?? null : null;
+
+  // 追っている数字 — one headline figure per area, so "何を管理したいのか" is
+  // answered before any prose. Never a task-completion percentage: that
+  // measures activity, not the Outcome.
+  const headline =
+    coverage !== null
+      ? {
+          label: "自分版が書けているフェーズ",
+          value: `${coverage.ownVersionDone} / ${coverage.ownVersionAchievable}`,
+          sub: `基礎はワークシートから17/17。商品情報待ち ${coverage.productInfoRequired}フェーズは別枠`,
+        }
+      : profile.area === "RIALA"
+        ? {
+            label: "移行対象者の分類が確定した人数",
+            value: "未確認",
+            sub: "対象者の総数がまだ分からないため、人数では出せない",
+          }
+        : {
+            label: "毎日の積み上げを実行した日数",
+            value: "DAY 1〜",
+            sub: "Execution Baseline 2026-09-08 から計測",
+          };
 
   return (
     <div className="flex flex-col pb-10">
@@ -63,201 +88,221 @@ export default function AreaHomeView({ slug }: { slug: string }) {
         <Link href="/tasks" className="text-xs font-bold text-stone-400">
           ＜ TASK MAP
         </Link>
-        <h1 className="mt-1 text-[26px] font-black tracking-tight">{profile.area}</h1>
-        <p className="mt-1 text-[12px] leading-relaxed text-stone-500">{profile.purpose}</p>
+        <h1 className="mt-1 text-[24px] font-black tracking-tight">{profile.area}</h1>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-5 lg:px-5">
-        <div className="flex flex-col gap-3 px-5 lg:px-0">
-          {/* ② 現在のゴール（長期）／③ Current Outcome（いま必達） */}
-          <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">GOAL・目指している状態</p>
-            <p className="mt-1 text-[13px] font-bold leading-relaxed text-stone-700">{profile.standingGoal}</p>
+      <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:px-5">
+        <div className="flex flex-col gap-2.5 px-5 lg:px-0">
+          {/* 追っている数字 */}
+          <section className="rounded-3xl bg-stone-800 px-4 py-3.5 text-white">
+            <p className="text-[10px] font-black tracking-widest text-white/50">追っている数字</p>
+            <p className="mt-0.5 text-[13px] font-bold text-white/80">{headline.label}</p>
+            <p className="mt-0.5 text-[28px] font-black leading-none tabular-nums">{headline.value}</p>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-white/50">{headline.sub}</p>
+          </section>
 
-            <div className="mt-3 rounded-2xl bg-accent-soft px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[10px] font-black tracking-widest text-accent-dark">NOW・いま必達のOutcome</p>
-                {data.outcome?.deadline && (
-                  <span className="shrink-0 text-[11px] font-black text-accent-dark">
-                    〜{formatMd(data.outcome.deadline)}
-                    {outcomeDaysLeft !== null &&
-                      (outcomeDaysLeft >= 0 ? `・あと${outcomeDaysLeft}日` : `・${-outcomeDaysLeft}日超過`)}
-                  </span>
-                )}
-              </div>
-              {data.outcome ? (
-                <>
-                  <p className="mt-1 text-[14px] font-black leading-snug text-stone-800">{data.outcome.title}</p>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-stone-600">{data.outcome.desiredState}</p>
-                </>
-              ) : (
-                <p className="mt-1 text-[12px] text-stone-500">Outcome未設定</p>
+          {/* いま必達のOutcome */}
+          <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[10px] font-black tracking-widest text-accent-dark">いま必達</p>
+              {data.outcome?.deadline && (
+                <span className="shrink-0 text-[11px] font-black text-accent-dark">
+                  〜{formatMd(data.outcome.deadline)}
+                  {outcomeDaysLeft !== null &&
+                    (outcomeDaysLeft >= 0 ? `・あと${outcomeDaysLeft}日` : `・${-outcomeDaysLeft}日超過`)}
+                </span>
               )}
             </div>
-          </section>
-
-          {/* ④ 現在地 */}
-          <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">現在地</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-stone-600">{profile.currentState}</p>
-
-            {coverage && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                <CoverageTile label="目的" filled={coverage.purpose} total={coverage.total} />
-                <CoverageTile label="OK状態" filled={coverage.okState} total={coverage.total} />
-                <CoverageTile label="確認事項・質問" filled={coverage.means} total={coverage.total} />
-              </div>
-            )}
-            {coverage && (
-              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
-                {profile.progressLabel}。「17/17 入力された」ことと「営業で使える」ことは別に扱います。
-              </p>
-            )}
-            {!coverage && (
-              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">{profile.progressLabel}</p>
-            )}
-
-            <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-bold">
-              <Pill tone="accent">実行中の計画 {data.activeCount}</Pill>
-              <Pill tone="muted">Backlog {data.backlogCount}</Pill>
-              {data.overdueCount > 0 && <Pill tone="danger">期限超過 {data.overdueCount}</Pill>}
-              {data.blockedCount > 0 && <Pill tone="dark">Blocked {data.blockedCount}</Pill>}
-            </div>
-          </section>
-
-          {/* ⑤ Next ＋ ⑥ Calendar Plan（同じカードで「何を」と「何時に」を一緒に） */}
-          <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">NEXT・次にやること</p>
-            {data.next.length === 0 ? (
-              <p className="mt-2 text-[12px] text-stone-400">実行中のTaskはありません</p>
+            {data.outcome ? (
+              <>
+                <p className="mt-1 text-[15px] font-black leading-snug text-stone-800">{data.outcome.title}</p>
+                <Collapsible label="達成の条件" count={data.outcome.achievementCriteria.length}>
+                  <ul className="flex flex-col gap-1">
+                    {data.outcome.achievementCriteria.map((c) => (
+                      <li key={c} className="flex gap-1.5 text-[11px] leading-relaxed text-stone-600">
+                        <span className="text-accent-dark">✓</span>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </Collapsible>
+              </>
             ) : (
-              <ul className="mt-2 flex flex-col gap-2">
+              <p className="mt-1 text-[12px] text-stone-500">Outcome未設定</p>
+            )}
+          </section>
+
+          {/* 次にやること */}
+          <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
+            <p className="text-[10px] font-black tracking-widest text-stone-400">次にやること</p>
+            {data.next.length === 0 ? (
+              <p className="mt-1.5 text-[12px] text-stone-400">実行中のTaskはありません</p>
+            ) : (
+              <ul className="mt-1.5 flex flex-col gap-1.5">
                 {data.next.map(({ task, block, deadline }) => (
                   <li key={task.id}>
                     <button
                       type="button"
                       onClick={() => setSelectedTask(task)}
-                      className="w-full rounded-2xl bg-stone-50 px-3.5 py-3 text-left"
+                      className="w-full rounded-2xl bg-stone-50 px-3.5 py-2.5 text-left"
                     >
-                      <p className="text-[13px] font-bold leading-snug text-stone-800">{task.title}</p>
-                      <p className="mt-1 text-[11px] font-black tabular-nums text-accent-dark">
+                      <p className="text-[11px] font-black tabular-nums text-accent-dark">
                         {block
                           ? `${formatMd(block.date)}（${WEEKDAY[new Date(block.date + "T00:00:00").getDay()]}） ${block.startTime}〜${block.endTime}`
                           : "実行時間が未設定"}
+                        {deadline && <span className="ml-1.5 text-stone-400">期限 {formatMd(deadline)}</span>}
                       </p>
-                      {task.definitionOfDone[0] && (
-                        <p className="mt-1 text-[10px] leading-relaxed text-stone-500">
-                          完了条件：{task.definitionOfDone[0]}
-                        </p>
-                      )}
-                      {deadline && (
-                        <p className="mt-0.5 text-[10px] font-bold text-stone-400">期限 {formatMd(deadline)}</p>
-                      )}
+                      <p className="mt-0.5 text-[13px] font-bold leading-snug text-stone-800">{task.title}</p>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
+            <p className="mt-2 text-[10px] font-bold text-stone-400">
+              実行中の計画 {data.activeCount}件・Backlog {data.backlogCount}件
+              {data.overdueCount > 0 && <span className="text-danger">・期限超過 {data.overdueCount}件</span>}
+              {data.blockedCount > 0 && <span>・Blocked {data.blockedCount}件</span>}
+            </p>
             {data.unscheduledActive.length > 0 && (
-              <p className="mt-2 rounded-xl bg-danger-soft px-3 py-2 text-[11px] font-bold text-danger">
-                実行時間が決まっていないACTIVE Taskが{data.unscheduledActive.length}件あります（時間を決めるか
-                Backlogへ戻す必要があります）
+              <p className="mt-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[11px] font-bold text-danger">
+                実行時間が決まっていないACTIVE Taskが{data.unscheduledActive.length}件あります
               </p>
             )}
           </section>
 
-          {/* Area固有：営業＝Master導線と動画、GENESIS＝今週の読書 */}
-          {profile.area === "営業代行" && (
-            <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-stone-400">学習の状況</p>
-              <div className="mt-2 rounded-2xl bg-stone-50 px-3.5 py-3">
-                <p className="text-[12px] font-bold text-stone-700">{salesVideoLibrary.label}</p>
-                <p className="mt-0.5 text-[11px] font-black text-stone-500">
-                  全{salesVideoLibrary.totalVideos}本・{salesVideoLibrary.totalMinutes}分 ／ フェーズへ紐づけ済み{" "}
-                  {salesVideoLibrary.videos.filter((v) => v.linkedPhaseIds.length > 0).length}本
-                </p>
-                <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{salesVideoLibrary.note}</p>
+          {/* 営業の学習状況 — 基礎と自分版を分けて出す */}
+          {coverage && (
+            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
+              <p className="text-[10px] font-black tracking-widest text-stone-400">17フェーズの状態</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-stone-50 px-3 py-2.5">
+                  <p className="text-[10px] font-bold text-stone-400">① 基礎（ワークシート）</p>
+                  <p className="mt-0.5 text-[17px] font-black tabular-nums text-stone-800">
+                    {coverage.purpose}
+                    <span className="text-[11px] font-bold text-stone-400"> / {coverage.total}</span>
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-stone-400">目的・OK状態・確認事項・質問例</p>
+                </div>
+                <div className="rounded-2xl bg-accent-soft px-3 py-2.5">
+                  <p className="text-[10px] font-bold text-accent-dark">② 自分版（これから）</p>
+                  <p className="mt-0.5 text-[17px] font-black tabular-nums text-stone-800">
+                    {coverage.ownVersionDone}
+                    <span className="text-[11px] font-bold text-stone-400"> / {coverage.ownVersionAchievable}</span>
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-stone-500">自分の理解＋自分の質問</p>
+                </div>
               </div>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+                ①が埋まっていることと「営業で使える」ことは別です。進捗として見るのは②の方。
+                商品情報が必要な{coverage.productInfoRequired}フェーズは分母から外してあります。
+              </p>
+              <Collapsible
+                label="参考にする動画"
+                count={salesVideoLibrary.videos.length}
+                sub={`優先度：低（${salesVideoLibrary.priority}）`}
+              >
+                <ul className="flex flex-col gap-1">
+                  {salesVideoLibrary.videos.map((v) => (
+                    <li key={v.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+                      <span className="min-w-0 truncate text-stone-600">{v.title}</span>
+                      <span className="shrink-0 tabular-nums font-bold text-stone-400">
+                        {v.minutes !== null ? `${v.minutes}分` : "-"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">{salesVideoLibrary.note}</p>
+              </Collapsible>
             </section>
           )}
 
           {currentReading && (
-            <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
+            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
               <p className="text-[10px] font-black tracking-widest text-stone-400">今週の読書</p>
-              <p className="mt-1 text-[15px] font-black text-stone-800">『{currentReading.bookTitle}』</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
-                読む → 学び → 具体例 → 次Action まで通して1冊。
-                {currentReading.targetDate && ` 目標 ${formatMd(currentReading.targetDate)}`}
+              <p className="mt-0.5 text-[15px] font-black text-stone-800">『{currentReading.bookTitle}』</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">
+                読む → 学び → 具体例 → 次Action まで通して1冊
+                {currentReading.targetDate && `・目標 ${formatMd(currentReading.targetDate)}`}
               </p>
             </section>
           )}
+
+          {/* たたんである説明 — 消してはいない */}
+          <section className="rounded-3xl bg-white px-4 py-1 shadow-sm">
+            <Collapsible label="このAreaは何のためにあるか" flush>
+              <p className="text-[12px] leading-relaxed text-stone-600">{profile.purpose}</p>
+              <p className="mt-2 text-[10px] font-black tracking-widest text-stone-400">目指している状態</p>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-stone-600">{profile.standingGoal}</p>
+            </Collapsible>
+            <Collapsible label="いまどこまで来ているか" flush>
+              <p className="text-[12px] leading-relaxed text-stone-600">{profile.currentState}</p>
+              {profile.knowledge.length > 0 && (
+                <ul className="mt-2 flex flex-col gap-0.5">
+                  {profile.knowledge.map((k) => (
+                    <li key={k} className="text-[11px] text-stone-500">
+                      ・{k}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Collapsible>
+          </section>
         </div>
 
-        {/* 右レール（Desktop）: Master / Source / Blocker */}
-        <div className="mt-3 flex flex-col gap-3 px-5 lg:mt-0 lg:px-0">
+        {/* 右レール（Desktop）／ モバイルでは下に続く */}
+        <div className="mt-2.5 flex flex-col gap-2.5 px-5 lg:mt-0 lg:px-0">
           {profile.masterHref && (
             <Link
               href={profile.masterHref}
-              className="flex items-center justify-between rounded-3xl bg-stone-800 px-4 py-4 text-white shadow-sm"
+              className="flex items-center justify-between rounded-3xl bg-stone-800 px-4 py-3.5 text-white shadow-sm"
             >
               <span>
                 <span className="block text-[10px] font-black tracking-widest text-white/50">MASTER</span>
-                <span className="mt-0.5 block text-[15px] font-black">{profile.masterLabel}</span>
+                <span className="mt-0.5 block text-[14px] font-black">{profile.masterLabel}</span>
               </span>
               <span className="text-lg">›</span>
             </Link>
           )}
 
-          {profile.knowledge.length > 0 && (
-            <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-stone-400">KNOWLEDGE</p>
-              <ul className="mt-1.5 flex flex-col gap-1">
-                {profile.knowledge.map((k) => (
-                  <li key={k} className="text-[12px] font-medium text-stone-600">
-                    ・{k}
+          <section className="rounded-3xl bg-white px-4 py-1 shadow-sm">
+            <Collapsible label="作業する場所" count={profile.sources.length} flush>
+              <ul className="flex flex-col gap-1.5">
+                {profile.sources.map((src) => (
+                  <li key={src.label}>
+                    {src.url ? (
+                      <a
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded-xl bg-stone-50 px-3 py-2"
+                      >
+                        <p className="text-[12px] font-bold text-accent-dark">{src.label} ↗</p>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
+                      </a>
+                    ) : (
+                      <div className="rounded-xl bg-stone-50 px-3 py-2">
+                        <p className="text-[12px] font-bold text-stone-600">{src.label}</p>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="mt-0.5 text-[10px] font-bold text-stone-400">リンク未確認</p>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
-            </section>
-          )}
-
-          <section className="rounded-3xl bg-white px-4 py-4 shadow-sm">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">SOURCE・作業する場所</p>
-            <ul className="mt-1.5 flex flex-col gap-1.5">
-              {profile.sources.map((src) => (
-                <li key={src.label}>
-                  {src.url ? (
-                    <a
-                      href={src.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block rounded-xl bg-stone-50 px-3 py-2"
-                    >
-                      <p className="text-[12px] font-bold text-accent-dark">{src.label} ↗</p>
-                      <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
-                    </a>
-                  ) : (
-                    <div className="rounded-xl bg-stone-50 px-3 py-2">
-                      <p className="text-[12px] font-bold text-stone-600">{src.label}</p>
-                      <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
-                      <p className="mt-0.5 text-[10px] font-bold text-stone-400">リンク未確認</p>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+            </Collapsible>
           </section>
 
           {profile.blockers.length > 0 && (
-            <section className="rounded-3xl bg-danger-soft px-4 py-4">
-              <p className="text-[10px] font-black tracking-widest text-danger">BLOCKER・進まない理由</p>
-              <ul className="mt-1.5 flex flex-col gap-1.5">
-                {profile.blockers.map((b) => (
-                  <li key={b} className="text-[11px] leading-relaxed text-stone-700">
-                    ・{b}
-                  </li>
-                ))}
-              </ul>
+            <section className="rounded-3xl bg-danger-soft px-4 py-1">
+              <Collapsible label="進まない理由" count={profile.blockers.length} tone="danger" flush>
+                <ul className="flex flex-col gap-1.5">
+                  {profile.blockers.map((b) => (
+                    <li key={b} className="text-[11px] leading-relaxed text-stone-700">
+                      ・{b}
+                    </li>
+                  ))}
+                </ul>
+              </Collapsible>
             </section>
           )}
         </div>
@@ -268,24 +313,47 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   );
 }
 
-function CoverageTile({ label, filled, total }: { label: string; filled: number; total: number }) {
+/**
+ * Collapsed by default on every screen size. Anything worth reading twice is
+ * outside one of these; anything that was making the phone unreadable is
+ * inside — still present, one tap away, with its count on the header so
+ * nothing hides silently.
+ */
+function Collapsible({
+  label,
+  count,
+  sub,
+  tone = "normal",
+  flush = false,
+  children,
+}: {
+  label: string;
+  count?: number;
+  sub?: string;
+  tone?: "normal" | "danger";
+  flush?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl bg-stone-50 px-2.5 py-2 text-center">
-      <p className="text-[10px] font-bold text-stone-400">{label}</p>
-      <p className="mt-0.5 text-[15px] font-black tabular-nums text-stone-800">
-        {filled}
-        <span className="text-[11px] font-bold text-stone-400"> / {total}</span>
-      </p>
+    <div className={flush ? "border-b border-stone-100 py-2.5 last:border-0" : "mt-2"}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span
+          className={`text-[11px] font-black tracking-wide ${tone === "danger" ? "text-danger" : "text-stone-400"}`}
+        >
+          {label}
+          {count !== undefined && <span className="ml-1 tabular-nums">{count}</span>}
+          {sub && <span className="ml-1.5 font-bold text-stone-300">{sub}</span>}
+        </span>
+        <span className={`shrink-0 text-[11px] ${tone === "danger" ? "text-danger" : "text-stone-300"}`}>
+          {open ? "▾" : "▸"}
+        </span>
+      </button>
+      {open && <div className="mt-2">{children}</div>}
     </div>
   );
-}
-
-function Pill({ tone, children }: { tone: "accent" | "muted" | "danger" | "dark"; children: React.ReactNode }) {
-  const cls = {
-    accent: "bg-accent-soft text-accent-dark",
-    muted: "bg-stone-100 text-stone-500",
-    danger: "bg-danger-soft text-danger",
-    dark: "bg-stone-800 text-white",
-  }[tone];
-  return <span className={`rounded-full px-2 py-0.5 ${cls}`}>{children}</span>;
 }

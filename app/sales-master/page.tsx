@@ -43,23 +43,40 @@ export default function SalesMasterPage() {
         )}
         <p className="mt-2 text-[12px] leading-relaxed text-stone-600">{salesSprint.goal}</p>
 
-        {/* 2026-09-08 (§10): this checkpoint targets UNDERSTANDING, not
-            USABLE/PRACTICING. What it measures is therefore Purpose / OK State
-            / Means coverage across the 17 phases. Roleplay moved to the next
-            checkpoint — committing to it while the product is not yet
-            understood would only produce invented talk. */}
+        {/* 2026-09-08: this checkpoint targets UNDERSTANDING, not USABLE —
+            committing to a finished product talk while the product itself is
+            not yet understood would only produce invented content.
+            ワークシートが届いたので①基礎は17/17。ただしそれは「与えられた
+            もの」であって本人の進捗ではないので、進捗として見るのは②自分版の
+            方。両者を足して1つの%にしない。 */}
         <div className="mt-3 border-t border-stone-100 pt-3">
           <p className="mb-2 text-[10px] font-black tracking-widest text-stone-400">
             9/9の到達目標：UNDERSTANDING
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            <CoverageTile label="目的" done={coverage.purpose} total={coverage.total} />
-            <CoverageTile label="OK状態" done={coverage.okState} total={coverage.total} />
-            <CoverageTile label="確認事項・質問" done={coverage.means} total={coverage.total} />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-stone-50 px-3 py-2.5">
+              <p className="text-[10px] font-bold text-stone-400">① 基礎（ワークシート）</p>
+              <p className="mt-0.5 text-[18px] font-black tabular-nums text-stone-800">
+                {coverage.purpose}
+                <span className="text-[11px] font-bold text-stone-400"> / {coverage.total}</span>
+              </p>
+              <p className="mt-0.5 text-[9px] leading-relaxed text-stone-400">
+                目的・OK状態・確認事項・質問例・NG例
+              </p>
+            </div>
+            <div className="rounded-2xl bg-accent-soft px-3 py-2.5">
+              <p className="text-[10px] font-bold text-accent-dark">② 自分版（これから）</p>
+              <p className="mt-0.5 text-[18px] font-black tabular-nums text-stone-800">
+                {coverage.ownVersionDone}
+                <span className="text-[11px] font-bold text-stone-400"> / {coverage.ownVersionAchievable}</span>
+              </p>
+              <p className="mt-0.5 text-[9px] leading-relaxed text-stone-500">自分の理解＋自分の質問</p>
+            </div>
           </div>
           {coverage.productInfoRequired > 0 && (
-            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-800">
-              商品情報待ち {coverage.productInfoRequired}フェーズ（価格・オファー・クロージング表現は商品理解が必要）
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+              商品情報待ち {coverage.productInfoRequired}フェーズ（提案内容・価格・オファー・クロージング表現）。
+              自分版の分母から外してあり、埋まっていないことを進捗の遅れとして数えません。
             </p>
           )}
         </div>
@@ -119,14 +136,3 @@ export default function SalesMasterPage() {
   );
 }
 
-function CoverageTile({ label, done, total }: { label: string; done: number; total: number }) {
-  return (
-    <div className="rounded-2xl bg-stone-50 px-2.5 py-2 text-center">
-      <p className="text-[10px] font-bold text-stone-400">{label}</p>
-      <p className="mt-0.5 text-[15px] font-black tabular-nums text-stone-800">
-        {done}
-        <span className="text-[11px] font-bold text-stone-400"> / {total}</span>
-      </p>
-    </div>
-  );
-}

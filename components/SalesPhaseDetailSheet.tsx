@@ -59,7 +59,11 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
                 {phase.purpose && (
                   <Field label="目的" value={phase.purpose} />
                 )}
-                {phase.okState && <Field label="OK状態" value={phase.okState} />}
+                {phase.okConditions.length > 0 ? (
+                  <ListField label="OK状態（次へ進む条件）" items={phase.okConditions} />
+                ) : (
+                  phase.okState && <Field label="OK状態" value={phase.okState} />
+                )}
                 {phase.checkPoints.length > 0 && <ListField label="確認事項" items={phase.checkPoints} />}
                 {phase.sourceQuestions.length > 0 && <ListField label="質問例" items={phase.sourceQuestions} />}
                 {phase.ngExamples.length > 0 && <ListField label="NG例" items={phase.ngExamples} />}

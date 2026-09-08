@@ -13,6 +13,7 @@ import { WORK_CONTEXT_LABEL, WORK_CONTEXT_PRINCIPLES, principlesForContext } fro
 import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import TaskOrganizeMenu from "@/components/TaskOrganizeMenu";
+import ManualActualEntry from "@/components/ManualActualEntry";
 import type { Task, VarianceReason } from "@/lib/types";
 
 const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
@@ -61,7 +62,18 @@ export default function TaskDetailSheet({
     };
   }, []);
 
-  const { currentDate: today, calendarSyncOverrides, setCalendarSyncEnabled } = useTodayExecution();
+  const {
+    currentDate: today,
+    calendarSyncOverrides,
+    setCalendarSyncEnabled,
+    taskActualMinutes,
+    manualActualTaskIds,
+    setManualActualMinutes,
+  } = useTodayExecution();
+  // The timed value from the page, when there is one; otherwise whatever is
+  // stored (including a hand-typed figure) so this sheet works from TASK MAP
+  // and Area Home too, not only from TODAY.
+  const shownActualMinutes = actualMinutes ?? taskActualMinutes.get(task.id) ?? null;
   const linkedTimeBlocks = activeTimeBlocks
     .filter((tb) => tb.taskId === task.id)
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
@@ -381,14 +393,14 @@ export default function TaskDetailSheet({
               <Row label="予定時間" value={task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} />
               <Row label="期限" value={formatMd(task.deadline)} />
               <Row label="担当" value={capabilityOwnerLabel(task.aiCapability)} />
-              {started && actualMinutes === null && <Row label="状態" value="実行中" />}
-              {actualMinutes !== null &&
+              {started && shownActualMinutes === null && <Row label="状態" value="実行中" />}
+              {shownActualMinutes !== null &&
                 (() => {
-                  const { varianceMinutes } = computeVariance(task.estimateMinutes, actualMinutes);
+                  const { varianceMinutes } = computeVariance(task.estimateMinutes, shownActualMinutes);
                   return (
                     <Row
                       label="実績"
-                      value={`${task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} → ${actualMinutes}分${
+                      value={`${task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} → ${shownActualMinutes}分${
                         varianceMinutes !== null ? `（${varianceMinutes >= 0 ? "+" : ""}${varianceMinutes}分）` : ""
                       }`}
                     />
@@ -398,7 +410,17 @@ export default function TaskDetailSheet({
               {task.nextImprovement && <Row label="次回改善" value={task.nextImprovement} />}
             </dl>
 
-            {actualMinutes !== null && task.estimateMinutes !== null && onSetVarianceReason && (
+            {/* 実績時間の手入力 (2026-09-08): 開始/完了を押し忘れても実績が
+                貯まるようにする。押し忘れると見積り改善のデータが止まる。 */}
+            <ManualActualEntry
+              task={task}
+              actualMinutes={shownActualMinutes}
+              isManual={manualActualTaskIds.has(task.id)}
+              onSave={(m) => setManualActualMinutes(task.id, m)}
+              onClear={() => setManualActualMinutes(task.id, null)}
+            />
+
+            {shownActualMinutes !== null && task.estimateMinutes !== null && onSetVarianceReason && (
               <div className="mt-3">
                 <p className="mb-1.5 text-[10px] font-bold text-stone-400">なぜ差が出た？（任意）</p>
                 <div className="flex flex-wrap gap-1.5">

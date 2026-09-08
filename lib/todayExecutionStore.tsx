@@ -81,6 +81,8 @@ interface RolloverState {
   // decided. A Task with real execution history is never hard-deleted — the
   // record stays here so the measurement survives, and only the UI hides it.
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
+  // taskIds whose actualMinutes were typed in rather than timed.
+  manualActualTaskIds: string[];
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
@@ -129,6 +131,7 @@ function emptyRolloverState(): RolloverState {
     dispositions: {},
     deadlineOverrides: {},
     lifecycleOverrides: {},
+    manualActualTaskIds: [],
   };
 }
 
@@ -226,6 +229,14 @@ interface TodayExecutionApi {
   // work went for MERGED/SUPERSEDED, so a Task is never a dead end. Pass null
   // to undo a decision and put the Task back where the fixture had it.
   setTaskLifecycle: (record: TaskLifecycleRecord | null, taskId: string) => void;
+  // --- 実績時間の手入力 (2026-09-08) ---
+  // The timer requires remembering to press 開始 and 完了. When that doesn't
+  // happen the estimate-vs-actual history silently stops accumulating, which
+  // is the data the whole improvement loop runs on. A typed figure is a real
+  // measurement, but not a timer reading, so it is tagged as manual and shown
+  // that way. Pass null to remove it.
+  setManualActualMinutes: (taskId: string, minutes: number | null) => void;
+  manualActualTaskIds: Set<string>;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -248,6 +259,7 @@ interface PersistedShape {
   dispositions: Record<string, TaskDispositionRecord>;
   deadlineOverrides: Record<string, string>;
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
+  manualActualTaskIds: string[];
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -269,6 +281,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     dispositions: state.dispositions,
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
+    manualActualTaskIds: state.manualActualTaskIds,
   };
 }
 
@@ -293,6 +306,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     dispositions: parsed.dispositions ?? {},
     deadlineOverrides: parsed.deadlineOverrides ?? {},
     lifecycleOverrides: parsed.lifecycleOverrides ?? {},
+    manualActualTaskIds: parsed.manualActualTaskIds ?? [],
   };
 }
 
@@ -399,6 +413,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     dispositions: state.dispositions,
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
+    manualActualTaskIds: new Set(state.manualActualTaskIds),
     history: state.history,
 
     setDone: (updater) =>
@@ -490,6 +505,40 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
     setDeadlineOverride: (taskId, deadline) =>
       setState((s) => ({ ...s, deadlineOverrides: { ...s.deadlineOverrides, [taskId]: deadline } })),
+    setManualActualMinutes: (taskId, minutes) =>
+      setState((s) => {
+        const next = new Map(s.current.taskActualMinutes);
+        const ids = new Set(s.manualActualTaskIds);
+        if (minutes === null) {
+          next.delete(taskId);
+          ids.delete(taskId);
+        } else {
+          next.set(taskId, minutes);
+          ids.add(taskId);
+        }
+        // Keep a completion record's actual in step with the typed value, so
+        // 実績 and 差分 never disagree between the card and the record.
+        const existing = s.completions[taskId];
+        const completions = existing
+          ? {
+              ...s.completions,
+              [taskId]: {
+                ...existing,
+                actualMinutes: minutes,
+                varianceMinutes:
+                  minutes !== null && existing.estimateMinutes !== null
+                    ? minutes - existing.estimateMinutes
+                    : null,
+              },
+            }
+          : s.completions;
+        return {
+          ...s,
+          current: { ...s.current, taskActualMinutes: next },
+          manualActualTaskIds: [...ids],
+          completions,
+        };
+      }),
     setTaskLifecycle: (record, taskId) =>
       setState((s) => {
         const next = { ...s.lifecycleOverrides };

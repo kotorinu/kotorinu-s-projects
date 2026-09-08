@@ -47,23 +47,49 @@ export interface SprintProgress {
 // a phase is only covered when the field is non-empty. Kept deliberately
 // separate from "使える": filling 17/17 is not the same as being able to run
 // the conversation, and the two must never be shown as one number.
+// 2026-09-08: the worksheet arrived, so ①基礎 is now filled for all 17 phases.
+// That changes what "progress" means. Reading the worksheet is not the same as
+// being able to run the conversation, so coverage is split in two and never
+// added together:
+//
+//   基礎  = the worksheet's own content (given — 17/17 from the moment it was
+//           transcribed; it measures nothing about the user)
+//   自分版 = the user's own understanding and their own questions/talk
+//           (the worksheet's 【ワーク】 sections) — this is the real progress
+//
+// A phase that needs product knowledge is counted separately again, so
+// "できていない" and "まだ情報が無い" never blur together.
 export interface PhaseCoverage {
   total: number;
+  // 基礎（ワークシート由来）
   purpose: number;
   okState: number;
-  means: number; // 確認事項 or 質問例 のどちらかが入っている
+  means: number; // 確認事項 or 質問例
+  // 自分版（本人が書く）
+  myUnderstanding: number;
+  myQuestions: number;
   productInfoRequired: number;
+  /** 自分版が完成しているフェーズ数（理解＋自分の質問が両方ある） */
+  ownVersionDone: number;
+  /** 商品情報が要るフェーズを除いた、いま自分版を書けるフェーズ数 */
+  ownVersionAchievable: number;
 }
 
 export function phaseCoverage(phases: SalesPhase[]): PhaseCoverage {
   const nonEmpty = (v: string | null) => v !== null && v.trim() !== "";
+  const needsProduct = (p: SalesPhase) => p.caseSpecificKnowledge.includes("PRODUCT_INFO_REQUIRED");
   return {
     total: phases.length,
-    purpose: phases.filter((p) => nonEmpty(p.purpose) || nonEmpty(p.myUnderstanding)).length,
-    okState: phases.filter((p) => nonEmpty(p.okState)).length,
-    means: phases.filter((p) => p.checkPoints.length > 0 || p.sourceQuestions.length > 0 || p.myQuestions.length > 0)
-      .length,
-    productInfoRequired: phases.filter((p) => p.caseSpecificKnowledge.includes("PRODUCT_INFO_REQUIRED")).length,
+    purpose: phases.filter((p) => nonEmpty(p.purpose)).length,
+    okState: phases.filter((p) => p.okConditions.length > 0 || nonEmpty(p.okState)).length,
+    means: phases.filter((p) => p.checkPoints.length > 0 || p.sourceQuestions.length > 0).length,
+    myUnderstanding: phases.filter((p) => nonEmpty(p.myUnderstanding)).length,
+    myQuestions: phases.filter((p) => p.myQuestions.length > 0 || p.myTalkExamples.length > 0).length,
+    productInfoRequired: phases.filter(needsProduct).length,
+    ownVersionDone: phases.filter(
+      (p) => nonEmpty(p.myUnderstanding) && (p.myQuestions.length > 0 || p.myTalkExamples.length > 0)
+    ).length,
+    ownVersionAchievable: phases.filter((p) => !needsProduct(p)).length,
   };
 }
 

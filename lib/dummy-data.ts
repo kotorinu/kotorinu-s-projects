@@ -494,9 +494,9 @@ export const timeBlocks: TimeBlock[] = [
   },
   {
     id: "tb-0909-lunch-sales-fix",
-    taskId: "t-sales-video-link",
+    taskId: "t-sales-0909-lunch-gaps",
     recurringRuleId: null,
-    label: "営業 動画の学びを該当フェーズへ紐づける",
+    label: "営業 自分版の詰まりを口頭で洗い出す",
     date: "2026-09-09",
     startTime: "12:00",
     endTime: "13:00",
@@ -938,10 +938,10 @@ export const tasks: Task[] = [
   },
   {
     id: "t-sales-understand-purpose",
-    title: "17フェーズすべての目的とOK状態を書き切る",
+    title: "17フェーズの目的とOK状態を、自分の言葉で言い直す",
     description:
-      "17フェーズそれぞれについて、「このフェーズは何を達成する場面か（目的）」と「相手がどうなれば次へ進んでよいか（OK状態）」を自分の言葉で書く。商品固有の提案内容・価格・オファー文言はここでは作らない。",
-    why: "目的が分かっていないフェーズは、質問文だけ用意しても相手が変わった瞬間に使えなくなる",
+      "ワークシートに書かれている各フェーズの目的とOK状態を読み、「つまりこのフェーズで自分は何をするのか」を自分の言葉で書き直す。商品固有の提案内容・価格・オファー文言はここでは作らない。",
+    why: "書いてあるものを読めることと、自分の言葉で言えることは別",
     area: "営業代行",
     deadline: "2026-09-08",
     workDate: "2026-09-08",
@@ -956,15 +956,15 @@ export const tasks: Task[] = [
     blockedOn: null,
     status: "未着手",
     definitionOfDone: [
-      "17フェーズすべてに「このフェーズの目的」が自分の言葉で書かれている",
-      "17フェーズすべてに「相手がどうなれば次へ進めるか（OK状態）」が書かれている",
-      "商品固有の情報が無いと書けないフェーズは、空欄のままにせず PRODUCT_INFO_REQUIRED として分けてある",
+      "商品情報が不要な11フェーズすべてに「自分の理解」が1〜2文で書かれている",
+      "書いた内容が、ワークシートの言い回しの写しではなく自分の言葉になっている",
+      "言い直せなかったフェーズは、その旨が記録されている（空欄で終わらせない）",
     ],
     steps: [
       "昼に特定した詰まり3か所から着手する",
-      "各フェーズの目的を1〜2文で書く",
-      "OK状態（相手の状態で書く）を書く",
-      "商品情報が必要な箇所を PRODUCT_INFO_REQUIRED として分ける",
+      "各フェーズの目的・OK状態を読む",
+      "「つまり自分は何をする場面か」を1〜2文で書く",
+      "言い直せなかったフェーズに印をつける",
     ],
     overrunReason: null,
     nextImprovement: null,
@@ -1004,9 +1004,9 @@ export const tasks: Task[] = [
     whyBreakdown: {
       parentOutcome: "9/9までに営業17フェーズの目的と手段を理解し、自分用の理解マップを完成させる。",
       currentGap:
-        "17フェーズの名称と順番は本人のワークシートから確定しているが、各フェーズのPurpose・OK状態は営業Master上でまだ全17フェーズとも空。ヒアリングと営業動画を学び始めた段階で、特に後半フェーズの判断基準が曖昧。",
+        "ワークシートが届いたので、17フェーズの目的・OK状態・確認事項・質問例は全17フェーズとも営業Masterに入った。一方で「自分の理解」は0/17で、読んだだけの状態。",
       whyNow:
-        "目的が曖昧なまま質問文だけ作ると、商品や相手が変わったときに使えないトーク集になる。9/9のFB会に「どこが分かっていないか」を持っていくには、先に「何を達成するフェーズか」を17個そろえておく必要がある。",
+        "資料の言い回しのままだと、相手や商品が変わった瞬間に出てこない。9/9のFB会へ「どこが分かっていないか」を持っていくには、先に自分の言葉へ置き換えて、置き換えられない箇所を炙り出しておく必要がある。",
     },
     sourceLinks: [
       {
@@ -1030,10 +1030,10 @@ export const tasks: Task[] = [
   },
   {
     id: "t-sales-understand-means",
-    title: "各フェーズで「何を引き出すか」と「どう聞くか」を整理する",
+    title: "ワークシートの【ワーク】欄を埋め、自分の質問を作る",
     description:
-      "17フェーズそれぞれについて、目的を達成するために相手から何を引き出す必要があるかを決め、それを引き出すための質問・アプローチ例を最低1つずつ用意する。",
-    why: "目的が分かっていても、引き出す情報と聞き方が無ければ商談では動けない",
+      "各フェーズの「自分の言葉で作る質問・トーク」を埋める。参考の質問例をそのまま使わず、自分のお客様層に合う聞き方へ置き換える。",
+    why: "参考例をそのまま読むと、想定と違う相手が来た瞬間に止まる",
     area: "営業代行",
     deadline: "2026-09-09",
     workDate: "2026-09-09",
@@ -1048,16 +1048,15 @@ export const tasks: Task[] = [
     blockedOn: null,
     status: "未着手",
     definitionOfDone: [
-      "17フェーズすべてに「このフェーズで確認する必要がある情報」が書かれている",
-      "17フェーズすべてに、その情報を引き出す質問またはアプローチ例が最低1つある",
-      "商品情報が必要で埋められないフェーズは PRODUCT_INFO_REQUIRED として分けてある",
+      "商品情報が不要な11フェーズすべてに、自分の言葉の質問またはトークが最低1つある",
+      "参考の質問例をそのまま写した箇所が無い",
       "資料を見ずに、各フェーズで何を聞くかを口頭で言える",
     ],
     steps: [
-      "前日に書いた目的とOK状態を読み返す",
-      "各フェーズで確認が必要な情報を挙げる",
-      "その情報を引き出す質問を1つ以上書く",
-      "口頭で通して、言えないフェーズを印付けする",
+      "前日に書いた自分の理解を読み返す",
+      "参考の質問例を読み、自分のお客様層ならどう聞くかへ置き換える",
+      "各フェーズに自分の質問を1つ以上書く",
+      "口頭で通して、言えないフェーズに印をつける",
     ],
     overrunReason: null,
     nextImprovement: null,
@@ -1097,9 +1096,9 @@ export const tasks: Task[] = [
     whyBreakdown: {
       parentOutcome: "9/9までに営業17フェーズの目的と手段を理解し、自分用の理解マップを完成させる。",
       currentGap:
-        "実践者からのアドバイスは6件そろっているが、それが「どのフェーズで、何を引き出すための話なのか」に整理されていない。質問例も営業Master上では全17フェーズとも空。",
+        "ワークシートの参考質問例は全17フェーズ分そろっているが、自分の言葉の質問（【ワーク】欄）は0/17。参考例は汎用の言い回しで、自分のお客様層向けにはなっていない。",
       whyNow:
-        "目的（前日のTask）だけでは商談中に動けない——実際には「次に何を聞くか」で止まる。9/9夜がFB会前の最後の準備時間なので、ここで聞き方まで用意できないと、FB会で聞くべき質問も作れない。",
+        "理解（前日のTask）だけでは商談中に動けない——実際には「次に何を聞くか」で止まる。9/9夜がFB会後の最初の作業時間なので、ここで自分の質問まで作れないと、次の練習フェーズへ進めない。",
     },
     sourceLinks: [
       {
@@ -1684,11 +1683,11 @@ export const tasks: Task[] = [
     updatedAt: now,
   },
   {
-    id: "t-sales-video-link",
-    title: "GENESIS営業動画を見て、学びを該当フェーズへ紐づける",
+    id: "t-sales-0909-lunch-gaps",
+    title: "自分版の詰まりを口頭で洗い出し、夜に書く箇所を3つに絞る",
     description:
-      "GENESIS営業実践事前動画（12本・268分）のうち、理解が詰まっているフェーズに関係する回を見て、学んだ内容をそのフェーズへ紐づける。動画を「見た」で終わらせない。",
-    why: "動画の内容を17フェーズの理解に接続する",
+      "前日に書いた自分の理解を口頭で通し、言葉が出てこないフェーズを洗い出して、夜に書く箇所を最大3つへ絞る。スマホの音声だけで完結させる。",
+    why: "夜のPC時間を「どこから手をつけるか考える時間」で始めない",
     area: "営業代行",
     deadline: "2026-09-09",
     workDate: "2026-09-09",
@@ -1703,15 +1702,15 @@ export const tasks: Task[] = [
     blockedOn: null,
     status: "未着手",
     definitionOfDone: [
-      "詰まっているフェーズに関係する動画を最低1本見ている",
-      "その動画からの学びが、該当するPhaseへ紐づけて記録されている",
-      "「実際に使うポイント」が各学びに1行ずつ書かれている",
+      "自分の理解を17フェーズ分、口頭で通している",
+      "言葉が出てこなかったフェーズが最大3つに絞られている",
+      "各箇所について「何を書けば完了か」が1行で決まっている",
     ],
     steps: [
-      "前日に特定した詰まりフェーズを確認する",
-      "そのフェーズに関係しそうな動画を選ぶ",
-      "視聴しながら学びを書き出す",
-      "学びを該当Phaseへ紐づける",
+      "前日に書いた自分の理解を口頭で読み上げる",
+      "詰まった箇所を記録する",
+      "3つへ絞る",
+      "各箇所の完了条件を1行で書く",
     ],
     overrunReason: null,
     nextImprovement: null,
@@ -1727,8 +1726,7 @@ export const tasks: Task[] = [
     parentOperationId: null,
     workflowId: null,
     requiredInputs: [],
-    notes:
-      "昼休みスマホ枠（11:30-13:30の範囲内・最大60分）。12本268分を1日で詰め込まない——詰まっているフェーズの補強に必要な回だけ見る。",
+    notes: "昼休みスマホ枠（11:30-13:30の範囲内・最大60分）。9/9 10:30のFB会の後の時間。",
     preparationForTaskId: null,
     recommendedTiming: null,
     contextTags: ["昼スマホ枠"],
@@ -1752,22 +1750,16 @@ export const tasks: Task[] = [
     whyBreakdown: {
       parentOutcome: "9/9までに営業17フェーズの目的と手段を理解し、自分用の理解マップを完成させる。",
       currentGap:
-        "GENESIS営業実践事前動画は12本268分あるが、視聴状況が記録されておらず、見た内容がどのフェーズの話だったのかもどこにも残っていない。",
+        "自分の言葉での質問（ワークシートの【ワーク】欄）は0/17。どのフェーズで言葉に詰まるのかも、まだ声に出して確かめていない。",
       whyNow:
-        "17フェーズを自力で埋めようとすると、経験の無い部分は想像で書くことになる。動画は実際に営業をやっている人の話なので、詰まったフェーズの穴埋めに直接使える。ただし紐づけずに見るだけだと、翌日には17フェーズのどこの話だったか分からなくなる。",
+        "9/9の夜が、自分版を書き切れる最後のまとまった時間。どこで詰まるかを昼に確定しておかないと、夜の2時間半が「どこから書くか考える時間」で溶ける。",
     },
     sourceLinks: [
-      {
-        label: "GENESIS営業実践 事前動画（12本・268分）",
-        url: null,
-        sourceType: "VIDEO",
-        purpose: "詰まっているフェーズの理解を補強する",
-      },
       {
         label: "営業Master（17フェーズ）",
         url: "/sales-master",
         sourceType: "APP",
-        purpose: "学びを紐づける先のPhaseを開く",
+        purpose: "自分の理解を読み上げながら確認する",
       },
     ],
     blockedOnInfo: null,
@@ -3853,49 +3845,512 @@ export const workPrinciples: WorkPrinciple[] = [
 ];
 
 // --- 営業Master（Sales Playbook） ---
-// The 17 phase names/order below are the user's own worksheet — fixed, never
-// reordered or renamed. purpose/okState/checkPoints/sourceQuestions/
-// ngExamples are that worksheet's actual content (①基礎) and are left empty
-// until the real worksheet text is provided; do not invent sales-training
-// content to fill them in.
-const SALES_PHASE_TITLES: string[] = [
-  "第一印象形成",
-  "ラポール形成",
-  "現状把握",
-  "理想の明確化",
-  "ギャップ認識",
-  "原因の特定",
-  "課題提示",
-  "感情喚起",
-  "解決可能性の提示",
-  "解決策提示",
-  "理解確認",
-  "不安解除",
-  "意志確認",
-  "テスクロ",
-  "オファー",
-  "クロージング",
-  "決済",
+// 2026-09-08: the real worksheet (オンライン営業特化：トーク作成ワークシート)
+// was provided, so ①基礎 is no longer empty. Everything below —
+// purpose / okState / okConditions / checkPoints / sourceQuestions /
+// ngExamples — is transcribed from that PDF verbatim; nothing here is written
+// by the app.
+//
+// The phase names and order also come from the worksheet and differ from what
+// was previously in this fixture: 「会話主導権形成（アジェンダ設定）」exists at
+// position 3 (it was missing), and there is no separate 「決済」phase — 17 is
+// 「クロージング（オンライン契約）」. Everything from the old position 3 onward
+// therefore shifted by one. The worksheet wins; never re-derive these names.
+//
+// myUnderstanding / myTalkExamples / myQuestions stay empty — those are the
+// user's own version (the worksheet's 【ワーク】 sections), and writing them
+// for them would defeat the point.
+export const salesPhases: SalesPhase[] = [
+  {
+    id: "sp-01",
+    phaseNumber: 1,
+    title: "第一印象形成（オンライン特化）",
+    purpose: "画面越しの緊張感・警戒心を解き、「この人は話を聞く価値がありそうだ」と認識してもらう。",
+    okState: "お客様の表情が和らぎ、カメラ目線になる。／音声・映像の確認に対し、声を出して返答がある。／ミュートが解除され、リラックスした姿勢になる。",
+    okConditions: [
+      "お客様の表情が和らぎ、カメラ目線になる。",
+      "音声・映像の確認に対し、声を出して返答がある。",
+      "ミュートが解除され、リラックスした姿勢になる。",
+    ],
+    checkPoints: ["通信環境の安定性、お客様の現在の環境（自宅か職場か、周りに人がいるか）。"],
+    sourceQuestions: [
+      "「本日はオンラインでお時間をいただきありがとうございます。音声や映像は途切れることなく届いておりますでしょうか？」",
+      "「Zoomの操作は普段からよくお使いになられますか？」",
+      "「今日は少し冷えますね。そちらの地域のお天気はいかがですか？」",
+    ],
+    ngExamples: [
+      "通信トラブルの確認をせずにいきなり本題に入る。",
+      "カメラの目線が合っていない（画面の相手の顔ばかり見ている）。",
+      "背景が散らかっている、または暗すぎる。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-02",
+    phaseNumber: 2,
+    title: "ラポール形成",
+    purpose: "オンラインの距離感を埋めるため、「共通点」や「共感」を通じて心理的な安全基地を構築する。",
+    okState: "お客様から自発的にプライベートな話や、少し脱線した話が出る。／こちらの質問に対して、理由や背景も含めて答えてくれる。／画面越しでも、お客様が相槌を打つ回数が増える。",
+    okConditions: [
+      "お客様から自発的にプライベートな話や、少し脱線した話が出る。",
+      "こちらの質問に対して、理由や背景も含めて答えてくれる。",
+      "画面越しでも、お客様が相槌を打つ回数が増える。",
+    ],
+    checkPoints: ["お客様の価値観、現在のライフスタイル、興味関心。"],
+    sourceQuestions: [
+      "「（背景に映るものを見て）後ろに素敵な〇〇が見えますが、お好きなんですか？」",
+      "「最近はリモートワークが多いですか？それとも出社されていますか？」",
+      "「お休みの日は、ご自宅で過ごされることが多いですか？」",
+    ],
+    ngExamples: [
+      "天気やニュースなど、当たり障りのない話だけで終わる。",
+      "画面に映っているプライベートなものに、無遠慮に踏み込みすぎる。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-03",
+    phaseNumber: 3,
+    title: "会話主導権形成（アジェンダ設定）",
+    purpose: "画面共有などをスムーズに行うため、本日のゴールと流れを共有し、お客様の合意を得る。",
+    okState: "本日の流れとゴールについて、お客様から明確な「YES」の返答を得た。／時間的な制約（タイムリミット）の確認が取れた。",
+    okConditions: [
+      "本日の流れとゴールについて、お客様から明確な「YES」の返答を得た。",
+      "時間的な制約（タイムリミット）の確認が取れた。",
+    ],
+    checkPoints: ["本日の面談のゴールに対する合意、面談に使える時間。"],
+    sourceQuestions: [
+      "「本日は〇〇についてお話しさせていただきますが、お時間は〇〇分ほどいただいてもよろしいでしょうか？」",
+      "「最適なご提案をするために、いくつかご質問させていただきたいのですが、よろしいでしょうか？」",
+      "「最終的に『自分には合わない』と思われたら、遠慮なくおっしゃってくださいね。その前提で進めてもよろしいですか？」",
+    ],
+    ngExamples: [
+      "アジェンダを提示せず、ダラダラとヒアリングに入る。",
+      "お客様の同意を得ずに、一方的に画面共有を始める。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-04",
+    phaseNumber: 4,
+    title: "現状把握",
+    purpose: "お客様の現在の状況（事実）を客観的に把握し、何が起きているのかを正確に理解する。",
+    okState: "お客様の現状（5W1H）が、第三者に説明できるレベルで具体的に把握できた。／お客様が現状を話すことに抵抗を感じていない。",
+    okConditions: [
+      "お客様の現状（5W1H）が、第三者に説明できるレベルで具体的に把握できた。",
+      "お客様が現状を話すことに抵抗を感じていない。",
+    ],
+    checkPoints: ["現在利用しているサービス、生活リズム、具体的な数値（金額、時間、頻度など）。"],
+    sourceQuestions: [
+      "「現在、〇〇についてはどのような方法で対応されていますか？」",
+      "「具体的に、月にどれくらいの頻度で（または金額を）〇〇されていますか？」",
+      "「その方法を始められてから、どれくらいの期間が経ちますか？」",
+    ],
+    ngExamples: [
+      "事実を聞く前に、いきなり悩みや不満を聞き出そうとする。",
+      "「それは良くないですね」など、現状を否定する。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-05",
+    phaseNumber: 5,
+    title: "理想把握",
+    purpose: "お客様が本当に手に入れたい未来（理想の状態）を言語化し、その目的を明確にする。",
+    okState: "お客様の理想の状態と、それを達成したい「感情的な理由」が明確になった。／お客様が未来の話をする際、声のトーンが上がったり、表情が明るくなったりする。",
+    okConditions: [
+      "お客様の理想の状態と、それを達成したい「感情的な理由」が明確になった。",
+      "お客様が未来の話をする際、声のトーンが上がったり、表情が明るくなったりする。",
+    ],
+    checkPoints: ["達成したい具体的な目標、その目標を達成したい「本当の理由（感情的な動機）」、期限。"],
+    sourceQuestions: [
+      "「もし何の制限もなかったら、〇〇についてどうなっているのが一番理想ですか？」",
+      "「その理想の状態になったら、毎日どんな気持ちで過ごせそうですか？」",
+      "「なぜ、その状態になりたいと思われたのですか？（きっかけは何ですか？）」",
+    ],
+    ngExamples: [
+      "自社の商品で解決できる範囲の理想に無理やり誘導する。",
+      "表面的な目標（例：「痩せたい」）だけで満足し、その奥にある動機を深掘りしない。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-06",
+    phaseNumber: 6,
+    title: "ギャップ認識",
+    purpose: "「現状」と「理想」の間にある差（ギャップ）をお客様自身に認識させ、問題の存在に気づいてもらう。",
+    okState: "お客様の口から「今のままでは理想に届かない」という趣旨の発言が出た。／現状を変える必要性（危機感）をお客様が感じている。",
+    okConditions: [
+      "お客様の口から「今のままでは理想に届かない」という趣旨の発言が出た。",
+      "現状を変える必要性（危機感）をお客様が感じている。",
+    ],
+    checkPoints: ["理想に対して、現状がどれくらい不足しているか。このまま放置した場合のリスク。"],
+    sourceQuestions: [
+      "「先ほどお伺いした理想の状態を100点としたら、今の状態は何点くらいですか？」",
+      "「残りの〇〇点を埋めるためには、何が足りないと感じていらっしゃいますか？」",
+      "「もし、今の状態がこの先1年、3年と続いたとしたら、どんな不安がありますか？」",
+    ],
+    ngExamples: [
+      "営業側から「ここがダメですね」と指摘する（お客様自身に言わせるのが鉄則）。",
+      "ギャップを明確にする前に、解決策を提示してしまう。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-07",
+    phaseNumber: 7,
+    title: "原因特定",
+    purpose: "ギャップ（問題）が生じている「本当の原因」をお客様と一緒に探し出し、特定する。",
+    okState: "ギャップを生んでいる根本的な原因について、お客様と共通認識が持てた。／お客様が「自分の努力不足ではなく、やり方（原因）が間違っていた」と理解した。",
+    okConditions: [
+      "ギャップを生んでいる根本的な原因について、お客様と共通認識が持てた。",
+      "お客様が「自分の努力不足ではなく、やり方（原因）が間違っていた」と理解した。",
+    ],
+    checkPoints: ["これまで上手くいかなかった理由、過去に試して失敗した方法。"],
+    sourceQuestions: [
+      "「今までも〇〇を改善しようと努力されてきたと思いますが、なぜ上手くいかなかったのだと思いますか？」",
+      "「過去に〇〇を試された際、一番の壁になったのは何でしたか？」",
+      "「実は、〇〇が原因で上手くいかないケースが多いのですが、お心当たりはありますか？」",
+    ],
+    ngExamples: [
+      "お客様の過去の努力や選択を否定する。",
+      "原因を特定せずに、「とにかくうちの商品なら解決します」と強引に進める。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-08",
+    phaseNumber: 8,
+    title: "課題の言語化・提示",
+    purpose: "特定した原因を解決するために「今、具体的に何をすべきか（課題）」を明確な言葉にして提示する。",
+    okState: "提示した課題に対して、お客様から「確かにその通りですね」という明確な同意が得られた。／お客様が「やるべきことが明確になりました」とスッキリした表情になる。",
+    okConditions: [
+      "提示した課題に対して、お客様から「確かにその通りですね」という明確な同意が得られた。",
+      "お客様が「やるべきことが明確になりました」とスッキリした表情になる。",
+    ],
+    checkPoints: ["課題がお客様にとって納得感のあるものか。具体的で行動に移せるレベルか。"],
+    sourceQuestions: [
+      "「これまでの話を整理すると、今一番必要なのは『〇〇を改善すること』だと言えそうですが、いかがですか？」",
+      "「つまり、〇〇という原因を取り除くために、まずは〇〇に取り組むのが最優先の課題になりそうですね？」",
+    ],
+    ngExamples: [
+      "課題が抽象的すぎる（例：「もっと頑張りましょう」）。",
+      "複数の課題を一度に提示して、お客様を混乱させる。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-09",
+    phaseNumber: 9,
+    title: "感情喚起",
+    purpose: "課題を解決した先の未来と、しなかった場合の未来を想像させ、行動へのモチベーションを高める。",
+    okState: "お客様の口から「今すぐ変えたい」「解決したい」という強い意志表示が出た。／画面越しでも、前のめりな姿勢になるのがわかる。",
+    okConditions: [
+      "お客様の口から「今すぐ変えたい」「解決したい」という強い意志表示が出た。",
+      "画面越しでも、前のめりな姿勢になるのがわかる。",
+    ],
+    checkPoints: ["課題解決に対する本気度。行動を起こすための感情的なエネルギーが高まっているか。"],
+    sourceQuestions: [
+      "「もし、この課題が今日から解決に向かい始めたら、毎日の生活はどんな風に変わりそうですか？」",
+      "「逆に、この課題を放置したまま半年後を迎えたとしたら、どんなお気持ちになりそうですか？」",
+      "「今、このタイミングで〇〇を変えたいというお気持ちは、10段階で言うとどれくらいですか？」",
+    ],
+    ngExamples: [
+      "論理的な説明ばかりで、お客様の感情にアクセスしない。",
+      "ネガティブな未来ばかりを強調し、恐怖でコントロールしようとする。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-10",
+    phaseNumber: 10,
+    title: "解決可能性提示",
+    purpose: "「その課題、実は解決できるんです」という希望を提示し、自社の商品・サービスへの期待感を高める。",
+    okState: "お客様から「ぜひ聞かせてください」「どういうことですか？」という前のめりな質問や同意が出た。",
+    okConditions: [
+      "お客様から「ぜひ聞かせてください」「どういうことですか？」という前のめりな質問や同意が出た。",
+    ],
+    checkPoints: ["お客様が解決策に対して聞く耳を持っているか。「自分にもできそう」という期待感を持てているか。"],
+    sourceQuestions: [
+      "「実は、〇〇様と全く同じ課題を抱えていた方が、ある方法で結果を出されているのですが、ご興味はありますか？」",
+      "「先ほどおっしゃっていた課題ですが、私どものアプローチを使えば十分に解決可能だと考えています。少しお話ししてもよろしいですか？」",
+    ],
+    ngExamples: [
+      "お客様が興味を示す前に、いきなり商品の詳細を話し始める。",
+      "「絶対に100%解決します」など、過剰な約束（オーバートーク）をする。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-11",
+    phaseNumber: 11,
+    title: "解決策提示（オンラインプレゼン）",
+    purpose: "画面共有などを活用し、自社の商品・サービスがお客様の課題をどう解決するのかを具体的に説明する。",
+    okState: "解決策の全体像と、それが自分の課題を解決する手段であることをお客様が理解した。／お客様から「いいですね」「使ってみたいです」というポジティブな反応が出た。",
+    okConditions: [
+      "解決策の全体像と、それが自分の課題を解決する手段であることをお客様が理解した。",
+      "お客様から「いいですね」「使ってみたいです」というポジティブな反応が出た。",
+    ],
+    checkPoints: ["商品の特徴（Feature）ではなく、お客様にとってのメリット（Benefit）が伝わっているか。"],
+    sourceQuestions: [
+      "「（画面共有しながら）この機能は、先ほどおっしゃっていた『〇〇というお悩み』を解決するためにあるのですが、イメージ湧きますでしょうか？」",
+      "「ここまでお話しした中で、一番魅力的に感じていただけたポイントはどこですか？」",
+    ],
+    ngExamples: [
+      "画面共有した資料をただ読み上げるだけになる。",
+      "お客様の反応（画面越しの表情）を見ずに、一方的に話し続ける。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-12",
+    phaseNumber: 12,
+    title: "解決策理解",
+    purpose: "提示した解決策をお客様が正しく理解し、疑問や誤解がないかを確認する。",
+    okState: "お客様から具体的な質問が出尽くし、疑問点が解消された。／お客様が自分の言葉で、商品の良さや解決できる理由を説明できる。",
+    okConditions: [
+      "お客様から具体的な質問が出尽くし、疑問点が解消された。",
+      "お客様が自分の言葉で、商品の良さや解決できる理由を説明できる。",
+    ],
+    checkPoints: ["お客様の理解度。説明の中で分かりにくかった点や、引っかかっている点がないか。"],
+    sourceQuestions: [
+      "「ここまでご説明させていただきましたが、何か分かりにくかった点や、ご不明な点はございませんか？」",
+      "「もし、ご家族に今日のお話をされるとしたら、このサービスのどんなところを一番に伝えていただけそうですか？」",
+    ],
+    ngExamples: [
+      "「分かりましたか？」とだけ聞き、お客様が「はい」と答えたのを鵜呑みにする。",
+      "お客様が理解していないのに、強引に次のフェーズに進む。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-13",
+    phaseNumber: 13,
+    title: "不安解除",
+    purpose: "お客様が意思決定する前に抱える「不安」や「懸念点（お金、時間、能力など）」を引き出し、解消する。",
+    okState: "お客様の口から「もう不安な点はありません」「クリアになりました」という言葉が出た。／決断を妨げる要素がすべて解消された。",
+    okConditions: [
+      "お客様の口から「もう不安な点はありません」「クリアになりました」という言葉が出た。",
+      "決断を妨げる要素がすべて解消された。",
+    ],
+    checkPoints: ["決断を妨げている本当の理由（ボトルネック）。"],
+    sourceQuestions: [
+      "「非常に前向きに感じていただいていると思いますが、逆に『ここだけが少し心配だな』と思う点はありますか？」",
+      "「もし、今すぐスタートできない理由が一つだけあるとしたら、それは何でしょうか？」",
+      "「その不安が〇〇という形で解消されるとしたら、安心して進められそうですか？」",
+    ],
+    ngExamples: [
+      "お客様の不安を「大丈夫ですよ」と根拠なく軽くあしらう。",
+      "お客様が不安を口にした途端、焦って反論する。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-14",
+    phaseNumber: 14,
+    title: "意志確認",
+    purpose: "お客様自身に「やりたい」「始めたい」という意思を言葉にしてもらい、決断の準備を整える。",
+    okState: "お客様の口から、明確で力強い「YES（やりたい）」という言葉が出た。",
+    okConditions: [
+      "お客様の口から、明確で力強い「YES（やりたい）」という言葉が出た。",
+    ],
+    checkPoints: ["お客様の最終的な意思。押し売りではなく、お客様自身の選択であること。"],
+    sourceQuestions: [
+      "「ここまでお話ししてきて、〇〇様ご自身としては、このサービスを使って理想の未来を実現していきたいというお気持ちはありますか？」",
+      "「私としては、〇〇様の目標達成を全力でサポートさせていただきたいと思っていますが、一緒に頑張ってみませんか？」",
+    ],
+    ngExamples: [
+      "お客様の意思を確認せずに、勝手に契約手続きを進める。",
+      "「やりますよね？」と圧力をかけて言わせる。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: [],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-15",
+    phaseNumber: 15,
+    title: "テスクロ（テストクロージング）",
+    purpose: "本格的な提案（金額提示など）の前に、条件面での合意形成を行い、断られるリスクを最小限にする。",
+    okState: "「条件（金額や時期）が合えばスタートする」という明確な合意（IFの合意）が取れた。／決裁権者がお客様自身であること（または相談不要であること）が確認できた。",
+    okConditions: [
+      "「条件（金額や時期）が合えばスタートする」という明確な合意（IFの合意）が取れた。",
+      "決裁権者がお客様自身であること（または相談不要であること）が確認できた。",
+    ],
+    checkPoints: ["予算感のすり合わせ、開始時期、決裁権者（家族など）の確認。"],
+    sourceQuestions: [
+      "「お気持ちは固まっているとのことですが、あとはご予算の範囲内に収まるかどうか、というところでしょうか？」",
+      "「もし、ご提示するプランがご予算に合い、内容もご納得いただけるものであれば、今日この場でお手続きを進めるという形でよろしいでしょうか？」",
+      "「今回のご決断にあたって、ご家族にご相談される必要はございますか？」",
+    ],
+    ngExamples: [
+      "テスクロを行わずに、いきなり高額なオファーを提示する。",
+      "「今日決めてくれますよね？」と強引に迫る。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-16",
+    phaseNumber: 16,
+    title: "オファー",
+    purpose: "具体的なプラン、金額、特典などを提示し、お客様に最終的な提案を行う。",
+    okState: "プラン内容と金額を提示し終わった。／お客様が提案内容を理解し、検討のテーブルに乗った。",
+    okConditions: [
+      "プラン内容と金額を提示し終わった。",
+      "お客様が提案内容を理解し、検討のテーブルに乗った。",
+    ],
+    checkPoints: ["提示するプランがお客様の課題解決に最適であること。金額の妥当性。"],
+    sourceQuestions: [
+      "「それでは、〇〇様の理想を実現するための具体的なプランと費用についてご説明させていただきますね。」",
+      "「今回、〇〇様にはこちらの『〇〇プラン』が最適だと考えております。理由は〇〇だからです。」",
+      "「通常は〇〇円なのですが、本日ご決断いただける場合は、〇〇という特典をお付けして〇〇円でご案内可能です。」",
+    ],
+    ngExamples: [
+      "自信なさげに金額を提示する（声が小さくなるなど）。",
+      "価値を十分に伝えていないのに、価格だけを強調する。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
+  {
+    id: "sp-17",
+    phaseNumber: 17,
+    title: "クロージング（オンライン契約）",
+    purpose: "お客様の最終的な決断を促し、オンラインでの契約（または購入）手続きを完了させる。",
+    okState: "お客様から最終的な「YES」をいただき、オンラインでの手続きが完了した。／次回のアポイントや今後のスケジュールが確定した。",
+    okConditions: [
+      "お客様から最終的な「YES」をいただき、オンラインでの手続きが完了した。",
+      "次回のアポイントや今後のスケジュールが確定した。",
+    ],
+    checkPoints: ["最終的な合意。今後の具体的な流れ（ネクストステップ）。"],
+    sourceQuestions: [
+      "「（オファー提示後、沈黙を恐れずに待つ）……いかがでしょうか？」",
+      "「こちらのプランで、〇〇様の理想に向けて一緒にスタートを切るということでよろしいでしょうか？」",
+      "「ありがとうございます。それでは、チャットに申し込みフォームのURLをお送りしますので、今こちらでご入力をお願いできますでしょうか？」",
+    ],
+    ngExamples: [
+      "オファー提示後に、沈黙に耐えられず自分から話し出してしまう。",
+      "「後でURL送っておきますね」と、その場での手続きを促さない（離脱の原因）。",
+    ],
+    myUnderstanding: null,
+    myTalkExamples: [],
+    myQuestions: [],
+    myTransitionTalk: [],
+    caseSpecificKnowledge: ["PRODUCT_INFO_REQUIRED"],
+    nextImprovement: [],
+    improvementHistory: [],
+    masteryStatus: "UNDERSTANDING",
+  },
 ];
-
-export const salesPhases: SalesPhase[] = SALES_PHASE_TITLES.map((title, i) => ({
-  id: `sp-${String(i + 1).padStart(2, "0")}`,
-  phaseNumber: i + 1,
-  title,
-  purpose: null,
-  okState: null,
-  checkPoints: [],
-  sourceQuestions: [],
-  ngExamples: [],
-  myUnderstanding: null,
-  myTalkExamples: [],
-  myQuestions: [],
-  myTransitionTalk: [],
-  caseSpecificKnowledge: [],
-  nextImprovement: [],
-  improvementHistory: [],
-  masteryStatus: "NOT_STARTED",
-}));
 
 function phaseIds(...numbers: number[]): string[] {
   return numbers.map((n) => `sp-${String(n).padStart(2, "0")}`);
@@ -3919,7 +4374,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "料金を伝える／伝えないだけで判断せず、その後の展開まで設計する。「もちろんお伝えします。ただ、金額だけだと判断しづらいと思うので、最後まで内容を聞いていただいた上で判断してもらってもいいですか？」",
     source: "実践者FB",
-    relatedPhaseIds: phaseIds(1, 11, 15),
+    relatedPhaseIds: phaseIds(1, 12, 16),
     lesson: "料金提示と引き換えに「最後まで聞く」というYESを取る。",
     exampleTalk: [
       "もちろんお伝えします。ただ、金額だけだと判断しづらいと思うので、最後まで内容を聞いていただいた上で判断してもらってもいいですか？",
@@ -3932,7 +4387,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "言葉だけでなく、間・声のトーン・返答速度も見る。違和感があれば具体的な不安確認へ切り替える。「ちなみに○○の部分で不安はないですか？」表面的な不安が出た場合：「もしそこが解消されたら、やってみたいと思いますか？」YES→その不安を解消。NO→別の本質的懸念を探す。",
     source: "実践者FB",
-    relatedPhaseIds: phaseIds(12, 13),
+    relatedPhaseIds: phaseIds(13, 14),
     lesson: "言葉だけでなく、間・声のトーン・返答速度も見て、違和感があれば具体的な不安確認へ切り替える。",
     exampleTalk: ["ちなみに○○の部分で不安はないですか？", "もしそこが解消されたら、やってみたいと思いますか？"],
     addedAt: now,
@@ -3943,7 +4398,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "「どうでしたか？」→「良かったです」だけで終わらせない。「率直に聞いてみて、やってみたいと思いました？」まで確認する。「良いと思う」と「自分がやりたい」を区別する。",
     source: "実践者FB",
-    relatedPhaseIds: phaseIds(13, 14, 16),
+    relatedPhaseIds: phaseIds(14, 15, 17),
     lesson: "「良いと思う」と「自分がやりたい」を区別し、後者まで確認する。",
     exampleTalk: ["率直に聞いてみて、やってみたいと思いました？"],
     addedAt: now,
@@ -3954,7 +4409,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "ただ話しやすいだけでなく、「この人なら何か答えを持っていそう」と思ってもらえる状態を目指す。要素：相手の期待を超える提案／相手が知らなかった情報／卒業生・利用者事例／共感／賞賛／ねぎらい。事例はただ紹介せず、相手が「自分もこうなれそう」とイメージできるように伝える。",
     source: "実践者FB",
-    relatedPhaseIds: phaseIds(1, 2, 9, 10),
+    relatedPhaseIds: phaseIds(1, 2, 10, 11),
     lesson: "事例は紹介するだけでなく、相手が「自分もこうなれそう」とイメージできるように伝える。",
     exampleTalk: [],
     addedAt: now,
@@ -3965,7 +4420,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "相談そのものを次Actionとして設計する。整理する内容：サービス概要／本人が魅力を感じた部分／なぜ今学びたいか／始めたい理由／家族にとってのメリット・未来／安心材料。さらに「今日何時頃に相談できそうですか？」まで確認する。「相談します」ではなく「実際に相談できる状態」まで作る。",
     source: "実践者FB",
-    relatedPhaseIds: phaseIds(12, 13, 16),
+    relatedPhaseIds: phaseIds(13, 14, 17),
     lesson: "「相談します」ではなく「実際に相談できる状態」まで作る。",
     exampleTalk: ["今日何時頃に相談できそうですか？"],
     addedAt: now,
@@ -4013,12 +4468,61 @@ export const salesSprint: SalesSprint = {
 // video becomes a real record only once the user names it. A watched video
 // with no linked phase is a knowledge graveyard, so the record carries
 // linkedPhaseIds/lesson/usagePoint from the start.
+// GENESIS営業実践 事前動画 (§12, 2026-09-08 更新).
+//
+// 本人から4本のタイトルと尺が共有された。残りは未共有なので作らない。
+// **優先度は低い**——本人の指示は「動画は正直参照程度。自分の営業の型を
+// 決める方が先」。理解が詰まったフェーズの補強にだけ使い、視聴自体を
+// Outcomeにしない。1本を「見た」で終わらせず、該当Phaseへ紐づける。
 export const salesVideoLibrary: SalesVideoLibrary = {
   label: "GENESIS営業実践 事前動画",
   totalVideos: 12,
   totalMinutes: 268,
-  videos: [],
-  note: "本数と合計時間のみ確認済み。個別のタイトル・尺・順番は未共有のため作成していない。視聴した回から、学びと該当Phaseを記録していく。",
+  priority: "参照のみ",
+  videos: [
+    {
+      id: "sv-01",
+      title: "【実践編①】ラポール",
+      minutes: 26,
+      watched: false,
+      // 実践編①はラポール形成の回。第一印象形成にも関わるが、本人が中身を
+      // 見て判断するまで紐付けは1つに留める（推測で増やさない）。
+      linkedPhaseIds: ["sp-02"],
+      lesson: null,
+      usagePoint: null,
+    },
+    {
+      id: "sv-02",
+      title: "【実践編②】ヒアリング",
+      minutes: 24,
+      watched: false,
+      // ヒアリング＝現状把握〜原因特定のかたまり。
+      linkedPhaseIds: ["sp-04", "sp-05", "sp-06", "sp-07"],
+      lesson: null,
+      usagePoint: null,
+    },
+    {
+      id: "sv-03",
+      title: "【実践編③】クロージング",
+      minutes: 26,
+      watched: false,
+      linkedPhaseIds: ["sp-15", "sp-16", "sp-17"],
+      lesson: null,
+      usagePoint: null,
+    },
+    {
+      id: "sv-04",
+      title: "アフターフォロー／データ分析",
+      minutes: 35,
+      watched: false,
+      // 17フェーズは決済までなので、アフターフォローに対応するPhaseは無い。
+      // 無理に紐づけない。
+      linkedPhaseIds: [],
+      lesson: null,
+      usagePoint: null,
+    },
+  ],
+  note: "タイトルが判明しているのは4本（計111分）。全12本・268分のうち残りは未共有。優先度は低く、17フェーズの理解が詰まったときの補強にだけ使う——視聴を先に埋めない。",
 };
 
 // --- RIALA Operations Master ---

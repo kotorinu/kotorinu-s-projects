@@ -267,6 +267,10 @@ export interface SalesVideoLibrary {
   totalMinutes: number;
   videos: SalesVideo[];
   note: string;
+  // 2026-09-08: the user placed these explicitly as reference material, below
+  // deciding their own approach. Recorded so no planner or UI can promote
+  // them back into the critical path on its own.
+  priority: string;
 }
 
 export type RecurringFrequency = "DAILY";
@@ -673,6 +677,10 @@ export interface SalesPhase {
   title: string;
   purpose: string | null;
   okState: string | null;
+  // The worksheet lists OK状態 as several tick-box conditions, not one
+  // sentence (2026-09-08). Kept as a list so each condition can be read and
+  // checked on its own; okState is their joined form for compact display.
+  okConditions: string[];
   checkPoints: string[];
   sourceQuestions: string[];
   ngExamples: string[];
