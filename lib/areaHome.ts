@@ -10,7 +10,7 @@ import {
   isTaskOverdue,
   type TaskStateOverlays,
 } from "./taskState";
-import type { AreaProfile, HomeArea, Outcome, Task, TimeBlock } from "./types";
+import type { AreaProfile, GapItem, HomeArea, Outcome, Task, TimeBlock } from "./types";
 
 // Everything an Area Home needs, derived once (2026-09-08, §7).
 //
@@ -93,4 +93,67 @@ export function buildAreaHome(
       (t) => blockFor(t) === null || effectiveWorkDate(t, overlays) === null
     ),
   };
+}
+
+// --- Control Tower helpers (2026-09-08 第4ラウンド) ---
+
+/**
+ * The single number an Area is judged by (§3). Never a task-completion
+ * percentage: that measures activity, not the Outcome. When the real figure
+ * can't be computed yet (RIALA's headcount), it says so instead of inventing
+ * one.
+ */
+export function areaHeadline(
+  area: HomeArea,
+  salesOwn: { done: number; total: number } | null
+): { label: string; value: string; sub: string } {
+  if (area === "営業代行") {
+    return {
+      label: "自分版が書けているフェーズ",
+      value: salesOwn ? `${salesOwn.done} / ${salesOwn.total}` : "-",
+      sub: "基礎はワークシートから17/17。商品情報待ち6フェーズは分母から除外",
+    };
+  }
+  if (area === "RIALA") {
+    return {
+      label: "移行対応の工程",
+      value: "工程で表示",
+      sub: "対象者の総数が未確認のため、人数では出さない",
+    };
+  }
+  return {
+    label: "毎日の積み上げ",
+    value: "DAY 1〜",
+    sub: "Execution Baseline 2026-09-08 から計測",
+  };
+}
+
+/** The next scheduled block for this area, today or later (§3). */
+export function nextBlockForArea(
+  area: HomeArea,
+  today: string,
+  blocks: TimeBlock[],
+  tasks: Task[]
+): { block: TimeBlock; taskTitle: string } | null {
+  const candidates = blocks
+    .filter((b) => b.date >= today && b.taskId !== null)
+    .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
+  for (const block of candidates) {
+    const task = tasks.find((t) => t.id === block.taskId);
+    if (task && task.area === area) return { block, taskTitle: task.title };
+  }
+  return null;
+}
+
+/** Everything currently threatening this Area's Outcome, in one list (§3). */
+export function areaRisks(data: AreaHomeData, gaps: GapItem[]): string[] {
+  const out: string[] = [];
+  if (data.overdueCount > 0) out.push(`期限超過 ${data.overdueCount}件`);
+  if (data.unscheduledActive.length > 0)
+    out.push(`実行時間が未設定のACTIVE Task ${data.unscheduledActive.length}件`);
+  for (const g of gaps) {
+    if (g.area === data.profile.area && g.status === "WAITING" && g.waitingOn) out.push(g.waitingOn);
+  }
+  for (const b of data.profile.blockers) out.push(b);
+  return out;
 }

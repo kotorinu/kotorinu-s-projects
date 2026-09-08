@@ -14,7 +14,10 @@ import type {
   CarryoverRecord,
   TaskCompletionRecord,
   TaskDispositionRecord,
+  PhaseOwnVersion,
+  ReplanFlag,
   TaskLifecycleRecord,
+  TimeBlockOverride,
   VarianceReason,
 } from "./types";
 
@@ -83,6 +86,20 @@ interface RolloverState {
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
   // taskIds whose actualMinutes were typed in rather than timed.
   manualActualTaskIds: string[];
+  // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
+  // 自分版 (§5): the three own-version fields per Sales phase. The fixture is
+  // immutable, so what the user writes lives here; coverage is always derived
+  // from these, never from a counter.
+  phaseOwnVersions: Record<string, PhaseOwnVersion>;
+  // Tasks that need re-planning (§12) — postponed, deadline at risk, blocked,
+  // large overrun, Outcome changed, new information. Cleared only by an
+  // explicit decision, never silently.
+  replanFlags: Record<string, ReplanFlag>;
+  // Rescheduled TimeBlocks (§10). The fixture block is never mutated: moving
+  // work writes a new block here and marks the old one superseded, so the
+  // history of "this was going to happen at X" survives.
+  timeBlockOverrides: Record<string, TimeBlockOverride>;
+  supersededBlockIds: string[];
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
@@ -132,6 +149,10 @@ function emptyRolloverState(): RolloverState {
     deadlineOverrides: {},
     lifecycleOverrides: {},
     manualActualTaskIds: [],
+    phaseOwnVersions: {},
+    replanFlags: {},
+    timeBlockOverrides: {},
+    supersededBlockIds: [],
   };
 }
 
@@ -237,6 +258,20 @@ interface TodayExecutionApi {
   // that way. Pass null to remove it.
   setManualActualMinutes: (taskId: string, minutes: number | null) => void;
   manualActualTaskIds: Set<string>;
+  // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
+  phaseOwnVersions: Record<string, PhaseOwnVersion>;
+  setPhaseOwnField: (phaseId: string, field: keyof PhaseOwnVersion, value: string | null) => void;
+  replanFlags: Record<string, ReplanFlag>;
+  raiseReplan: (flag: ReplanFlag) => void;
+  clearReplan: (taskId: string) => void;
+  timeBlockOverrides: Record<string, TimeBlockOverride>;
+  supersededBlockIds: Set<string>;
+  /**
+   * Moves a Task's work to a new date/time (§10). The original block is
+   * superseded rather than edited, and the new one is created here — so the
+   * plan changes without the record of the old plan disappearing.
+   */
+  rescheduleTimeBlock: (override: TimeBlockOverride, supersededBlockId: string | null) => void;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -260,6 +295,10 @@ interface PersistedShape {
   deadlineOverrides: Record<string, string>;
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
   manualActualTaskIds: string[];
+  phaseOwnVersions: Record<string, PhaseOwnVersion>;
+  replanFlags: Record<string, ReplanFlag>;
+  timeBlockOverrides: Record<string, TimeBlockOverride>;
+  supersededBlockIds: string[];
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -282,6 +321,10 @@ function toPersisted(state: RolloverState): PersistedShape {
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
     manualActualTaskIds: state.manualActualTaskIds,
+    phaseOwnVersions: state.phaseOwnVersions,
+    replanFlags: state.replanFlags,
+    timeBlockOverrides: state.timeBlockOverrides,
+    supersededBlockIds: state.supersededBlockIds,
   };
 }
 
@@ -307,6 +350,10 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     deadlineOverrides: parsed.deadlineOverrides ?? {},
     lifecycleOverrides: parsed.lifecycleOverrides ?? {},
     manualActualTaskIds: parsed.manualActualTaskIds ?? [],
+    phaseOwnVersions: parsed.phaseOwnVersions ?? {},
+    replanFlags: parsed.replanFlags ?? {},
+    timeBlockOverrides: parsed.timeBlockOverrides ?? {},
+    supersededBlockIds: parsed.supersededBlockIds ?? [],
   };
 }
 
@@ -414,6 +461,10 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
     manualActualTaskIds: new Set(state.manualActualTaskIds),
+    phaseOwnVersions: state.phaseOwnVersions,
+    replanFlags: state.replanFlags,
+    timeBlockOverrides: state.timeBlockOverrides,
+    supersededBlockIds: new Set(state.supersededBlockIds),
     history: state.history,
 
     setDone: (updater) =>
@@ -505,6 +556,34 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
     setDeadlineOverride: (taskId, deadline) =>
       setState((s) => ({ ...s, deadlineOverrides: { ...s.deadlineOverrides, [taskId]: deadline } })),
+    setPhaseOwnField: (phaseId, field, value) =>
+      setState((s) => {
+        const current = s.phaseOwnVersions[phaseId] ?? { purpose: null, okState: null, means: null };
+        const trimmed = value !== null && value.trim() !== "" ? value.trim() : null;
+        return {
+          ...s,
+          phaseOwnVersions: { ...s.phaseOwnVersions, [phaseId]: { ...current, [field]: trimmed } },
+        };
+      }),
+    raiseReplan: (flag) =>
+      setState((s) => ({ ...s, replanFlags: { ...s.replanFlags, [flag.taskId]: flag } })),
+    clearReplan: (taskId) =>
+      setState((s) => {
+        const next = { ...s.replanFlags };
+        delete next[taskId];
+        return { ...s, replanFlags: next };
+      }),
+    rescheduleTimeBlock: (override, supersededBlockId) =>
+      setState((s) => ({
+        ...s,
+        timeBlockOverrides: { ...s.timeBlockOverrides, [override.id]: override },
+        supersededBlockIds:
+          supersededBlockId && !s.supersededBlockIds.includes(supersededBlockId)
+            ? [...s.supersededBlockIds, supersededBlockId]
+            : s.supersededBlockIds,
+        // A moved block is no longer reflected in Calendar (§18).
+        calendarSyncOverrides: { ...s.calendarSyncOverrides, [override.id]: true },
+      })),
     setManualActualMinutes: (taskId, minutes) =>
       setState((s) => {
         const next = new Map(s.current.taskActualMinutes);

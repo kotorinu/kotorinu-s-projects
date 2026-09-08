@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useMemo } from "react";
 import Link from "next/link";
-import { salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
+import { gapItems, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
+import GapBoard from "@/components/GapBoard";
+import { GAP_OWNER_LABEL } from "@/lib/gapBoard";
 import { daysBetween, formatMd } from "@/lib/date";
 import { areaProfileBySlug, buildAreaHome } from "@/lib/areaHome";
 import { phaseCoverage } from "@/lib/sales";
@@ -31,6 +33,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     deadlineOverrides,
     workDateOverrides,
     lifecycleOverrides,
+    phaseOwnVersions,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -56,7 +59,21 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   const outcomeDaysLeft =
     data.outcome?.deadline != null ? daysBetween(today, data.outcome.deadline) : null;
 
-  const coverage = profile.area === "営業代行" ? phaseCoverage(salesPhases) : null;
+  const coverage = profile.area === "営業代行" ? phaseCoverage(salesPhases, phaseOwnVersions) : null;
+  // §7: while the headcount is unknown, RIALA's progress is the steps of the
+  // migration — real state, no invented number.
+  const milestones =
+    data.outcome !== null ? outcomeMilestones.filter((m) => m.outcomeId === data.outcome!.id) : [];
+  const gapProgressOverride =
+    coverage !== null
+      ? {
+          "gap-sales-own-version": {
+            done: coverage.ownFieldsFilled,
+            total: coverage.ownFieldsTotal,
+            unit: "項目（11フェーズ×3）",
+          },
+        }
+      : undefined;
   const currentReading =
     profile.area === "GENESIS" ? weeklyReadings.find((r) => r.status === "IN_PROGRESS") ?? null : null;
 
@@ -72,9 +89,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
         }
       : profile.area === "RIALA"
         ? {
-            label: "移行対象者の分類が確定した人数",
-            value: "未確認",
-            sub: "対象者の総数がまだ分からないため、人数では出せない",
+            label: "移行対応の工程",
+            value: `${milestones.filter((m) => m.status === "DONE").length} / ${milestones.length}`,
+            sub: "対象者の総数が未確認のため、人数ではなく工程で見る",
           }
         : {
             label: "毎日の積み上げを実行した日数",
@@ -168,6 +185,55 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 実行時間が決まっていないACTIVE Taskが{data.unscheduledActive.length}件あります
               </p>
             )}
+          </section>
+
+          {/* §7: Outcomeの工程進捗（人数が取れない間の現在地） */}
+          {milestones.length > 0 && (
+            <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
+              <p className="text-[10px] font-black tracking-widest text-stone-400">Outcomeの工程</p>
+              <ol className="mt-1.5 flex flex-col gap-1">
+                {milestones.map((m) => (
+                  <li key={m.id} className="flex items-start gap-2">
+                    <span
+                      className={`mt-0.5 shrink-0 text-[12px] font-black ${
+                        m.status === "DONE"
+                          ? "text-emerald-600"
+                          : m.status === "DOING"
+                            ? "text-accent-dark"
+                            : "text-stone-300"
+                      }`}
+                    >
+                      {m.status === "DONE" ? "✓" : m.status === "DOING" ? "▶" : "□"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12px] font-bold text-stone-700">{m.title}</span>
+                      <span className="block text-[10px] leading-relaxed text-stone-400">
+                        {m.doneWhen}・{GAP_OWNER_LABEL[m.owner]}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+                対象者の総数が確認できたら「分類済み N / 総数」へ切り替えます。数字は作りません。
+              </p>
+            </section>
+          )}
+
+          {/* §4: 何が足りないか */}
+          <section>
+            <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
+              足りていないもの（Gap Board）
+            </p>
+            <GapBoard
+              items={gapItems}
+              area={profile.area}
+              progressOverride={gapProgressOverride}
+              onOpenTask={(taskId) => {
+                const t = data.next.find((n) => n.task.id === taskId)?.task ?? null;
+                if (t) setSelectedTask(t);
+              }}
+            />
           </section>
 
           {/* 営業の学習状況 — 基礎と自分版を分けて出す */}

@@ -3,14 +3,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  activeTimeBlocks,
   areaProfiles,
   fixedCalendarEvents,
   monthEndStates,
   outcomes,
   tasks as allTasks,
 } from "@/lib/dummy-data";
-import { buildAreaHome } from "@/lib/areaHome";
+import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/areaHome";
+import { gapItems } from "@/lib/dummy-data";
+import { mainGap } from "@/lib/gapBoard";
+import { liveTimeBlocks } from "@/lib/livePlan";
+import { REPLAN_REASON_LABEL } from "@/lib/replan";
+import { needsCalendarSyncCount } from "@/lib/calendarSync";
+import { phaseCoverage } from "@/lib/sales";
+import { salesPhases } from "@/lib/dummy-data";
+import AreaControlCard from "@/components/AreaControlCard";
+import GapBoard from "@/components/GapBoard";
 import {
   dayOfMonth,
   daysBetween,
@@ -45,7 +53,7 @@ import TaskDetailSheet from "@/components/TaskDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import OverdueInbox from "@/components/OverdueInbox";
 import DayDetailSheet from "@/components/DayDetailSheet";
-import type { Area, FixedEventType, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
+import type { Area, FixedEventType, HomeArea, Outcome, Priority, Task, TaskStatus } from "@/lib/types";
 
 const WEEKDAY_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -113,6 +121,11 @@ export default function TaskMapPage() {
     deadlineOverrides,
     taskStartedAt,
     lifecycleOverrides,
+    phaseOwnVersions,
+    replanFlags,
+    timeBlockOverrides,
+    supersededBlockIds,
+    calendarSyncOverrides,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [monthOffset, setMonthOffset] = useState(0);
@@ -128,6 +141,45 @@ export default function TaskMapPage() {
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [fixedScheduleOpen, setFixedScheduleOpen] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<HomeArea>("営業代行");
+  const [monthlyOpen, setMonthlyOpen] = useState(false);
+
+  // The live schedule includes blocks created by rescheduling and excludes
+  // the ones they replaced (§10).
+  const planBlocks = useMemo(
+    () => liveTimeBlocks({ timeBlockOverrides, supersededBlockIds }),
+    [timeBlockOverrides, supersededBlockIds]
+  );
+
+  // 自分版 is always derived from the three per-phase fields (§5) — never a
+  // stored counter.
+  const salesCoverage = useMemo(() => phaseCoverage(salesPhases, phaseOwnVersions), [phaseOwnVersions]);
+  const salesOwn = { done: salesCoverage.ownVersionDone, total: salesCoverage.ownVersionAchievable };
+  const gapProgressOverride = useMemo(
+    () => ({
+      "gap-sales-own-version": {
+        done: salesCoverage.ownFieldsFilled,
+        total: salesCoverage.ownFieldsTotal,
+        unit: "項目（11フェーズ×3）",
+      },
+    }),
+    [salesCoverage]
+  );
+
+  // §18: how many decided blocks are still not reflected in Google Calendar.
+  // The app cannot write to Calendar, so this is a real queue, not a status.
+  const calendarSyncPending = useMemo(
+    () => needsCalendarSyncCount(planBlocks, calendarSyncOverrides, new Set(Object.keys(timeBlockOverrides))),
+    [planBlocks, calendarSyncOverrides, timeBlockOverrides]
+  );
+
+  const replanTasks = useMemo(
+    () =>
+      Object.values(replanFlags)
+        .map((flag) => ({ flag, task: allTasks.find((t) => t.id === flag.taskId) }))
+        .filter((x): x is { flag: typeof x.flag; task: Task } => x.task !== undefined),
+    [replanFlags]
+  );
 
   const monthKey = monthKeyOf(monthOffset);
 
@@ -201,11 +253,11 @@ export default function TaskMapPage() {
         weekDateList,
         // Only committed work belongs in "今週" (§2/§3).
         allTasks.filter((t) => isTaskCommitted(t, { lifecycleOverrides })),
-        activeTimeBlocks,
+        planBlocks,
         fixedCalendarEvents,
         workDateOverrides
       ),
-    [weekDateList, workDateOverrides, lifecycleOverrides]
+    [weekDateList, workDateOverrides, lifecycleOverrides, planBlocks]
   );
 
   // Area Home cards (2026-09-08, §20/§21). These are now the top of TASK MAP
@@ -237,7 +289,7 @@ export default function TaskMapPage() {
         return tasksEffectiveOnDate(
           today,
           allTasks.filter((t) => isTaskCommitted(t, overlays)),
-          activeTimeBlocks,
+          planBlocks,
           workDateOverrides
         );
       case "今週":
@@ -246,7 +298,7 @@ export default function TaskMapPage() {
           const deadline = effectiveDeadline(t, overlays);
           const workDate = effectiveWorkDate(t, overlays);
           const inWeek = (d: string | null) => d !== null && d >= weekStart && d <= weekEnd;
-          const scheduled = activeTimeBlocks.some((tb) => tb.taskId === t.id && tb.date >= weekStart && tb.date <= weekEnd);
+          const scheduled = planBlocks.some((tb) => tb.taskId === t.id && tb.date >= weekStart && tb.date <= weekEnd);
           return inWeek(deadline) || inWeek(workDate) || scheduled;
         });
       case "期限超過":
@@ -342,69 +394,81 @@ export default function TaskMapPage() {
         </div>
       </header>
 
-      {/* §21 information order: Area Home cards → this week's day-by-day plan
-          → the full Task inventory. The monthly deadline calendar and the
-          month's progress are support material and moved below. What the user
-          needs first is 何を目指していて次に何をするか. */}
-      <section className="mt-1 px-5">
-        <h2 className="mb-2 text-sm font-bold text-stone-800">Areaごとの現在地</h2>
+      {/* Execution Control Tower (2026-09-08 第4ラウンド, §20).
+          Order: 再計画が必要 → Area Control Cards → 選択AreaのGap Board →
+          今週の実行Plan → 全Task → 補助（締切一覧/月間/完了履歴）.
+          The monthly deadline calendar is no longer the lead: Google Calendar
+          is the better place to see WHEN, and this screen exists to answer
+          何を目指し / 今どこで / 何が足りず / 次に何を. */}
+      {replanTasks.length > 0 && (
+        <section className="mx-5 mt-1 rounded-2xl bg-danger-soft px-4 py-3">
+          <p className="text-xs font-bold text-danger">
+            ⚠ 再計画が必要 <span className="text-stone-800">{replanTasks.length}件</span>
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1.5">
+            {replanTasks.map(({ task, flag }) => (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTask(task)}
+                  className="w-full rounded-xl bg-white/70 px-3 py-2 text-left"
+                >
+                  <p className="text-[12px] font-bold text-stone-800">{task.title}</p>
+                  <p className="mt-0.5 text-[10px] font-bold text-danger">
+                    {REPLAN_REASON_LABEL[flag.reason]}
+                  </p>
+                  <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{flag.detail}</p>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-stone-500">
+            予定・期限・見積のどれかが現実と合っていません。Taskを開いて予定を組み直してください。
+          </p>
+        </section>
+      )}
+
+      {calendarSyncPending > 0 && (
+        <p className="mx-5 mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+          Google Calendarへ未反映の予定が{calendarSyncPending}件あります。このアプリからCalendarへ書き込む機能は未実装のため、手動で反映してください。
+        </p>
+      )}
+
+      <section className="mt-2 px-5">
+        <h2 className="mb-2 text-sm font-bold text-stone-800">Areaの現在地</h2>
         <div className="flex flex-col gap-2 lg:grid lg:grid-cols-3 lg:gap-2">
-          {areaCards.map((a) => {
-            const next = a.next[0];
-            return (
-              <Link
-                key={a.profile.area}
-                href={`/area/${a.profile.slug}`}
-                className="block rounded-2xl bg-white px-4 py-3 shadow-sm transition active:scale-[0.99]"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[a.profile.area]}`}>
-                    {a.profile.area}
-                  </span>
-                  <span className="shrink-0 text-[11px] font-bold text-stone-300">›</span>
-                </div>
-
-                <p className="mt-1.5 truncate text-[10px] font-bold text-stone-400">
-                  GOAL {a.profile.standingGoal}
-                </p>
-                {a.outcome ? (
-                  <p className="mt-1 text-[12px] font-bold leading-snug text-stone-800">
-                    {a.outcome.title}
-                    {a.outcome.deadline && (
-                      <span className="ml-1.5 whitespace-nowrap font-black text-accent-dark">
-                        〜{formatMd(a.outcome.deadline)}
-                      </span>
-                    )}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-stone-400">Outcome未設定</p>
-                )}
-
-                {next && (
-                  <p className="mt-1.5 truncate text-[12px] font-medium text-accent-dark">
-                    次：{next.task.title}
-                    {next.block && (
-                      <span className="ml-1 font-black tabular-nums text-stone-400">
-                        {formatMd(next.block.date)} {next.block.startTime}
-                      </span>
-                    )}
-                  </p>
-                )}
-
-                <p className="mt-1.5 text-[10px] font-bold text-stone-400">
-                  実行中の計画 {a.activeCount}件・Backlog {a.backlogCount}件
-                  {a.overdueCount > 0 && <span className="text-danger">・期限超過 {a.overdueCount}件</span>}
-                  {a.blockedCount > 0 && <span>・Blocked {a.blockedCount}件</span>}
-                </p>
-                {a.profile.blockers.length > 0 && (
-                  <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-stone-400">
-                    ⚠ {a.profile.blockers[0]}
-                  </p>
-                )}
-              </Link>
-            );
-          })}
+          {areaCards.map((a) => (
+            <AreaControlCard
+              key={a.profile.area}
+              data={a}
+              today={today}
+              headline={areaHeadline(a.profile.area, a.profile.area === "営業代行" ? salesOwn : null)}
+              mainGap={mainGap(gapItems, a.profile.area)}
+              nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks)}
+              risks={areaRisks(a, gapItems)}
+              selected={selectedArea === a.profile.area}
+              onSelect={() => setSelectedArea(a.profile.area)}
+            />
+          ))}
         </div>
+      </section>
+
+      <section className="mt-2.5 px-5">
+        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-bold text-stone-800">{selectedArea}に足りていないもの</h2>
+          <Link href={`/area/${areaCards.find((a) => a.profile.area === selectedArea)?.profile.slug ?? "sales"}`} className="text-[11px] font-bold text-accent-dark">
+            Area Home ›
+          </Link>
+        </div>
+        <GapBoard
+          items={gapItems}
+          area={selectedArea}
+          progressOverride={gapProgressOverride}
+          onOpenTask={(taskId) => {
+            const t = allTasks.find((task) => task.id === taskId);
+            if (t) setSelectedTask(t);
+          }}
+        />
       </section>
 
       <WeekView
@@ -418,8 +482,20 @@ export default function TaskMapPage() {
         onOpenDay={(date) => setSelectedDate(date)}
       />
 
+      {/* 補助情報 (§2/§20): WHENを把握するのはGoogle Calendarの方が適して
+          いるので、月間締切カレンダーは折りたたみへ降格した。消してはいない。 */}
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
-        <p className="mb-2.5 text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切カレンダー</p>
+        <button
+          type="button"
+          onClick={() => setMonthlyOpen((v) => !v)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <span className="text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切一覧</span>
+          <span className="text-[11px] text-stone-300">{monthlyOpen ? "▾" : "▸"}</span>
+        </button>
+        {monthlyOpen && (
+        <>
+        <p className="mb-2.5 mt-2 text-[10px] text-stone-400">補助情報です。実行の判断はArea Controlと今週のPlanで行います。</p>
         <div className="grid grid-cols-7 gap-y-1.5 text-center">
           {WEEKDAY_LABEL.map((w) => (
             <span key={w} className="text-[9px] font-bold text-stone-300">
@@ -453,6 +529,8 @@ export default function TaskMapPage() {
             )
           )}
         </div>
+        </>
+        )}
       </section>
 
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">

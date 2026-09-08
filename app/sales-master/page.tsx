@@ -6,6 +6,7 @@ import { roleplayFeedback, salesPhases, salesSprint } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
 import { computeSprintProgress, masteryStatusLabel, phaseCoverage } from "@/lib/sales";
 import SalesPhaseDetailSheet from "@/components/SalesPhaseDetailSheet";
+import { useTodayExecution } from "@/lib/todayExecutionStore";
 import type { SalesPhase } from "@/lib/types";
 
 const masteryDot: Record<SalesPhase["masteryStatus"], string> = {
@@ -19,8 +20,11 @@ const masteryDot: Record<SalesPhase["masteryStatus"], string> = {
 
 export default function SalesMasterPage() {
   const [selected, setSelected] = useState<SalesPhase | null>(null);
+  // 自分版は本人が書いた内容から導出する（§5）。fixtureは不変なので
+  // 入力はstoreのoverlayに入る——ここで読まないとCoverageが動かない。
+  const { phaseOwnVersions } = useTodayExecution();
   const progress = computeSprintProgress(salesPhases, roleplayFeedback);
-  const coverage = phaseCoverage(salesPhases);
+  const coverage = phaseCoverage(salesPhases, phaseOwnVersions);
 
   return (
     <div className="flex flex-col pb-8">

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { liveSalesFeedback, practitionerFeedback, roleplayFeedback } from "@/lib/dummy-data";
 import { feedbackForPhase, masteryStatusLabel } from "@/lib/sales";
+import PhaseOwnVersionEditor from "@/components/PhaseOwnVersionEditor";
 import type { SalesPhase } from "@/lib/types";
 
 export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: SalesPhase; onClose: () => void }) {
@@ -76,16 +77,12 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
           </Section>
 
           <Section title="② 自分版">
-            <div className="flex flex-col gap-2 text-[13px] leading-relaxed text-stone-700">
-              {phase.myUnderstanding ? (
-                <Field label="自分の理解" value={phase.myUnderstanding} />
-              ) : (
-                <EmptyNote text="まだ書かれていません" />
-              )}
-              <ListFieldOrEmpty label="自分の質問" items={phase.myQuestions} />
-              <ListFieldOrEmpty label="自分のトーク" items={phase.myTalkExamples} />
-              <ListFieldOrEmpty label="次フェーズへのつなぎ" items={phase.myTransitionTalk} />
-            </div>
+            <PhaseOwnVersionEditor phase={phase} />
+            {phase.myTransitionTalk.length > 0 && (
+              <div className="mt-2">
+                <ListFieldOrEmpty label="次フェーズへのつなぎ" items={phase.myTransitionTalk} />
+              </div>
+            )}
           </Section>
 
           <Section title="③ 実践者FB">

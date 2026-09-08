@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fixedCalendarEvents, goals, outcomes, recurringRules, activeTimeBlocks, tasks as allTasks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince, nowHm } from "@/lib/date";
 import { capabilityBadge, capabilityOwnerLabel } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
 import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
 import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/executionBaseline";
+import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
+import RunbookStrip from "@/components/RunbookStrip";
 import {
   buildCompletionRecord,
   effectiveDeadline,
@@ -17,7 +19,7 @@ import {
   overdueTasks as computeOverdueTasks,
 } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
-import type { CarryoverDisposition, FixedEventType, RecurringRule, Task } from "@/lib/types";
+import type { CarryoverDisposition, FixedEventType, RecurringRule, SessionRunbook, Task } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import OverdueInbox from "@/components/OverdueInbox";
@@ -85,6 +87,8 @@ export default function TodayPage() {
     uncompleteTask,
     setTaskDisposition,
     lifecycleOverrides,
+    timeBlockOverrides,
+    supersededBlockIds,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   // "Done" = a durable completion record (or an authored-complete fixture
@@ -192,7 +196,11 @@ export default function TodayPage() {
   // counts as today's work even if its own workDate/deadline points
   // elsewhere — the TimeBlock is the stronger, more current signal. Also
   // includes any Task re-placed onto today via a Carryover decision (§10).
-  const activeTimeBlocksToday = useMemo(() => activeTimeBlocks.filter((tb) => tb.date === today), [today]);
+  const planBlocks = useMemo(
+    () => liveTimeBlocks({ timeBlockOverrides, supersededBlockIds }),
+    [timeBlockOverrides, supersededBlockIds]
+  );
+  const activeTimeBlocksToday = useMemo(() => planBlocks.filter((tb) => tb.date === today), [planBlocks, today]);
   const scheduledTaskIds = useMemo(() => new Set(activeTimeBlocksToday.map((tb) => tb.taskId)), [activeTimeBlocksToday]);
 
   // 2026-09-08 (§2): only committed work is today's work. A BACKLOG Task whose
@@ -203,10 +211,10 @@ export default function TodayPage() {
       tasksEffectiveOnDate(
         today,
         allTasks.filter((t) => isTaskCommitted(t, { lifecycleOverrides })),
-        activeTimeBlocks,
+        planBlocks,
         workDateOverrides
       ),
-    [today, workDateOverrides, lifecycleOverrides]
+    [today, workDateOverrides, lifecycleOverrides, planBlocks]
   );
 
   // OVERDUE is derived (期限 < 今日 かつ 未完了 かつ 未DROP), never a stored
@@ -236,7 +244,7 @@ export default function TodayPage() {
   // identities) without any real performance benefit.
   const yesterday = addDaysToYmd(today, -1);
   const yesterdayRecord = history[yesterday] ?? null;
-  const yesterdayScheduledTasks = tasksScheduledOnDate(yesterday, allTasks, activeTimeBlocks);
+  const yesterdayScheduledTasks = tasksScheduledOnDate(yesterday, allTasks, planBlocks);
   const yesterdayCompletedCount = yesterdayRecord?.completedTaskIds.length ?? 0;
   const yesterdayTotalCount = yesterdayScheduledTasks.length;
   const yesterdayActualMinutesTotal = yesterdayRecord
@@ -259,7 +267,7 @@ export default function TodayPage() {
       ? pendingCarryoverTasks(
           yesterday,
           allTasks,
-          activeTimeBlocks,
+          planBlocks,
           new Set(yesterdayRecord.completedTaskIds),
           carryover
         ).filter((t) => t.id !== startedTaskId && isTaskOpen(t, overlays))
@@ -363,6 +371,14 @@ export default function TodayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [todayTasks, scheduledTaskIds, done, completions, startedTaskId, lifecycleOverrides]
   );
+
+  // §13/§14: only blocks of 60min+ that actually have an authored runbook.
+  function runbookForBlock(item: Extract<TimelineItem, { kind: "task" }>): SessionRunbook | null {
+    const block = planBlocks.find(
+      (b) => b.taskId === item.task.id && b.date === today && b.startTime === item.startTime
+    );
+    return block ? runbookFor(block) : null;
+  }
 
   const preparationCountByTaskId = useMemo(() => {
     const map = new Map<string, number>();
@@ -631,6 +647,7 @@ export default function TodayPage() {
                         started={startedTaskId === item.task.id}
                         actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
                         nowHmValue={nowHmValue}
+                        runbook={runbookForBlock(item)}
                         onStart={() => requestStart(item.task.id)}
                         onComplete={() => requestComplete(item.task)}
                         onUndo={() => undoComplete(item.task)}
@@ -1145,6 +1162,7 @@ function TimelineTaskCard({
   started,
   actualMinutes,
   nowHmValue,
+  runbook,
   onStart,
   onComplete,
   onUndo,
@@ -1157,6 +1175,7 @@ function TimelineTaskCard({
   started: boolean;
   actualMinutes: number | null;
   nowHmValue: string;
+  runbook: SessionRunbook | null;
   onStart: () => void;
   onComplete: () => void;
   onUndo: () => void;
@@ -1234,6 +1253,10 @@ function TimelineTaskCard({
               </span>
             )}
           </div>
+
+          {isFocused && !checked && runbook && (
+            <RunbookStrip runbook={runbook} nowHmValue={nowHmValue} />
+          )}
 
           {isFocused && !checked && (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">

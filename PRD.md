@@ -1907,3 +1907,84 @@ completionレコードのactual/varianceも同時に更新する。推測値は�
 営業代行＝自分版が書けているフェーズ数 / RIALA＝分類が確定した人数（対象者
 総数が未確認なので「未確認」と出す）/ GENESIS＝積み上げの実行日数。
 Task完了率は使わない——活動量であって成果ではないため。
+
+# Execution Control Tower（2026-09-08 第4ラウンド）
+
+TASK MAPを、月の締切カレンダーを眺める画面から、
+**今何を目指し / 何ができ / 何が足りず / 次に何を / いつやるか / 崩れたら何を
+組み直すか** が10秒で分かる管制画面へ再設計した。
+
+## TASK MAPの情報順
+
+**再計画が必要 → Area Control Cards → 選択AreaのGap Board → 今週の実行Plan
+→ 全Task → 補助（締切一覧・今月の前進・完了履歴）**
+
+月間締切カレンダーは折りたたみへ降格。WHENの把握はGoogle Calendarの方が
+適しており、この画面の役割ではない。消してはいない。
+
+## Area Control Card
+
+Area / Current Outcome / Deadline+残日数 / **追っている数字** / Main Gap /
+Next 1〜3（時刻付き）/ 今日または次のTimeBlock / Blocked・Risk を1枚に。
+カードをタップで選択、下部の「Area Homeを開く」で遷移。文章は置かない。
+
+## Gap Board（DOING / READY / WAITING / BACKLOG / DONE）
+
+Taskだけを並べても「何が足りないか」は見えないので、
+**TASK / CAPABILITY / PROBLEM / LEARNING / OPERATION** をカードとして同じ盤に
+載せた。列の順序は DOING → READY → WAITING → BACKLOG → DONE。
+
+**WAITINGは赤くしない。** 商品レクチャー待ちのように自分では動かせないもの
+を「未達」と表示すると、盤そのものが信用されなくなる。
+
+RIALAは所有者を出す（自分 / AI / AI→自分 / 相手待ち）。AIが先に成果物を
+作る工程は人間Taskとして積まない。
+
+## 自分版 0/11 の透明化
+
+Phaseごとに **① 自分の言葉の目的 ② 自分の言葉のOK状態 ③ 自分の質問・
+引き出し方** を持たせ、Phase詳細から直接書けるようにした。表示は「自分版
+2 / 3」で、足りない項目が □ で見える。
+
+**0/11 は3項目から必ず導出する。** 手で増やすカウンターは存在しない。
+Gap Boardには部分点として「0 / 33 項目（11フェーズ×3）」も出す。
+
+## RIALAの進捗（工程ベース）
+
+対象者の総数が未確認なので人数では出せない。Outcomeを工程へ分解し、
+対象者一覧最新化 → 未移行者抽出 → 再DM送信 → Status更新 → 最終分類 の
+現在地を出す。総数が取れたら「分類済み N / 総数」へ切り替える。数字は作らない。
+
+## 予定変更・Deadline Risk・Replan
+
+Task Detailの「予定を変更」で 今日の別時間 / 明日 / 日付指定 を選び、
+**date + startTime + endTime を必ず設定**してから確定する。
+
+- 旧TimeBlock → SUPERSEDED、新TimeBlock → ACTIVE（fixtureは書き換えない）
+- 期限を超える変更には「この変更では期限に間に合いません」と警告し、
+  **期限を勝手に動かさない**（動かすかはチェックボックスで本人が選ぶ）
+- 延期・期限超過見込み・Blocked・大幅超過・Outcome変更・新情報 で
+  `NEEDS_REPLAN`。TASK MAP最上部にInboxとして出す
+
+## Session Runbook
+
+60分以上のTimeBlockにだけ、15〜30分単位の進め方を持たせた。
+Calendarイベントは1件のまま増やさない。TODAYでは「いまここ」と
+**NEXT STEP が常に1つ**見える。15分刻みを機械的に全Taskへ当てない。
+
+## 計測の使い道
+
+差が **20%以上または15分以上** のときだけ理由入力を促す。毎回聞くと
+無視する癖がつく。見積り候補は同種Taskの実績が **3件以上** 溜まってから
+中央値で提案するだけで、自動変更しない。グラフは作らない。
+
+## Calendar Sync State
+
+`DRAFT / COMMITTED / NEEDS_CALENDAR_SYNC / CALENDAR_CONFIRMED`。
+CALENDAR_CONFIRMED には実際の `calendarEventId` が必要で、書き込み機能が
+無い現在は誰も到達しない。OS内で予定を動かすと NEEDS_CALENDAR_SYNC へ戻り、
+TASK MAP上部に未反映件数を出す。
+
+## 今回やっていないこと
+
+大規模DB化 / グラフ画面 / 完全なAI Planner / Google Calendar OAuth・API実装

@@ -870,3 +870,133 @@ export interface ProblemDecompositionKnowledge {
   relatedGoalId: string | null;
   caveat: string | null;
 }
+
+// ============================================================
+// Execution Control Tower (2026-09-08 第4ラウンド)
+// ============================================================
+
+// Where a piece of work sits on the way to an Outcome (§4).
+// WAITING is deliberately distinct from BACKLOG: waiting means it cannot move
+// because something outside the user is missing (product info, a reply, an
+// external decision), and it must never be coloured as a failure.
+export type GapStatus = "BACKLOG" | "READY" | "DOING" | "WAITING" | "DONE";
+
+// Not everything between here and the Outcome is a Task. A missing skill, an
+// unanswered question, a piece of knowledge not yet absorbed, an operation
+// that isn't set up — these block the Outcome just as hard, and if the board
+// only shows Tasks the real gap stays invisible.
+export type GapKind =
+  | "TASK" // 実行Taskそのもの
+  | "CAPABILITY" // できるようになる必要がある能力
+  | "PROBLEM" // 解決すべき問題
+  | "LEARNING" // 理解・知識の不足
+  | "OPERATION"; // 運用として回っていないもの
+
+// Who moves this forward. RIALA is AI-first: work AI can do is shown as an AI
+// operation, not as something queued on the user (§8).
+export type GapOwner = "HUMAN" | "AI" | "AI_THEN_HUMAN" | "EXTERNAL";
+
+export interface GapItem {
+  id: string;
+  area: HomeArea;
+  kind: GapKind;
+  status: GapStatus;
+  title: string;
+  /** 何が満たされたらDONEか。Taskと同じく判定できる形で書く。 */
+  doneWhen: string;
+  owner: GapOwner;
+  /** Linked execution Task, when this gap is currently being worked as one. */
+  taskId: string | null;
+  /** Why it is WAITING — required for WAITING, so a blocked item explains itself. */
+  waitingOn: string | null;
+  /** Progress within the item, when it has countable parts (e.g. 17 phases). */
+  progress: { done: number; total: number; unit: string } | null;
+  /** Ordering within a column: lower first. */
+  sortOrder: number;
+  note: string | null;
+}
+
+// --- Session Runbook (§13) ---
+// A long block ("19:00-21:30 営業") tells the user nothing about how to spend
+// it. A runbook breaks it into 15-30 minute steps WITHOUT creating a swarm of
+// Calendar events. Written per Task from its actual content — never a
+// mechanical 15-minute split applied to everything.
+export interface RunbookStep {
+  id: string;
+  startTime: string; // HH:mm
+  endTime: string;
+  label: string;
+  /** What this step must produce before moving on. */
+  outputs: string;
+}
+
+export interface SessionRunbook {
+  timeBlockId: string;
+  steps: RunbookStep[];
+  note: string | null;
+}
+
+// --- Replan (§12) ---
+export type ReplanReason =
+  | "POSTPONED" // 予定を後ろへ動かした
+  | "DEADLINE_AT_RISK" // このままでは期限に間に合わない見込み
+  | "BLOCKED" // 進められない
+  | "LARGE_OVERRUN" // 予定時間を大幅に超過した
+  | "OUTCOME_CHANGED" // 上位Outcomeが変わった
+  | "NEW_INFORMATION"; // 新しい情報が入った（商品レクチャー等）
+
+export interface ReplanFlag {
+  taskId: string;
+  reason: ReplanReason;
+  detail: string;
+  raisedOnDate: string;
+  raisedAt: string;
+}
+
+// --- Calendar sync state (§17) ---
+// Four states, and the app never skips one. CALENDAR_CONFIRMED requires a real
+// calendarEventId; there is no Calendar API write yet, so nothing reaches it
+// and nothing pretends to.
+export type TimeBlockSyncState =
+  | "DRAFT" // OS内の下書き。まだ実行すると決めていない
+  | "COMMITTED" // 実行すると決めた。Calendarにはまだ無い
+  | "NEEDS_CALENDAR_SYNC" // Calendarへ反映が必要（新規・変更どちらも）
+  | "CALENDAR_CONFIRMED"; // 実際のCalendarイベントと対応している
+
+// --- Sales 自分版 (§5) ---
+// The three fields that make a phase's own version complete. Stored per phase
+// so "0/11" is always derived, never a counter someone increments.
+export interface PhaseOwnVersion {
+  purpose: string | null; // 自分の言葉での目的
+  okState: string | null; // 自分の言葉でのOK状態
+  means: string | null; // 自分の質問・引き出し方
+}
+
+// --- RIALA outcome milestones (§7) ---
+// While the total number of people is unknown, progress is shown as the steps
+// of the migration, not as an invented headcount.
+export interface OutcomeMilestone {
+  id: string;
+  outcomeId: string;
+  order: number;
+  title: string;
+  status: GapStatus;
+  doneWhen: string;
+  owner: GapOwner;
+}
+
+// A TimeBlock created by rescheduling inside the OS (§10). Carries everything
+// needed to render it as a real block; the fixture block it replaces is left
+// untouched and marked superseded separately.
+export interface TimeBlockOverride {
+  id: string;
+  taskId: string;
+  label: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  createdOnDate: string;
+  createdAt: string;
+  replacesBlockId: string | null;
+  reason: string;
+}

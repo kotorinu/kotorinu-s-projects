@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, outcomes, tasks as allTasks, activeTimeBlocks, workPrinciples } from "@/lib/dummy-data";
+import { goals, monthEndStates, outcomes, tasks as allTasks, workPrinciples } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
@@ -14,7 +14,25 @@ import ProgressBar from "@/components/ProgressBar";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import TaskOrganizeMenu from "@/components/TaskOrganizeMenu";
 import ManualActualEntry from "@/components/ManualActualEntry";
+import RescheduleDialog from "@/components/RescheduleDialog";
+import { CALENDAR_SYNC_HINT, CALENDAR_SYNC_LABEL, calendarSyncState } from "@/lib/calendarSync";
+import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
+import { buildReplanFlag, isPostponement } from "@/lib/replan";
+import { effectiveDeadline } from "@/lib/taskState";
+import { suggestEstimate } from "@/lib/estimateCalibration";
+import { shouldAskVarianceReason } from "@/lib/estimateCalibration";
 import type { Task, VarianceReason } from "@/lib/types";
+
+// Module scope so the React Compiler purity rule sees these as calls into a
+// helper rather than impure work in the component body — they only ever run
+// from an event handler.
+function newBlockId(taskId: string): string {
+  return `tbo-${taskId}-${Date.now()}`;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
 
 const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
   MESSAGE_DRAFT: "メッセージ下書き",
@@ -69,14 +87,74 @@ export default function TaskDetailSheet({
     taskActualMinutes,
     manualActualTaskIds,
     setManualActualMinutes,
+    timeBlockOverrides,
+    supersededBlockIds,
+    deadlineOverrides,
+    completions,
+    rescheduleTimeBlock,
+    setDeadlineOverride,
+    raiseReplan,
+    replanFlags,
+    clearReplan,
   } = useTodayExecution();
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   // The timed value from the page, when there is one; otherwise whatever is
   // stored (including a hand-typed figure) so this sheet works from TASK MAP
   // and Area Home too, not only from TODAY.
   const shownActualMinutes = actualMinutes ?? taskActualMinutes.get(task.id) ?? null;
-  const linkedTimeBlocks = activeTimeBlocks
+  const planBlocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds });
+  const linkedTimeBlocks = planBlocks
     .filter((tb) => tb.taskId === task.id)
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
+  // The block being worked next — what "予定を変更" moves, and where a
+  // Session Runbook comes from.
+  const nextBlock = linkedTimeBlocks.find((tb) => tb.date >= today) ?? linkedTimeBlocks[0] ?? null;
+  const runbook = nextBlock ? runbookFor(nextBlock) : null;
+  const taskDeadline = effectiveDeadline(task, { deadlineOverrides });
+  const replanFlag = replanFlags[task.id] ?? null;
+  const estimateSuggestion = suggestEstimate(task, allTasks, completions);
+
+  function applyReschedule(args: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    acceptDeadlineMiss: boolean;
+    newDeadline: string | null;
+  }) {
+    const replaced = nextBlock;
+    rescheduleTimeBlock(
+      {
+        id: newBlockId(task.id),
+        taskId: task.id,
+        label: task.title,
+        date: args.date,
+        startTime: args.startTime,
+        endTime: args.endTime,
+        createdOnDate: today,
+        createdAt: nowIso(),
+        replacesBlockId: replaced?.id ?? null,
+        reason: "本人が予定を変更",
+      },
+      replaced?.id ?? null
+    );
+    // The deadline only moves when the user explicitly says so (§11).
+    if (args.newDeadline) setDeadlineOverride(task.id, args.newDeadline);
+    if (args.acceptDeadlineMiss) {
+      raiseReplan(
+        buildReplanFlag(
+          task.id,
+          "DEADLINE_AT_RISK",
+          `${args.date} へ移動したため、期限 ${taskDeadline ?? "-"} に間に合わない見込み`,
+          today
+        )
+      );
+    } else if (isPostponement(replaced, args.date)) {
+      raiseReplan(
+        buildReplanFlag(task.id, "POSTPONED", `${replaced!.date} から ${args.date} へ移動`, today)
+      );
+    }
+    setRescheduleOpen(false);
+  }
   const series = resolveSeries(task, allTasks);
 
   const goal = task.goalId ? goals.find((g) => g.id === task.goalId) ?? null : null;
@@ -412,6 +490,21 @@ export default function TaskDetailSheet({
 
             {/* 実績時間の手入力 (2026-09-08): 開始/完了を押し忘れても実績が
                 貯まるようにする。押し忘れると見積り改善のデータが止まる。 */}
+            {estimateSuggestion && (
+              <div className="mt-2 rounded-2xl bg-stone-50 px-3.5 py-3">
+                <p className="text-[11px] font-bold text-stone-500">次回の見積り候補</p>
+                <p className="mt-0.5 text-[13px] font-black text-stone-800">
+                  {estimateSuggestion.suggestedMinutes}分
+                  <span className="ml-1.5 text-[10px] font-bold text-stone-400">
+                    （{estimateSuggestion.basis}の実績 {estimateSuggestion.samples.join(" / ")}分）
+                  </span>
+                </p>
+                <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+                  提案です。自動では変更しません。
+                </p>
+              </div>
+            )}
+
             <ManualActualEntry
               task={task}
               actualMinutes={shownActualMinutes}
@@ -420,7 +513,9 @@ export default function TaskDetailSheet({
               onClear={() => setManualActualMinutes(task.id, null)}
             />
 
-            {shownActualMinutes !== null && task.estimateMinutes !== null && onSetVarianceReason && (
+            {/* §15: only ask when the gap is 20%+ or 15min+. Asking every
+                time trains the user to dismiss it. */}
+            {shouldAskVarianceReason(task.estimateMinutes, shownActualMinutes) && onSetVarianceReason && (
               <div className="mt-3">
                 <p className="mb-1.5 text-[10px] font-bold text-stone-400">なぜ差が出た？（任意）</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -479,6 +574,29 @@ export default function TaskDetailSheet({
 
           {linkedTimeBlocks.length > 0 && (
             <Section title="予定（Time Block）">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleOpen(true)}
+                  className="rounded-full bg-stone-800 px-3 py-1.5 text-[11px] font-bold text-white"
+                >
+                  予定を変更
+                </button>
+                {replanFlag && (
+                  <button
+                    type="button"
+                    onClick={() => clearReplan(task.id)}
+                    className="rounded-full bg-danger-soft px-3 py-1.5 text-[11px] font-bold text-danger"
+                  >
+                    再計画済みにする
+                  </button>
+                )}
+              </div>
+              {replanFlag && (
+                <p className="mb-2 rounded-xl bg-danger-soft px-3 py-2 text-[11px] leading-relaxed text-danger">
+                  ⚠ 再計画が必要：{replanFlag.detail}
+                </p>
+              )}
               <ul className="flex flex-col gap-1.5">
                 {linkedTimeBlocks.map((tb) => {
                   const isPast = tb.date < today;
@@ -495,6 +613,26 @@ export default function TaskDetailSheet({
                           {tb.startTime}〜{tb.endTime}
                         </span>
                       </div>
+                      {(() => {
+                        // §17: four explicit states. CALENDAR_CONFIRMED needs a
+                        // real calendarEventId, so nothing here claims to be
+                        // synced when it isn't.
+                        const sync = calendarSyncState(tb, { syncEnabled });
+                        return (
+                          <p
+                            className={`mt-1 text-[10px] font-bold ${
+                              sync === "CALENDAR_CONFIRMED"
+                                ? "text-emerald-600"
+                                : sync === "NEEDS_CALENDAR_SYNC"
+                                  ? "text-amber-700"
+                                  : "text-stone-400"
+                            }`}
+                            title={CALENDAR_SYNC_HINT[sync]}
+                          >
+                            {CALENDAR_SYNC_LABEL[sync]}
+                          </p>
+                        );
+                      })()}
                       <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-stone-200/70 pt-1.5">
                         <span className="text-[10px] font-bold text-stone-400">
                           {tb.calendarEventId ? "📅 Google Calendar同期済み" : "Google Calendarへ表示"}
@@ -521,9 +659,41 @@ export default function TaskDetailSheet({
             </Section>
           )}
 
+          {runbook && nextBlock && (
+            <Section title="この枠の進め方（Session Runbook）">
+              <p className="mb-1.5 text-[10px] leading-relaxed text-stone-400">
+                {formatMd(nextBlock.date)} {nextBlock.startTime}〜{nextBlock.endTime}
+                の進め方です。Calendarには1件のまま——15分ごとの予定は作りません。
+              </p>
+              <ol className="flex flex-col gap-1.5">
+                {runbook.steps.map((step) => (
+                  <li key={step.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
+                    <p className="tabular-nums text-[11px] font-black text-accent-dark">
+                      {step.startTime}〜{step.endTime}
+                    </p>
+                    <p className="mt-0.5 text-[12px] font-bold text-stone-800">{step.label}</p>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">→ {step.outputs}</p>
+                  </li>
+                ))}
+              </ol>
+              {runbook.note && <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">{runbook.note}</p>}
+            </Section>
+          )}
+
           <TaskOrganizeMenu task={task} onDone={onClose} />
         </div>
       </div>
+
+      {rescheduleOpen && (
+        <RescheduleDialog
+          task={task}
+          currentBlock={nextBlock}
+          today={today}
+          effectiveDeadline={taskDeadline}
+          onCancel={() => setRescheduleOpen(false)}
+          onConfirm={applyReschedule}
+        />
+      )}
 
       {outcomeSheetOpen && outcome && (
         <OutcomeDetailSheet outcome={outcome} onClose={() => setOutcomeSheetOpen(false)} />
