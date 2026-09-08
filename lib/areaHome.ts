@@ -1,4 +1,4 @@
-import { activeTimeBlocks, areaProfiles, outcomes, tasks as allTasks } from "./dummy-data";
+import { areaProfiles, outcomes, tasks as allTasks } from "./dummy-data";
 import { pickAreaOutcome } from "./outcomeSelection";
 import {
   effectiveDeadline,
@@ -46,7 +46,9 @@ export function areaProfileBySlug(slug: string): AreaProfile | null {
 export function buildAreaHome(
   area: HomeArea,
   today: string,
-  overlays: TaskStateOverlays
+  overlays: TaskStateOverlays,
+  /** The live schedule (fixture minus superseded, plus rescheduled). §19 */
+  planBlocks: TimeBlock[]
 ): AreaHomeData {
   const profile = areaProfiles.find((p) => p.area === area)!;
   const outcome = pickAreaOutcome(area, outcomes);
@@ -60,7 +62,7 @@ export function buildAreaHome(
   const backlog = open.filter((t) => effectiveLifecycle(t, overlays) === "BACKLOG");
 
   const blockFor = (task: Task) =>
-    activeTimeBlocks
+    planBlocks
       .filter((tb) => tb.taskId === task.id)
       .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1))
       .find((tb) => tb.date >= today) ?? null;
@@ -141,19 +143,26 @@ export function nextBlockForArea(
   today: string,
   blocks: TimeBlock[],
   tasks: Task[],
-  nowHm?: string
+  nowHm?: string,
+  overlays?: TaskStateOverlays
 ): { block: TimeBlock; taskTitle: string } | null {
   const candidates = blocks
     .filter((b) => {
+      // §14: ACTIVE only — a superseded block is history, not a plan.
       if (b.taskId === null || b.lifecycle !== "ACTIVE") return false;
       if (b.date > today) return true;
       if (b.date < today) return false;
+      // …and it must not have ended already.
       return nowHm === undefined || b.endTime > nowHm;
     })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
   for (const block of candidates) {
     const task = tasks.find((t) => t.id === block.taskId);
-    if (task && task.area === area) return { block, taskTitle: task.title };
+    if (!task || task.area !== area) continue;
+    // §14: a finished or dropped Task is never "next", even if its block
+    // is still sitting in the future.
+    if (overlays && !isTaskOpen(task, overlays)) continue;
+    return { block, taskTitle: task.title };
   }
   return null;
 }

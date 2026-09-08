@@ -13,9 +13,9 @@ import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/
 import { allGapItems, blockers, outcomeMilestones } from "@/lib/dummy-data";
 import { mainGap, resolveGaps } from "@/lib/gapBoard";
 import { AREA_THEME, themeFor } from "@/lib/areaTheme";
-import { liveTimeBlocks } from "@/lib/livePlan";
+import { liveTimeBlocks, supersededByReschedule } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
-import { needsCalendarSyncCount } from "@/lib/calendarSync";
+import PlanIntegrityPanel from "@/components/PlanIntegrityPanel";
 import { phaseCoverage } from "@/lib/sales";
 import { salesPhases } from "@/lib/dummy-data";
 import AreaControlCard from "@/components/AreaControlCard";
@@ -33,7 +33,7 @@ import {
   weekDates,
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
-import { nowHm } from "@/lib/date";
+import { useClock } from "@/lib/currentTime";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
@@ -128,7 +128,6 @@ export default function TaskMapPage() {
     replanFlags,
     timeBlockOverrides,
     supersededBlockIds,
-    calendarSyncOverrides,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [monthOffset, setMonthOffset] = useState(0);
@@ -147,18 +146,9 @@ export default function TaskMapPage() {
   const [selectedArea, setSelectedArea] = useState<HomeArea>("営業代行");
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  // Hydration-safe clock: starts at a fixed value, real time arrives in the
-  // effect below. Never call nowHm() during render (see the store's comment).
-  const [nowHmValue, setNowHmValue] = useState("00:00");
-  useEffect(() => {
-    const tick = () => setNowHmValue(nowHm());
-    const id = setTimeout(tick, 0);
-    const interval = setInterval(tick, 60_000);
-    return () => {
-      clearTimeout(id);
-      clearInterval(interval);
-    };
-  }, []);
+  // §16: one clock for the whole app, so TODAY and TASK MAP can never
+  // disagree about what "now" is.
+  const { nowHmValue } = useClock();
 
   // The live schedule includes blocks created by rescheduling and excludes
   // the ones they replaced (§10).
@@ -182,11 +172,11 @@ export default function TaskMapPage() {
     [salesCoverage]
   );
 
-  // §18: how many decided blocks are still not reflected in Google Calendar.
-  // The app cannot write to Calendar, so this is a real queue, not a status.
-  const calendarSyncPending = useMemo(
-    () => needsCalendarSyncCount(planBlocks, calendarSyncOverrides, new Set(Object.keys(timeBlockOverrides))),
-    [planBlocks, calendarSyncOverrides, timeBlockOverrides]
+  // §17/§22: blocks replaced by a reschedule — their Calendar events are now
+  // stale, which is exactly what the diff needs to report as DELETE.
+  const staleBlocks = useMemo(
+    () => supersededByReschedule({ timeBlockOverrides, supersededBlockIds }),
+    [timeBlockOverrides, supersededBlockIds]
   );
 
   // §33: a Task-backed gap takes its status from the Task, so the board and
@@ -297,7 +287,7 @@ export default function TaskMapPage() {
   // is derived from the real Task set; an Area with no Outcome says so
   // rather than being given an invented one.
   const areaCards = useMemo(
-    () => areaProfiles.map((p) => buildAreaHome(p.area, today, overlays)),
+    () => areaProfiles.map((p) => buildAreaHome(p.area, today, overlays, planBlocks)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]
   );
@@ -459,11 +449,13 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {calendarSyncPending > 0 && (
-        <p className="mx-5 mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-          Google Calendarへ未反映の予定が{calendarSyncPending}件あります。このアプリからCalendarへ書き込む機能は未実装のため、手動で反映してください。
-        </p>
-      )}
+      <PlanIntegrityPanel
+        tasks={allTasks}
+        planBlocks={planBlocks}
+        supersededBlocks={staleBlocks}
+        overlays={overlays}
+        clock={{ today, nowHm: nowHmValue }}
+      />
 
       {/* §14: 今月末どうなっていたいか。1〜2行だけ。 */}
       <section className="mt-2 px-5">
@@ -500,7 +492,7 @@ export default function TaskMapPage() {
               today={today}
               headline={areaHeadline(a.profile.area, a.profile.area === "営業代行" ? salesOwn : null, milestoneProgress)}
               mainGap={mainGap(gapsByArea[a.profile.area] ?? [])}
-              nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks, nowHmValue)}
+              nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks, nowHmValue, overlays)}
               riskCount={areaRisks(a, allGapItems).length}
               selected={selectedArea === a.profile.area}
               onSelect={() => setSelectedArea(a.profile.area)}

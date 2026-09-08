@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
-import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince, nowHm } from "@/lib/date";
+import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince } from "@/lib/date";
+import { useClock } from "@/lib/currentTime";
 import { capabilityBadge } from "@/lib/capability";
 import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import type { CarryoverDisposition, FixedEventType, RecurringRule, SessionRunbook, Task } from "@/lib/types";
+import { DEPART_MS, useDeparting } from "@/lib/useDeparting";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
 import OverdueInbox from "@/components/OverdueInbox";
@@ -337,23 +339,11 @@ export default function TodayPage() {
   );
   const [doneListOpen, setDoneListOpen] = useState(false);
 
-  // A live clock, not a fabricated one — re-checked every minute so NOW/
-  // NEXT/PAST stay correct across a long-open session without a full
-  // scheduling engine. Starts at "00:00" (everything LATER) rather than
-  // calling nowHm() during the initial render: this page is statically
-  // prerendered, so computing wall-clock time there would bake in the
-  // build-time clock and mismatch the client's real clock on hydration.
-  // The real time is set client-only, in the effect below.
-  const [nowHmValue, setNowHmValue] = useState("00:00");
-  useEffect(() => {
-    const tick = () => setNowHmValue(nowHm());
-    const firstTick = setTimeout(tick, 0);
-    const id = setInterval(tick, 60_000);
-    return () => {
-      clearTimeout(firstTick);
-      clearInterval(id);
-    };
-  }, []);
+  // §16: the clock comes from ClockProvider so TODAY and TASK MAP always
+  // agree on "now". It starts at a placeholder and the real time arrives in
+  // an effect — this page is statically prerendered, so reading the wall
+  // clock during render would bake the build machine's time into the HTML.
+  const { nowHmValue } = useClock();
 
   const fixedEventsToday = useMemo(
     () => fixedCalendarEvents.filter((e) => e.startDate <= today && e.endDate >= today),
@@ -387,12 +377,19 @@ export default function TodayPage() {
   // Where to draw the "──── NOW hh:mm ────" divider: right before the NOW
   // slot if one exists, else right before the next upcoming slot, else at
   // the end (today's schedule is entirely in the past).
+  // §8: a card that was just moved to another day stays on screen for one
+  // short beat, marked as leaving, instead of blinking out. Nothing here
+  // delays the state change itself — TODAY is already correct.
+  const { rendered: timelineRows, departing: departingKeys } = useDeparting(timeline, itemKey);
+
+  // Indexed against the rows actually rendered, so a departing card above the
+  // divider does not shove it out of place for the length of the animation.
   const nowIndicatorIndex = useMemo(() => {
-    const nowIdx = timeline.findIndex((it) => it.status === "NOW");
+    const nowIdx = timelineRows.findIndex((it) => it.status === "NOW");
     if (nowIdx !== -1) return nowIdx;
-    const nextIdx = timeline.findIndex((it) => it.status === "NEXT" || it.status === "LATER");
-    return nextIdx !== -1 ? nextIdx : timeline.length;
-  }, [timeline]);
+    const nextIdx = timelineRows.findIndex((it) => it.status === "NEXT" || it.status === "LATER");
+    return nextIdx !== -1 ? nextIdx : timelineRows.length;
+  }, [timelineRows]);
 
   // HTMLElement (not HTMLLIElement) so the same ref can point at either the
   // <li> inside the time-sorted Timeline or the pinned <div> above it —
@@ -686,8 +683,13 @@ export default function TodayPage() {
           <div className="flex flex-col gap-5">
             {timeline.length > 0 && (
               <ul className="flex flex-col gap-2">
-                {timeline.map((item, i) => (
-                  <FragmentWithIndicator key={itemKey(item)} showIndicator={i === nowIndicatorIndex} nowHmValue={nowHmValue}>
+                {timelineRows.map((item, i) => (
+                  <FragmentWithIndicator
+                    key={itemKey(item)}
+                    showIndicator={i === nowIndicatorIndex}
+                    nowHmValue={nowHmValue}
+                    leaving={departingKeys.has(itemKey(item))}
+                  >
                     {item.kind === "task" ? (
                       <TimelineTaskCard
                         item={item}
@@ -717,7 +719,7 @@ export default function TodayPage() {
                     )}
                   </FragmentWithIndicator>
                 ))}
-                {nowIndicatorIndex === timeline.length && <NowIndicator nowHmValue={nowHmValue} />}
+                {nowIndicatorIndex === timelineRows.length && <NowIndicator nowHmValue={nowHmValue} />}
               </ul>
             )}
 
@@ -1184,16 +1186,29 @@ function itemKey(item: TimelineItem): string {
 function FragmentWithIndicator({
   showIndicator,
   nowHmValue,
+  leaving = false,
   children,
 }: {
   showIndicator: boolean;
   nowHmValue: string;
+  /** True while this row is animating out after being moved to another day. */
+  leaving?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <>
       {showIndicator && <NowIndicator nowHmValue={nowHmValue} />}
-      {children}
+      {leaving ? (
+        <div
+          aria-hidden
+          className="pointer-events-none -translate-x-3 opacity-0 transition-all ease-out motion-reduce:transition-none"
+          style={{ transitionDuration: `${DEPART_MS}ms` }}
+        >
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </>
   );
 }

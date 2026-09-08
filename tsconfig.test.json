@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "incremental": false,
+    "isolatedModules": false,
+    "outDir": ".test-build",
+    "types": ["node"]
+  },
+  "include": ["lib/**/*.ts", "lib/**/*.tsx", "tests/**/*.ts"],
+  "exclude": ["node_modules", ".next", ".test-build"]
+}

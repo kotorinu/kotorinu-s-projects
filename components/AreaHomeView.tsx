@@ -17,6 +17,7 @@ import BlockerPanel from "@/components/BlockerPanel";
 import CapabilityMap from "@/components/CapabilityMap";
 import GapBoard from "@/components/GapBoard";
 import { resolveGaps } from "@/lib/gapBoard";
+import { liveTimeBlocks } from "@/lib/livePlan";
 import { AREA_THEME, ACTIVITY_THEME } from "@/lib/areaTheme";
 import { tasks as allTasks } from "@/lib/dummy-data";
 import MilestoneStepper from "@/components/MilestoneStepper";
@@ -52,14 +53,18 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     lifecycleOverrides,
     phaseOwnVersions,
     taskStartedAt,
+    timeBlockOverrides,
+    supersededBlockIds,
   } = useTodayExecution();
+  // §19: one live plan for every screen.
+  const planBlocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds });
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<SalesPhase | null>(null);
 
   const profile = areaProfileBySlug(slug);
   const data = useMemo(
-    () => (profile ? buildAreaHome(profile.area, today, overlays) : null),
+    () => (profile ? buildAreaHome(profile.area, today, overlays, planBlocks) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [profile?.area, today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]
   );

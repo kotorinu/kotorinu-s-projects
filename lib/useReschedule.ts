@@ -1,6 +1,7 @@
 "use client";
 
 import { liveTimeBlocks } from "./livePlan";
+import { currentBlockOf, planReschedule } from "./rescheduleCore";
 import { buildReplanFlag, deadlineRisk, isPostponement } from "./replan";
 import { effectiveDeadline } from "./taskState";
 import { useTodayExecution } from "./todayExecutionStore";
@@ -38,10 +39,6 @@ export interface RescheduleResult {
   raisedReplan: boolean;
 }
 
-function newBlockId(taskId: string): string {
-  return `tbo-${taskId}-${Date.now()}`;
-}
-
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -63,35 +60,30 @@ export function useReschedule() {
 
   /** The block this Task is currently scheduled in, today or next. */
   function currentBlockFor(task: Task): TimeBlock | null {
-    const blocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds }).filter(
-      (b) => b.taskId === task.id
-    );
-    return blocks.find((b) => b.date >= today) ?? blocks[blocks.length - 1] ?? null;
+    return currentBlockOf(liveTimeBlocks({ timeBlockOverrides, supersededBlockIds }), task.id, today);
   }
 
   function reschedule(task: Task, args: RescheduleArgs): RescheduleResult {
-    const replaced = currentBlockFor(task);
+    // Compute the whole next state before writing any of it (§3).
+    const plan = planReschedule({
+      taskId: task.id,
+      taskTitle: task.title,
+      planBlocks: liveTimeBlocks({ timeBlockOverrides, supersededBlockIds }),
+      today,
+      date: args.date,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      reason: args.reason,
+      nowIso: nowIso(),
+    });
+    const replaced = plan.replaced;
     const taskDeadline = effectiveDeadline(task, { deadlineOverrides });
 
     // A Task that is running cannot keep running on a day it no longer
     // belongs to — close its session before the block moves (P0-4).
     if (startedTaskId === task.id) endWork(task.id, "RESCHEDULE");
 
-    rescheduleTimeBlock(
-      {
-        id: newBlockId(task.id),
-        taskId: task.id,
-        label: task.title,
-        date: args.date,
-        startTime: args.startTime,
-        endTime: args.endTime,
-        createdOnDate: today,
-        createdAt: nowIso(),
-        replacesBlockId: replaced?.id ?? null,
-        reason: args.reason,
-      },
-      replaced?.id ?? null
-    );
+    rescheduleTimeBlock(plan.block, replaced?.id ?? null);
 
     // Keep the work date in step so day views agree with the block.
     recordCarryover(

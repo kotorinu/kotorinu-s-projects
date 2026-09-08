@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+// Restoring persisted state has to happen before paint on the client, but
+// useLayoutEffect does not exist on the server — same pattern as the store.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 type RialaTask = {
   id: string;
@@ -165,11 +169,16 @@ function secondsToLabel(total: number) {
 
 export default function RialaTaskTracker() {
   const [open, setOpen] = useState(true);
+  // Restored in an effect, not in the initialiser: reading localStorage during
+  // render would make the server HTML and the first client render disagree.
   const [measurements, setMeasurements] = useState<Record<string, TaskMeasurement>>({});
-  const [, forceTick] = useState(0);
+  // The clock lives in state and is written only from an effect: reading
+  // Date.now() during render is impure and makes the elapsed time jump
+  // whenever the component happens to re-render for another reason.
+  const [nowMs, setNowMs] = useState(0);
   const hydrated = useRef(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setMeasurements(JSON.parse(saved));
@@ -188,15 +197,23 @@ export default function RialaTaskTracker() {
   useEffect(() => {
     const hasRunning = Object.values(measurements).some((m) => m.startedAt !== null);
     if (!hasRunning) return;
-    const timer = window.setInterval(() => forceTick((v) => v + 1), 1000);
-    return () => window.clearInterval(timer);
+    const read = () => setNowMs(Date.now());
+    const first = window.setTimeout(read, 0);
+    const timer = window.setInterval(read, 1000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
   }, [measurements]);
 
   const getMeasurement = (id: string) => measurements[id] ?? emptyMeasurement();
 
   const currentElapsed = (m: TaskMeasurement) => {
     if (m.startedAt === null) return m.elapsedSeconds;
-    return m.elapsedSeconds + Math.max(0, Math.floor((Date.now() - m.startedAt) / 1000));
+    // Before the first tick lands, show the banked time rather than a
+    // nonsense span measured from epoch 0.
+    if (nowMs === 0) return m.elapsedSeconds;
+    return m.elapsedSeconds + Math.max(0, Math.floor((nowMs - m.startedAt) / 1000));
   };
 
   const start = (id: string) => {

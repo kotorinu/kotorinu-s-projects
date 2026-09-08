@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { __setClockOverrideForTesting, todayStr } from "./date";
+import { bankedMinutesFor, endWorkOn, startWorkOn } from "./workSession";
 import type {
   CarryoverDisposition,
   CarryoverRecord,
@@ -108,11 +109,6 @@ interface RolloverState {
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
-
-/** Whole minutes between two ISO timestamps, never below 1 for a real span. */
-function minutesBetweenIso(startIso: string, endIso: string): number {
-  return Math.max(1, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 60000));
-}
 
 function resolve<T>(updater: SetUpdater<T>, prev: T): T {
   return typeof updater === "function" ? (updater as (p: T) => T)(prev) : updater;
@@ -586,65 +582,38 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     startWork: (taskId) =>
       setState((s) => {
         const nowIso = new Date().toISOString();
-        const sessions = s.workSessions.map((w) =>
-          w.endedAt === null
-            ? {
-                ...w,
-                endedAt: nowIso,
-                minutes: minutesBetweenIso(w.startedAt, nowIso),
-                endReason: "SWITCH" as WorkSessionEndReason,
-              }
-            : w
-        );
-        // Bank the closed session's minutes onto whichever Task it belonged to.
-        const actual = new Map(s.current.taskActualMinutes);
-        for (const w of sessions) {
-          if (w.endedAt === nowIso && w.minutes !== null) {
-            actual.set(w.taskId, (actual.get(w.taskId) ?? 0) + w.minutes);
-          }
-        }
-        sessions.push({
-          id: `ws-${taskId}-${Date.parse(nowIso)}`,
+        const ledger = startWorkOn(
+          { sessions: s.workSessions, actualMinutes: s.current.taskActualMinutes, startedTaskId: s.startedTaskId },
           taskId,
-          startedAt: nowIso,
-          endedAt: null,
-          minutes: null,
-          endReason: null,
-        });
+          nowIso
+        );
         const startedAt = new Map(s.current.taskStartedAt);
         if (!startedAt.has(taskId)) startedAt.set(taskId, nowIso);
         return {
           ...s,
-          workSessions: sessions,
-          startedTaskId: taskId,
+          workSessions: ledger.sessions,
+          startedTaskId: ledger.startedTaskId,
           startedTaskDate: s.current.date,
-          current: { ...s.current, taskStartedAt: startedAt, taskActualMinutes: actual },
+          current: { ...s.current, taskStartedAt: startedAt, taskActualMinutes: ledger.actualMinutes },
         };
       }),
     endWork: (taskId, reason) =>
       setState((s) => {
-        const nowIso = new Date().toISOString();
-        let banked = 0;
-        const sessions = s.workSessions.map((w) => {
-          if (w.taskId !== taskId || w.endedAt !== null) return w;
-          const minutes = minutesBetweenIso(w.startedAt, nowIso);
-          banked += minutes;
-          return { ...w, endedAt: nowIso, minutes, endReason: reason };
-        });
-        const actual = new Map(s.current.taskActualMinutes);
-        if (banked > 0) actual.set(taskId, (actual.get(taskId) ?? 0) + banked);
+        const ledger = endWorkOn(
+          { sessions: s.workSessions, actualMinutes: s.current.taskActualMinutes, startedTaskId: s.startedTaskId },
+          taskId,
+          reason,
+          new Date().toISOString()
+        );
         return {
           ...s,
-          workSessions: sessions,
-          startedTaskId: s.startedTaskId === taskId ? null : s.startedTaskId,
+          workSessions: ledger.sessions,
+          startedTaskId: ledger.startedTaskId,
           startedTaskDate: s.startedTaskId === taskId ? null : s.startedTaskDate,
-          current: { ...s.current, taskActualMinutes: actual },
+          current: { ...s.current, taskActualMinutes: ledger.actualMinutes },
         };
       }),
-    bankedMinutes: (taskId) =>
-      state.workSessions
-        .filter((w) => w.taskId === taskId && w.minutes !== null)
-        .reduce((sum, w) => sum + (w.minutes ?? 0), 0),
+    bankedMinutes: (taskId) => bankedMinutesFor(state.workSessions, taskId),
     setPhaseOwnField: (phaseId, field, value) =>
       setState((s) => {
         const current = s.phaseOwnVersions[phaseId] ?? { purpose: null, okState: null, means: null };

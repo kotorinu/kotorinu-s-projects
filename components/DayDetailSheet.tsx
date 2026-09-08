@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { fixedCalendarEvents, recurringRules, tasks as allTasks, activeTimeBlocks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
+import { liveTimeBlocks } from "@/lib/livePlan";
 import { formatMd } from "@/lib/date";
 import { findOverlaps } from "@/lib/overlap";
 import { effectiveDeadline, effectiveWorkDate, isTaskDone, isTaskOpen } from "@/lib/taskState";
@@ -24,8 +25,19 @@ export default function DayDetailSheet({
   onClose: () => void;
   onOpenTask: (task: Task) => void;
 }) {
-  const { completions, dispositions, deadlineOverrides, workDateOverrides } = useTodayExecution();
-  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides };
+  const {
+    completions,
+    dispositions,
+    deadlineOverrides,
+    workDateOverrides,
+    lifecycleOverrides,
+    timeBlockOverrides,
+    supersededBlockIds,
+  } = useTodayExecution();
+  const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
+  // §19/§20: the same live plan TODAY and TASK MAP use — a rescheduled block
+  // has to leave the old day's detail and appear on the new one.
+  const planBlocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds });
 
   useEffect(() => {
     const mainEl = document.querySelector("main");
@@ -36,7 +48,7 @@ export default function DayDetailSheet({
     };
   }, []);
 
-  const dayBlocks = activeTimeBlocks
+  const dayBlocks = planBlocks
     .filter((tb) => tb.date === date)
     .sort((a, b) => (a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0));
   const overlaps = findOverlaps(dayBlocks);

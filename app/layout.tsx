@@ -4,6 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { TodayExecutionProvider } from "@/lib/todayExecutionStore";
+import { ClockProvider } from "@/lib/currentTime";
 
 const notoSansJp = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -34,11 +35,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             column floating in grey — "Desktop本対応" DoD item 1. */}
         <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-background shadow-[0_0_50px_rgba(0,0,0,0.12)] md:max-w-[600px] lg:max-w-[1280px] lg:flex-row lg:shadow-none">
           <TodayExecutionProvider>
+            <ClockProvider>
             <DesktopSidebar />
             <div className="flex min-w-0 flex-1 flex-col">
               <main className="flex-1 overflow-y-auto pb-24 lg:pb-10">{children}</main>
               <BottomNav />
             </div>
+            </ClockProvider>
           </TodayExecutionProvider>
         </div>
       </body>
