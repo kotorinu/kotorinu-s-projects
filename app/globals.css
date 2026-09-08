@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf7f2;
-  --foreground: #241c14;
-  --accent: #ea5b0c;
-  --accent-dark: #c2410c;
-  --accent-soft: #fef0e4;
+  /* Cool neutral ground — crisp, not cosy. */
+  --background: #f4f6fa;
+  /* Deep navy ink for high contrast without pure black. */
+  --foreground: #111827;
+  /* Generic focus accent. Deliberately the same blue as 営業 / Calendar id 9,
+     so "the thing to act on" and "sales work" never fight each other. */
+  --accent: #2f6fe4;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #e8effc;
   --surface: #ffffff;
-  --surface-ink: #241c14;
-  --danger: #e0392b;
-  --danger-soft: #fdeeec;
+  --surface-ink: #111827;
+  /* Red only for a genuine deadline problem (P1-3). */
+  --danger: #dc2626;
+  --danger-soft: #fdecec;
+  --hairline: #e6e9f0;
 }
 
 @theme inline {
@@ -21,6 +27,7 @@
   --color-surface: var(--surface);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-hairline: var(--hairline);
   --font-sans: var(--font-noto-sans-jp);
 }
 

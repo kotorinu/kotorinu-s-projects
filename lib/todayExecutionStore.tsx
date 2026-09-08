@@ -17,8 +17,10 @@ import type {
   PhaseOwnVersion,
   ReplanFlag,
   TaskLifecycleRecord,
+  TaskWorkSession,
   TimeBlockOverride,
   VarianceReason,
+  WorkSessionEndReason,
 } from "./types";
 
 // TODAY execution state, lifted out of app/today/page.tsx into a Provider
@@ -100,9 +102,17 @@ interface RolloverState {
   // history of "this was going to happen at X" survives.
   timeBlockOverrides: Record<string, TimeBlockOverride>;
   supersededBlockIds: string[];
+  // P0-4: the ledger of real work spans. A Task's actual is the sum of its own
+  // closed sessions, so switching away never leaks time into the wrong Task.
+  workSessions: TaskWorkSession[];
 }
 
 type SetUpdater<T> = T | ((prev: T) => T);
+
+/** Whole minutes between two ISO timestamps, never below 1 for a real span. */
+function minutesBetweenIso(startIso: string, endIso: string): number {
+  return Math.max(1, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 60000));
+}
 
 function resolve<T>(updater: SetUpdater<T>, prev: T): T {
   return typeof updater === "function" ? (updater as (p: T) => T)(prev) : updater;
@@ -153,6 +163,7 @@ function emptyRolloverState(): RolloverState {
     replanFlags: {},
     timeBlockOverrides: {},
     supersededBlockIds: [],
+    workSessions: [],
   };
 }
 
@@ -272,6 +283,18 @@ interface TodayExecutionApi {
    * plan changes without the record of the old plan disappearing.
    */
   rescheduleTimeBlock: (override: TimeBlockOverride, supersededBlockId: string | null) => void;
+  // --- Work sessions (2026-09-09, P0-4) ---
+  workSessions: TaskWorkSession[];
+  /**
+   * Starts work on a Task. Any session still open on another Task is closed
+   * first with SWITCH and its minutes banked — that is the fix for time
+   * leaking from the Task you left into the one you started.
+   */
+  startWork: (taskId: string) => void;
+  /** Closes the open session for a Task and banks its minutes. */
+  endWork: (taskId: string, reason: WorkSessionEndReason) => void;
+  /** Total measured minutes across a Task's closed sessions. */
+  bankedMinutes: (taskId: string) => number;
 }
 
 const STORAGE_KEY = "ai-work-os:today-execution:v2";
@@ -299,6 +322,7 @@ interface PersistedShape {
   replanFlags: Record<string, ReplanFlag>;
   timeBlockOverrides: Record<string, TimeBlockOverride>;
   supersededBlockIds: string[];
+  workSessions: TaskWorkSession[];
 }
 
 function toPersisted(state: RolloverState): PersistedShape {
@@ -325,6 +349,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
     supersededBlockIds: state.supersededBlockIds,
+    workSessions: state.workSessions,
   };
 }
 
@@ -354,6 +379,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     replanFlags: parsed.replanFlags ?? {},
     timeBlockOverrides: parsed.timeBlockOverrides ?? {},
     supersededBlockIds: parsed.supersededBlockIds ?? [],
+    workSessions: parsed.workSessions ?? [],
   };
 }
 
@@ -465,6 +491,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
     supersededBlockIds: new Set(state.supersededBlockIds),
+    workSessions: state.workSessions,
     history: state.history,
 
     setDone: (updater) =>
@@ -556,6 +583,68 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
     setDeadlineOverride: (taskId, deadline) =>
       setState((s) => ({ ...s, deadlineOverrides: { ...s.deadlineOverrides, [taskId]: deadline } })),
+    startWork: (taskId) =>
+      setState((s) => {
+        const nowIso = new Date().toISOString();
+        const sessions = s.workSessions.map((w) =>
+          w.endedAt === null
+            ? {
+                ...w,
+                endedAt: nowIso,
+                minutes: minutesBetweenIso(w.startedAt, nowIso),
+                endReason: "SWITCH" as WorkSessionEndReason,
+              }
+            : w
+        );
+        // Bank the closed session's minutes onto whichever Task it belonged to.
+        const actual = new Map(s.current.taskActualMinutes);
+        for (const w of sessions) {
+          if (w.endedAt === nowIso && w.minutes !== null) {
+            actual.set(w.taskId, (actual.get(w.taskId) ?? 0) + w.minutes);
+          }
+        }
+        sessions.push({
+          id: `ws-${taskId}-${Date.parse(nowIso)}`,
+          taskId,
+          startedAt: nowIso,
+          endedAt: null,
+          minutes: null,
+          endReason: null,
+        });
+        const startedAt = new Map(s.current.taskStartedAt);
+        if (!startedAt.has(taskId)) startedAt.set(taskId, nowIso);
+        return {
+          ...s,
+          workSessions: sessions,
+          startedTaskId: taskId,
+          startedTaskDate: s.current.date,
+          current: { ...s.current, taskStartedAt: startedAt, taskActualMinutes: actual },
+        };
+      }),
+    endWork: (taskId, reason) =>
+      setState((s) => {
+        const nowIso = new Date().toISOString();
+        let banked = 0;
+        const sessions = s.workSessions.map((w) => {
+          if (w.taskId !== taskId || w.endedAt !== null) return w;
+          const minutes = minutesBetweenIso(w.startedAt, nowIso);
+          banked += minutes;
+          return { ...w, endedAt: nowIso, minutes, endReason: reason };
+        });
+        const actual = new Map(s.current.taskActualMinutes);
+        if (banked > 0) actual.set(taskId, (actual.get(taskId) ?? 0) + banked);
+        return {
+          ...s,
+          workSessions: sessions,
+          startedTaskId: s.startedTaskId === taskId ? null : s.startedTaskId,
+          startedTaskDate: s.startedTaskId === taskId ? null : s.startedTaskDate,
+          current: { ...s.current, taskActualMinutes: actual },
+        };
+      }),
+    bankedMinutes: (taskId) =>
+      state.workSessions
+        .filter((w) => w.taskId === taskId && w.minutes !== null)
+        .reduce((sum, w) => sum + (w.minutes ?? 0), 0),
     setPhaseOwnField: (phaseId, field, value) =>
       setState((s) => {
         const current = s.phaseOwnVersions[phaseId] ?? { purpose: null, okState: null, means: null };

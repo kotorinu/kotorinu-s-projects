@@ -129,15 +129,27 @@ export function areaHeadline(
   };
 }
 
-/** The next scheduled block for this area, today or later (§3). */
+/**
+ * The next scheduled block for this area (P0-7).
+ *
+ * "date >= today" was not enough: at 22:40 it still offered a 12:00-13:00 slot
+ * from earlier the same day as "the next thing". A block only counts as next
+ * if it has not already ended.
+ */
 export function nextBlockForArea(
   area: HomeArea,
   today: string,
   blocks: TimeBlock[],
-  tasks: Task[]
+  tasks: Task[],
+  nowHm?: string
 ): { block: TimeBlock; taskTitle: string } | null {
   const candidates = blocks
-    .filter((b) => b.date >= today && b.taskId !== null)
+    .filter((b) => {
+      if (b.taskId === null || b.lifecycle !== "ACTIVE") return false;
+      if (b.date > today) return true;
+      if (b.date < today) return false;
+      return nowHm === undefined || b.endTime > nowHm;
+    })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? -1 : 1));
   for (const block of candidates) {
     const task = tasks.find((t) => t.id === block.taskId);

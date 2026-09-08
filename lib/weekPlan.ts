@@ -1,4 +1,5 @@
-import type { Area, FixedCalendarEvent, Task, TimeBlock } from "./types";
+import type { Area,
+  ActivityType, FixedCalendarEvent, Task, TimeBlock } from "./types";
 
 // TASK MAP Week View (2026-09-06 readability round). A lightweight roll-up
 // of what's actually plannable this week — never a Google Calendar
@@ -17,6 +18,8 @@ export interface WeekEntry {
   label: string;
   taskId: string | null;
   area: Area | null;
+  /** Activity of the backing Task, so 読書 can render yellow (P7-1). */
+  activityType: ActivityType | null;
 }
 
 function minutesBetween(startTime: string, endTime: string): number {
@@ -62,6 +65,7 @@ export function buildWeekEntries(
       label: tb.label,
       taskId: task.id,
       area: task.area,
+      activityType: task.activityType,
     });
     shownTaskByDate.add(`${tb.date}:${task.id}`);
   }
@@ -82,6 +86,7 @@ export function buildWeekEntries(
       label: t.title,
       taskId: t.id,
       area: t.area,
+      activityType: t.activityType,
     });
     shownTaskByDate.add(`${effectiveDate}:${t.id}`);
   }
@@ -99,6 +104,7 @@ export function buildWeekEntries(
           label: e.title,
           taskId: null,
           area: null,
+          activityType: null,
         });
       }
     }
@@ -118,6 +124,7 @@ export function buildWeekEntries(
       label: t.title,
       taskId: t.id,
       area: t.area,
+      activityType: t.activityType,
     });
   }
 

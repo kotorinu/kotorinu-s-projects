@@ -3,7 +3,18 @@
 import { useState } from "react";
 import { useMemo } from "react";
 import Link from "next/link";
-import { gapItems, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
+import {
+  allGapItems,
+  blockers,
+  capabilities,
+  monthEndStates,
+  outcomeMilestones,
+  salesVideoLibrary,
+  salesPhases,
+  weeklyReadings,
+} from "@/lib/dummy-data";
+import BlockerPanel from "@/components/BlockerPanel";
+import CapabilityMap from "@/components/CapabilityMap";
 import GapBoard from "@/components/GapBoard";
 import { resolveGaps } from "@/lib/gapBoard";
 import { AREA_THEME, ACTIVITY_THEME } from "@/lib/areaTheme";
@@ -72,8 +83,12 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   // migration — real state, no invented number.
   const milestones =
     data.outcome !== null ? outcomeMilestones.filter((m) => m.outcomeId === data.outcome!.id) : [];
+  const monthGoal = profile
+    ? monthEndStates.find((m) => m.monthKey === "2026-09" && m.area === profile.area) ?? null
+    : null;
+  const areaCapabilities = profile ? capabilities.filter((c) => c.area === profile.area) : [];
   const gaps = profile
-    ? resolveGaps(gapItems, profile.area, allTasks, overlays, new Set(taskStartedAt.keys()))
+    ? resolveGaps(allGapItems, profile.area, allTasks, overlays, new Set(taskStartedAt.keys()))
     : [];
   const theme = profile ? AREA_THEME[profile.area] : AREA_THEME["その他"];
   const gapProgressOverride =
@@ -134,7 +149,19 @@ export default function AreaHomeView({ slug }: { slug: string }) {
             <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{headline.sub}</p>
           </section>
 
-          {/* いま必達のOutcome */}
+          {/* P2-2/P2-4: 月末の到達点と「いま必達」を分ける。同じ言葉で
+              2件並べない。 */}
+          {monthGoal && (
+            <section
+              className="rounded-2xl border px-4 py-3"
+              style={{ backgroundColor: "#FFFFFF", borderColor: theme.border, borderLeftWidth: 3, borderLeftColor: theme.primary }}
+            >
+              <p className="text-[11px] font-bold text-stone-400">9月末の到達点</p>
+              <p className="mt-0.5 text-[13px] font-bold leading-snug text-stone-800">{monthGoal.state}</p>
+            </section>
+          )}
+
+          {/* いま必達 */}
           <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-[10px] font-black tracking-widest text-accent-dark">いま必達</p>
@@ -266,6 +293,16 @@ export default function AreaHomeView({ slug }: { slug: string }) {
             </section>
           )}
 
+          {areaCapabilities.length > 0 && (
+            <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <p className="text-[12px] font-bold text-stone-500">鍛えている力</p>
+              <p className="mb-2 mt-0.5 text-[11px] text-stone-400">
+                Portable Skills。点数ではなく、証拠と次の練習で見ます。
+              </p>
+              <CapabilityMap capabilities={areaCapabilities} />
+            </section>
+          )}
+
           {currentReading && (
             <section
               className="rounded-2xl border px-4 py-3.5"
@@ -352,19 +389,13 @@ export default function AreaHomeView({ slug }: { slug: string }) {
             </Collapsible>
           </section>
 
-          {profile.blockers.length > 0 && (
-            <section className="rounded-3xl bg-danger-soft px-4 py-1">
-              <Collapsible label="進まない理由" count={profile.blockers.length} tone="danger" flush>
-                <ul className="flex flex-col gap-1.5">
-                  {profile.blockers.map((b) => (
-                    <li key={b} className="text-[11px] leading-relaxed text-stone-700">
-                      ・{b}
-                    </li>
-                  ))}
-                </ul>
-              </Collapsible>
-            </section>
-          )}
+          <BlockerPanel
+            blockers={blockers.filter((b) => b.area === profile.area)}
+            onOpenTask={(taskId) => {
+              const t = allTasks.find((x) => x.id === taskId) ?? null;
+              if (t) setSelectedTask(t);
+            }}
+          />
         </div>
       </div>
 

@@ -5,6 +5,8 @@ import { daysBetween, formatMd } from "@/lib/date";
 import { buildCompletionRecord, effectiveDeadline } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import TaskCompleteDialog from "@/components/TaskCompleteDialog";
+import RescheduleDialog from "@/components/RescheduleDialog";
+import { useReschedule } from "@/lib/useReschedule";
 import type { Task } from "@/lib/types";
 
 // 期限超過 Inbox (2026-09-06 Execution Management round).
@@ -32,6 +34,8 @@ export default function OverdueInbox({ tasks, today }: { tasks: Task[]; today: s
   } = useTodayExecution();
 
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
+  const [reschedulingTask, setReschedulingTask] = useState<Task | null>(null);
+  const { reschedule, currentBlockFor } = useReschedule();
   const [dateOpenTaskId, setDateOpenTaskId] = useState<string | null>(null);
   const [dateValue, setDateValue] = useState("");
 
@@ -204,6 +208,20 @@ export default function OverdueInbox({ tasks, today }: { tasks: Task[]; today: s
         期限超過は状態ではなく「期限 &lt; 今日 かつ 未完了」という計算結果です。完了すればこの一覧から消えますが、元の期限と遅延日数は実績として残ります。
       </p>
 
+      {reschedulingTask && (
+        <RescheduleDialog
+          task={reschedulingTask}
+          currentBlock={currentBlockFor(reschedulingTask)}
+          today={today}
+          effectiveDeadline={effectiveDeadline(reschedulingTask, { deadlineOverrides })}
+          onCancel={() => setReschedulingTask(null)}
+          onConfirm={(args) => {
+            reschedule(reschedulingTask, { ...args, reason: "期限超過Taskを別日へ移動" });
+            setReschedulingTask(null);
+          }}
+        />
+      )}
+
       {completingTask && (
         <TaskCompleteDialog
           task={completingTask}
@@ -211,8 +229,8 @@ export default function OverdueInbox({ tasks, today }: { tasks: Task[]; today: s
           today={today}
           onCompleteMetDoD={() => complete(completingTask, true)}
           onCompleteNoDoD={() => complete(completingTask, false)}
-          onReschedule={(date) => {
-            moveWorkDate(completingTask, date);
+          onRequestReschedule={() => {
+            setReschedulingTask(completingTask);
             setCompletingTask(null);
           }}
           onBlock={() => block(completingTask)}

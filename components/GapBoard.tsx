@@ -104,7 +104,10 @@ export default function GapBoard({
                       {item.note && (
                         <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{item.note}</p>
                       )}
-                      {item.taskId && onOpenTask && (
+                      {/* P4-3: the CTA only appears when it really opens a
+                          Task. P4-1: an actionable gap with no Task says what
+                          is missing instead of pretending to be one. */}
+                      {item.taskId && onOpenTask ? (
                         <button
                           type="button"
                           onClick={() => onOpenTask(item.taskId!)}
@@ -112,7 +115,11 @@ export default function GapBoard({
                         >
                           Taskを開く ›
                         </button>
-                      )}
+                      ) : (status === "READY" || status === "DOING") && item.kind !== "PROBLEM" ? (
+                        <p className="mt-1.5 rounded-lg bg-white px-2 py-1.5 text-[10px] leading-relaxed text-stone-500">
+                          実行Taskがまだありません。着手するには 完了条件・期限・実行日時 を決めてTaskにする必要があります。
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </li>

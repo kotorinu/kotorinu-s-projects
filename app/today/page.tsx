@@ -11,6 +11,8 @@ import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/exe
 import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
 import RunbookStrip from "@/components/RunbookStrip";
 import CompletionToast from "@/components/CompletionToast";
+import RescheduleDialog from "@/components/RescheduleDialog";
+import { useReschedule } from "@/lib/useReschedule";
 import { themeFor } from "@/lib/areaTheme";
 import { buildCompletionFeedback, type CompletionFeedback } from "@/lib/completionFeedback";
 import { phaseCoverage } from "@/lib/sales";
@@ -72,7 +74,6 @@ export default function TodayPage() {
     recurringDone,
     setRecurringDone,
     taskStartedAt,
-    setTaskStartedAt,
     setTaskCompletedAt,
     taskActualMinutes,
     varianceReasonByTaskId,
@@ -95,6 +96,9 @@ export default function TodayPage() {
     timeBlockOverrides,
     supersededBlockIds,
     phaseOwnVersions,
+    startWork,
+    endWork,
+    bankedMinutes,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   // "Done" = a durable completion record (or an authored-complete fixture
@@ -132,6 +136,9 @@ export default function TodayPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   // §49: what changed, shown for a few seconds after finishing something.
   const [completionFeedback, setCompletionFeedback] = useState<CompletionFeedback | null>(null);
+  // P0: the one reschedule flow, shared with Task Detail and the overdue inbox.
+  const [reschedulingTask, setReschedulingTask] = useState<Task | null>(null);
+  const { reschedule, currentBlockFor } = useReschedule();
   const [yesterdaySummaryOpen, setYesterdaySummaryOpen] = useState(false);
   const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
   const [rescheduleDateValue, setRescheduleDateValue] = useState("");
@@ -143,9 +150,26 @@ export default function TodayPage() {
   }
 
   function reallyStart(taskId: string) {
-    setStartedTaskId(taskId);
-    setTaskStartedAt((prev) => new Map(prev).set(taskId, new Date().toISOString()));
+    // startWork closes any session still open on another Task (endReason
+    // SWITCH) and banks its minutes before opening this one — that is the fix
+    // for time leaking between Tasks (P0-4).
+    const previous = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) ?? null : null;
+    const previousMinutes = previous ? bankedMinutes(previous.id) : 0;
+    startWork(taskId);
     setSwitchConfirmTaskId(null);
+    if (previous) {
+      const started = taskStartedAt.get(previous.id);
+      const thisSession = started ? minutesSince(started) : 0;
+      setCompletionFeedback({
+        headline: `「${previous.title}」を中断しました`,
+        changed: [
+          `実績 ${previousMinutes + thisSession}分を保存`,
+          `「${allTasks.find((t) => t.id === taskId)?.title ?? "次のTask"}」を開始`,
+        ],
+        unlocked: null,
+        celebrate: "NONE",
+      });
+    }
   }
 
   function requestStart(taskId: string) {
@@ -213,6 +237,7 @@ export default function TodayPage() {
   );
 
   function confirmComplete(task: Task, metDefinitionOfDone: boolean) {
+    if (startedTaskId === task.id) endWork(task.id, "COMPLETE");
     const record = buildCompletionRecord(task, {
       today,
       startedIso: taskStartedAt.get(task.id),
@@ -906,8 +931,8 @@ export default function TodayPage() {
           today={today}
           onCompleteMetDoD={() => confirmComplete(completingTask, true)}
           onCompleteNoDoD={() => confirmComplete(completingTask, false)}
-          onReschedule={(date) => {
-            recordCarryover(today, completingTask.id, date === today ? "MOVED_TODAY" : "RESCHEDULED", date);
+          onRequestReschedule={() => {
+            setReschedulingTask(completingTask);
             setCompletingTask(null);
           }}
           onBlock={() => disposeTask(completingTask, "BLOCKED")}
@@ -917,6 +942,31 @@ export default function TodayPage() {
       )}
 
       <CelebrationToast celebration={celebration} reducedMotion={reducedMotion} />
+
+      {reschedulingTask && (
+        <RescheduleDialog
+          task={reschedulingTask}
+          currentBlock={currentBlockFor(reschedulingTask)}
+          today={today}
+          effectiveDeadline={effectiveDeadline(reschedulingTask, overlays)}
+          onCancel={() => setReschedulingTask(null)}
+          onConfirm={(args) => {
+            const result = reschedule(reschedulingTask, { ...args, reason: "未達のため別日へ移動" });
+            // P0-2: say where it went, in words, not just close the sheet.
+            setCompletionFeedback({
+              headline: `${formatMd(result.date)} ${result.startTime}〜${result.endTime} へ移動しました`,
+              changed: [
+                `${reschedulingTask.title}`,
+                result.movedFrom ? `元の予定（${formatMd(result.movedFrom)}）は置き換え済み` : "新しい予定を作成",
+                "Google Calendarへは未反映",
+              ],
+              unlocked: result.raisedReplan ? "再計画が必要として記録しました" : null,
+              celebrate: "NONE",
+            });
+            setReschedulingTask(null);
+          }}
+        />
+      )}
 
       {completionFeedback && (
         <CompletionToast feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
@@ -945,30 +995,69 @@ export default function TodayPage() {
           const currentTask = startedTaskId ? allTasks.find((t) => t.id === startedTaskId) : null;
           if (!nextTask) return null;
           return (
-            <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
               <button
                 type="button"
                 aria-label="閉じる"
                 onClick={() => setSwitchConfirmTaskId(null)}
                 className="absolute inset-0 bg-stone-900/45"
               />
-              <div className="relative w-full max-w-[430px] rounded-t-3xl bg-white p-5 shadow-2xl">
-                <p className="text-[14px] font-black text-stone-800">現在実行中のTaskがあります</p>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
-                  「{currentTask?.title ?? "実行中のTask"}」を中断して、「{nextTask.title}」を開始しますか？
+              <div className="relative w-full max-w-[430px] rounded-t-3xl bg-white p-5 shadow-2xl lg:rounded-3xl">
+                <p className="text-[14px] font-black text-stone-800">実行中のTaskを中断しますか？</p>
+
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {currentTask && (
+                    <div
+                      className="rounded-xl border px-3 py-2.5"
+                      style={{
+                        backgroundColor: themeFor(currentTask.area, currentTask.activityType).surface.soft,
+                        borderColor: themeFor(currentTask.area, currentTask.activityType).surface.border,
+                        borderLeftWidth: 3,
+                        borderLeftColor: themeFor(currentTask.area, currentTask.activityType).surface.primary,
+                      }}
+                    >
+                      <p className="text-[10px] font-bold text-stone-500">いま実行中</p>
+                      <p className="mt-0.5 text-[13px] font-bold text-stone-800">{currentTask.title}</p>
+                      {(() => {
+                        const started = taskStartedAt.get(currentTask.id);
+                        const mins = bankedMinutes(currentTask.id) + (started ? minutesSince(started) : 0);
+                        return mins > 0 ? (
+                          <p className="mt-0.5 text-[11px] font-bold text-stone-500">実績 {mins}分</p>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                  <div
+                    className="rounded-xl border px-3 py-2.5"
+                    style={{
+                      backgroundColor: themeFor(nextTask.area, nextTask.activityType).surface.soft,
+                      borderColor: themeFor(nextTask.area, nextTask.activityType).surface.border,
+                      borderLeftWidth: 3,
+                      borderLeftColor: themeFor(nextTask.area, nextTask.activityType).surface.primary,
+                    }}
+                  >
+                    <p className="text-[10px] font-bold text-stone-500">次に始める</p>
+                    <p className="mt-0.5 text-[13px] font-bold text-stone-800">{nextTask.title}</p>
+                  </div>
+                </div>
+
+                <p className="mt-2.5 text-[11px] leading-relaxed text-stone-500">
+                  中断した時点までの実績時間は保存されます。切り替えた後の時間は新しいTaskに記録されます。
                 </p>
+
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
                     onClick={() => setSwitchConfirmTaskId(null)}
                     className="flex-1 rounded-full bg-stone-100 py-2.5 text-[13px] font-bold text-stone-600"
                   >
-                    キャンセル
+                    今のTaskを続ける
                   </button>
                   <button
                     type="button"
                     onClick={confirmSwitch}
-                    className="flex-1 rounded-full bg-accent py-2.5 text-[13px] font-bold text-white"
+                    className="flex-1 rounded-full py-2.5 text-[13px] font-bold text-white"
+                    style={{ backgroundColor: themeFor(nextTask.area, nextTask.activityType).surface.primary }}
                   >
                     切り替える
                   </button>

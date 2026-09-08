@@ -26,7 +26,16 @@ export function tasksEffectiveOnDate(
   timeBlocks: TimeBlock[],
   workDateOverrides: Record<string, string>
 ): Task[] {
-  const raw = tasksScheduledOnDate(date, tasks, timeBlocks);
+  // A Task that has been moved to another day must LEAVE this one (2026-09-09,
+  // P0). `tasksScheduledOnDate` keeps a Task on a date when its deadline falls
+  // there, which is right for an unmoved Task — but after a reschedule the
+  // deadline usually still points at the old day, so the Task stayed on TODAY
+  // even though its TimeBlock had moved. That was the visible half of the
+  // reschedule bug: the card and its ▶ button never went away.
+  const raw = tasksScheduledOnDate(date, tasks, timeBlocks).filter((t) => {
+    const movedTo = workDateOverrides[t.id];
+    return movedTo === undefined || movedTo === date;
+  });
   const rawIds = new Set(raw.map((t) => t.id));
   const moved = tasks.filter(
     (t) => !rawIds.has(t.id) && t.status !== "完了" && t.status !== "Archive" && workDateOverrides[t.id] === date

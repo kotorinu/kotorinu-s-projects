@@ -2085,3 +2085,99 @@ Milestone（その日を終えた等）のときだけ少しだけ温度を上�
 ## 今回やっていないこと
 
 大規模DB化 / グラフ画面 / 完全なAI Planner / Google Calendar OAuth・API実装
+
+# 実行フローの不整合修正（2026-09-09）
+
+Productionを実際に使って見つかった、実行そのものが壊れる不具合の修正。
+
+## P0：未達Taskが今日から消えなかった
+
+**原因は2箇所あった。**
+
+1. `TaskCompleteDialog` の「この日にやる」が `recordCarryover` だけを呼び、
+   TimeBlockを一切動かしていなかった。旧ブロックはACTIVEのまま、新しい
+   ブロックは作られない。Carryoverは「決定の記録」であって予定ではない。
+2. `tasksScheduledOnDate` が **deadlineがその日と一致するTask** を拾う。
+   予定を動かしても期限は元の日を指したままなので、ブロックが移動しても
+   Taskは今日に残り続けた。▶ボタンも残った。
+
+**修正**：`lib/useReschedule.ts` に予定変更を一本化し、Task Detail・完了
+ダイアログ・期限超過Inbox のすべてがそこを通る。旧TimeBlockはSUPERSEDED、
+新TimeBlockはACTIVE、workDateも同期。`tasksEffectiveOnDate` は
+「他の日へ移動済みのTaskはこの日から外す」を明示的に行う。
+
+日付だけの変更は不可能にした。date + startTime + endTime が揃わないと
+確定ボタンが押せない。期限を超える変更は警告し、**期限は勝手に動かさない**。
+
+移動後は「9/10 11:30〜12:30 へ移動しました」「元の予定（9/9）は置き換え
+済み」「Google Calendarへは未反映」を出す。
+
+## P0-4：Task切替で実績時間が混ざっていた
+
+`actualMinutes` が開始→終了の1スパンだったため、Aを実行中にBを開始すると
+Aのスパンが開いたままになり、Bをやっていた時間がAに混入し得た。
+
+`TaskWorkSession`（id / taskId / startedAt / endedAt / minutes / endReason）
+の台帳に変更。切替時にAのセッションを **SWITCH** で閉じて分を確定させて
+からBを開く。完了は **COMPLETE**、予定変更は **RESCHEDULE** で閉じる。
+
+切替Modalは Desktop=画面中央 / Mobile=Bottom Sheet。中断するTaskと開始する
+Taskを両方カード表示し、実績時間も出す。
+
+## P0-7：終わった枠を「次の予定」と呼んでいた
+
+`nextBlockForArea` が `date >= today` しか見ておらず、22:40でも同日12:00の
+枠を次の予定として出し得た。`endTime > 現在時刻` を条件に追加。
+
+## P1：Week Viewだけ色が統一されていなかった
+
+PLANNED_WORKが一律 `bg-accent-soft` で、Area Themeを入れたのにここだけ
+オレンジ一色だった。TaskのArea + ActivityTypeから `themeFor()` で解決する
+よう修正。
+
+## P1-2：Global Themeを Execution Mode へ
+
+Cream(#faf7f2) + Orange(#ea5b0c) は「優しいメモ帳」に見える。このアプリは
+仕事モードへ切り替えるために開くので、地色を Cool Neutral(#f4f6fa)、文字を
+Deep Navy(#111827)、汎用Accentを Sharp Blue(#2f6fe4) へ変更。赤は本当の
+期限問題だけ。
+
+## P2：9月末の到達点を実データに
+
+| Area | 9月末の到達点 |
+|---|---|
+| 営業代行 | 9月30日までに営業代行で成約1件を出す |
+| RIALA | RIALAを実際に使う人・投稿する人を増やす（現状値は未取得） |
+| GENESIS | 4つの力を日々の実行で鍛え、問題を構造化し、やり抜き、合宿で変化とEvidenceを説明できる状態 |
+
+**「いま必達」と分けて表示する。** 必要商談数・成約率・Active User数のような
+逆算値は根拠が無いので作らない。GoalまでのGapは並べるが、情報が無い先の
+工程に期限は付けない。
+
+## GENESIS Capability Map
+
+論理的思考 / やり抜く力 / リーダーシップ / 基準値 / 継続 の5つを、
+**点数ではなく 練習内容・証拠・いま足りないこと・次の練習** で持つ。
+Task完了率を能力スコアにしない。
+
+## Google Calendarとの突き合わせ（P10/P11）
+
+実際のCalendarを読んで9/8〜9/11を照合し、**Calendarを正としてOSを合わせた**。
+実イベントIDを持たせたので、これらは `CALENDAR_CONFIRMED` に到達している。
+
+| | OS（旧） | Calendar（正） |
+|---|---|---|
+| 9/8 夜 | 19:00-21:30 | **19:00-21:10** |
+| 9/9 朝 | 05:00-06:00 弱点補強 | **05:30-06:30 構造化DAY** |
+| 9/9 06:00 | ロープレ枠 | **該当イベント無し**（SUPERSEDED） |
+| 9/9 昼 | 12:00-13:00 | **11:30-12:30** |
+| 9/9 夜 | 19:00-21:30 | **19:00-21:10** |
+| 9/10・9/11 昼 | 12:00-13:00 | **11:30-12:30** |
+| 読書 | 9/11の昼バッファのみ | **9/8〜9/11 に240pを60pずつ 4枠** |
+| 翌日計画 | 無し | **毎日 22:00-22:20** |
+| FB会 | 水曜10:30 | **水曜22:30-23:30** |
+
+**Google Calendar APIの実装可否**：このアプリはAPI Route・環境変数・
+OAuth設定を一切持たない静的Next.jsで、Client ID / Secret も未設定。
+今ラウンドでの実書き込みは不可能。偽装せず、`NEEDS_CALENDAR_SYNC` の
+件数表示のまま据え置く。

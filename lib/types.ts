@@ -1009,3 +1009,65 @@ export interface TimeBlockOverride {
 // a glance, and yellow on the Calendar. Keeping the two axes apart is what
 // lets "何のための時間か" and "何をしている時間か" both survive.
 export type ActivityType = "READING" | "OS" | "PLANNING" | "DEEP_WORK" | "OPERATION";
+
+// 実行セッション (2026-09-09, P0-4).
+//
+// actualMinutes was a single start→finish span, so switching from Task A to
+// Task B left A's span running and B's time leaked into A's total. Work is
+// now a ledger of closed sessions: switching closes A's session before B's
+// begins, and a Task's actual is the sum of its own sessions.
+export type WorkSessionEndReason = "COMPLETE" | "SWITCH" | "RESCHEDULE" | "STOPPED";
+
+export interface TaskWorkSession {
+  id: string;
+  taskId: string;
+  startedAt: string; // ISO
+  endedAt: string | null; // null = still running
+  minutes: number | null; // filled when the session closes
+  endReason: WorkSessionEndReason | null;
+}
+
+// GENESIS Capability Map (2026-09-09, P2-6/P16).
+//
+// Portable skills, tracked by evidence rather than a score. A completion
+// percentage would say how many boxes were ticked, not whether the skill
+// exists — so this holds only what can be pointed at: what was practised,
+// what proves it, what is missing, what is next. Never invent a number.
+export interface Capability {
+  id: string;
+  area: HomeArea;
+  title: string;
+  why: string;
+  practices: string[];
+  evidence: string[];
+  currentGap: string;
+  nextPractice: string;
+  linkedRecurringRuleIds: string[];
+  linkedTaskIds: string[];
+}
+
+// 気になっていること (2026-09-09, P5).
+//
+// These were plain strings, so "4件" was an opaque count — the user could see
+// that something was in the way but not what, or where to go about it. Every
+// blocker now says who it is waiting on and what it links to, and an
+// un-navigable one at least carries its source.
+export type BlockerType =
+  | "WAITING_EXTERNAL" // 相手待ち
+  | "MISSING_INFO" // 情報が足りない
+  | "NEEDS_DECISION" // 決めれば動く
+  | "RISK"; // まだ問題ではないが、放置すると問題になる
+
+export interface Blocker {
+  id: string;
+  area: HomeArea;
+  title: string;
+  detail: string;
+  type: BlockerType;
+  owner: string;
+  linkedGapId: string | null;
+  linkedTaskId: string | null;
+  linkedHref: string | null;
+  source: string;
+  status: "OPEN" | "RESOLVED";
+}

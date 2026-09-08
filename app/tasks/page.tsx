@@ -10,9 +10,9 @@ import {
   tasks as allTasks,
 } from "@/lib/dummy-data";
 import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/areaHome";
-import { gapItems, outcomeMilestones } from "@/lib/dummy-data";
+import { allGapItems, blockers, outcomeMilestones } from "@/lib/dummy-data";
 import { mainGap, resolveGaps } from "@/lib/gapBoard";
-import { AREA_THEME } from "@/lib/areaTheme";
+import { AREA_THEME, themeFor } from "@/lib/areaTheme";
 import { liveTimeBlocks } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
 import { needsCalendarSyncCount } from "@/lib/calendarSync";
@@ -20,6 +20,7 @@ import { phaseCoverage } from "@/lib/sales";
 import { salesPhases } from "@/lib/dummy-data";
 import AreaControlCard from "@/components/AreaControlCard";
 import GapBoard from "@/components/GapBoard";
+import BlockerPanel from "@/components/BlockerPanel";
 import {
   dayOfMonth,
   daysBetween,
@@ -32,6 +33,7 @@ import {
   weekDates,
 } from "@/lib/date";
 import { computeProgress } from "@/lib/progress";
+import { nowHm } from "@/lib/date";
 import { capabilityBadge, capabilityGroup, capabilityOwnerLabel, deliveryStatusLabel, CAPABILITY_GROUPS, CapabilityGroup } from "@/lib/capability";
 import { confidenceLabel, eventsForMonth, planningConstraintLabel } from "@/lib/calendar";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
@@ -145,6 +147,18 @@ export default function TaskMapPage() {
   const [selectedArea, setSelectedArea] = useState<HomeArea>("営業代行");
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  // Hydration-safe clock: starts at a fixed value, real time arrives in the
+  // effect below. Never call nowHm() during render (see the store's comment).
+  const [nowHmValue, setNowHmValue] = useState("00:00");
+  useEffect(() => {
+    const tick = () => setNowHmValue(nowHm());
+    const id = setTimeout(tick, 0);
+    const interval = setInterval(tick, 60_000);
+    return () => {
+      clearTimeout(id);
+      clearInterval(interval);
+    };
+  }, []);
 
   // The live schedule includes blocks created by rescheduling and excludes
   // the ones they replaced (§10).
@@ -180,7 +194,7 @@ export default function TaskMapPage() {
   const gapsByArea = useMemo(() => {
     const started = new Set(taskStartedAt.keys());
     return Object.fromEntries(
-      areaProfiles.map((prof) => [prof.area, resolveGaps(gapItems, prof.area, allTasks, overlays, started)])
+      areaProfiles.map((prof) => [prof.area, resolveGaps(allGapItems, prof.area, allTasks, overlays, started)])
     ) as Record<HomeArea, ReturnType<typeof resolveGaps>>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskStartedAt, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]);
@@ -453,10 +467,11 @@ export default function TaskMapPage() {
 
       {/* §14: 今月末どうなっていたいか。1〜2行だけ。 */}
       <section className="mt-2 px-5">
-        <h2 className="mb-1.5 text-[13px] font-bold text-stone-500">{monthLabel(monthKey)}末、こうなっていたい</h2>
+        <h2 className="mb-1.5 text-[13px] font-bold text-stone-500">{monthLabel(monthKey)}末の到達点</h2>
         <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-3">
           {areaCards.map((a) => {
             const th = AREA_THEME[a.profile.area];
+            const goal = endStates.find((e) => e.area === a.profile.area);
             return (
               <div
                 key={a.profile.area}
@@ -466,8 +481,8 @@ export default function TaskMapPage() {
                 <p className="text-[10px] font-bold" style={{ color: th.text }}>
                   {th.label}
                 </p>
-                <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-stone-700">
-                  {a.outcome?.title ?? "Outcome未設定"}
+                <p className="mt-0.5 line-clamp-3 text-[12px] leading-snug text-stone-700">
+                  {goal?.state ?? "未設定"}
                 </p>
               </div>
             );
@@ -485,8 +500,8 @@ export default function TaskMapPage() {
               today={today}
               headline={areaHeadline(a.profile.area, a.profile.area === "営業代行" ? salesOwn : null, milestoneProgress)}
               mainGap={mainGap(gapsByArea[a.profile.area] ?? [])}
-              nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks)}
-              riskCount={areaRisks(a, gapItems).length}
+              nextBlock={nextBlockForArea(a.profile.area, today, planBlocks, allTasks, nowHmValue)}
+              riskCount={areaRisks(a, allGapItems).length}
               selected={selectedArea === a.profile.area}
               onSelect={() => setSelectedArea(a.profile.area)}
             />
@@ -511,6 +526,15 @@ export default function TaskMapPage() {
             if (t) setSelectedTask(t);
           }}
         />
+        <div className="mt-2">
+          <BlockerPanel
+            blockers={blockers.filter((b) => b.area === selectedArea)}
+            onOpenTask={(taskId) => {
+              const t = allTasks.find((task) => task.id === taskId);
+              if (t) setSelectedTask(t);
+            }}
+          />
+        </div>
       </section>
 
       <WeekView
@@ -755,7 +779,7 @@ export default function TaskMapPage() {
       )}
 
       <section className="mt-6 px-5 pb-4">
-        <h2 className="mb-2.5 text-sm font-bold text-stone-500">Outcomeの詳細</h2>
+        <h2 className="mb-2.5 text-sm font-bold text-stone-500">達成したい状態の詳細</h2>
         <div className="flex flex-col gap-2">
           {endStates.length === 0 && outcomes.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-4 text-center text-xs text-stone-400">
@@ -861,11 +885,19 @@ export default function TaskMapPage() {
   );
 }
 
-const weekEntryStyle: Record<WeekEntry["kind"], string> = {
-  FIXED: "bg-stone-100 text-stone-500",
-  DEADLINE: "bg-danger-soft text-danger",
-  PLANNED_WORK: "bg-accent-soft text-accent-dark",
-};
+// P1/P7: a week entry takes its colour from the Task behind it, never from a
+// single generic accent — that is what made 今週 read as one orange block even
+// after the Area theme landed.
+function weekEntryStyle(e: WeekEntry): { className: string; style?: React.CSSProperties } {
+  if (e.kind === "FIXED") return { className: "bg-stone-100 text-stone-500" };
+  if (e.kind === "DEADLINE") return { className: "bg-danger-soft text-danger" };
+  if (e.area === null) return { className: "bg-stone-100 text-stone-500" };
+  const { surface } = themeFor(e.area, e.activityType);
+  return {
+    className: "",
+    style: { backgroundColor: surface.soft, color: surface.text, borderLeft: `2px solid ${surface.primary}` },
+  };
+}
 
 // TASK MAP Week View (2026-09-06): "今週、いつ何をやるか" at a glance —
 // not a Google Calendar replacement (PRD.md's Google Calendar semantics
@@ -938,7 +970,8 @@ function WeekView({
                       type="button"
                       onClick={() => e.taskId && onOpenTask(e.taskId)}
                       disabled={!e.taskId}
-                      className={`truncate rounded-lg px-1.5 py-1 text-left text-[10px] font-bold ${weekEntryStyle[e.kind]}`}
+                      className={`truncate rounded-lg px-1.5 py-1 text-left text-[10px] font-bold ${weekEntryStyle(e).className}`}
+                      style={weekEntryStyle(e).style}
                     >
                       {e.time && <span className="tabular-nums opacity-70">{e.time} </span>}
                       {e.label}

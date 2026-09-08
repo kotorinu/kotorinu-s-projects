@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import { formatMd } from "@/lib/date";
 import type { Task } from "@/lib/types";
 
@@ -20,7 +21,7 @@ export default function TaskCompleteDialog({
   today,
   onCompleteMetDoD,
   onCompleteNoDoD,
-  onReschedule,
+  onRequestReschedule,
   onBlock,
   onDrop,
   onCancel,
@@ -32,13 +33,12 @@ export default function TaskCompleteDialog({
   onCompleteMetDoD: () => void;
   /** Task has no DoD to confirm — completed without a bar to check. */
   onCompleteNoDoD: () => void;
-  onReschedule: (date: string) => void;
+  onRequestReschedule: () => void;
   onBlock: () => void;
   onDrop: () => void;
   onCancel: () => void;
 }) {
   const [unmetOpen, setUnmetOpen] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState("");
   const hasDoD = task.definitionOfDone.length > 0;
   const late =
     deadlineAtCompletion !== null && deadlineAtCompletion < today ? deadlineAtCompletion : null;
@@ -101,25 +101,18 @@ export default function TaskCompleteDialog({
               未達のまま完了にはしません。次の扱いを選んでください。
             </p>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  value={rescheduleDate}
-                  min={today}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-stone-200 px-2 py-1.5 text-[12px] text-stone-700"
-                />
-                <button
-                  type="button"
-                  disabled={!rescheduleDate}
-                  onClick={() => onReschedule(rescheduleDate)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${
-                    rescheduleDate ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
-                  }`}
-                >
-                  この日にやる
-                </button>
-              </div>
+              {/* P0: this used to be a bare date field that wrote a Carryover
+                  record and nothing else — the Task stayed on today's Timeline
+                  because its TimeBlock was never moved. Rescheduling now goes
+                  through the one real reschedule flow, which needs a start and
+                  end time and actually supersedes the old block. */}
+              <button
+                type="button"
+                onClick={onRequestReschedule}
+                className="w-full rounded-full bg-accent py-2 text-[13px] font-bold text-white"
+              >
+                別の日時にやる
+              </button>
               <button
                 type="button"
                 onClick={onBlock}
