@@ -171,6 +171,28 @@ export interface Task {
 
 export type GoalStatus = "進行中" | "達成" | "一時停止" | "未達成";
 
+// Where a Goal sits on the journey (2026-09-09, P5).
+//
+// The tree already says what leads to what, but not "how far away". A viewer
+// opening GOAL TREE needs the second answer first — "what am I supposed to be
+// in a month" — and a parent/child edge does not give it.
+//
+// PHILOSOPHY has no horizon on purpose: it is the why, not a deadline.
+// AREA is the work that a horizon is made of, so it hangs off one rather than
+// sitting on the spine.
+export type GoalHorizon = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "PHILOSOPHY" | "AREA";
+
+export const GOAL_HORIZON_LABEL: Record<GoalHorizon, string> = {
+  "1M": "1か月後",
+  "3M": "3か月後",
+  "6M": "半年後",
+  "1Y": "1年後",
+  "3Y": "3年後",
+  "5Y": "5年後",
+  PHILOSOPHY: "哲学",
+  AREA: "この期間の中身",
+};
+
 export interface Goal {
   id: string;
   parentId: string | null;
@@ -179,6 +201,15 @@ export interface Goal {
   desiredState: string;
   achievementCriteria: string;
   status: GoalStatus;
+  horizon: GoalHorizon;
+  // 理想と現在の差。分からないなら null のまま——「まだ測っていない」を
+  // 「差が無い」と書かないため (2026-09-09, P1).
+  currentGap: string | null;
+  // 次に1つだけ積むEvidence。複数書くと結局どれもやらない。
+  nextEvidence: string | null;
+  // このGoalへ至る道筋を、既存のGapItemの並びとして表す。Goal側に手順を
+  // 複製しない——同じ工程が2箇所にあると必ず片方が古くなる。
+  pathGapIds: string[];
   // A Goal node can point at the Area's real detail instead of duplicating
   // it — an Outcome/Master already has the canonical content (RIALA's
   // achievementCriteria[], Sales Master's phases, etc). Never copy that

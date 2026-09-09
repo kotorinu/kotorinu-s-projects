@@ -25,7 +25,13 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
           <div
             key={c.id}
             className="rounded-xl border bg-white"
-            style={{ borderColor: "#EAE8E6", borderLeftWidth: 3, borderLeftColor: theme.primary }}
+            style={{
+              borderTopColor: "#EAE8E6",
+              borderRightColor: "#EAE8E6",
+              borderBottomColor: "#EAE8E6",
+              borderLeftWidth: 3,
+              borderLeftColor: theme.primary,
+            }}
           >
             <button
               type="button"
@@ -34,16 +40,23 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[13px] font-bold text-stone-800">{c.title}</span>
+                {/* P4: Evidenceが無いのは失敗ではなく「まだ記録が無い」だけ。
+                    赤や警告色は当てない。 */}
                 <span className="shrink-0 text-[10px] font-bold text-stone-300">
-                  証拠 {c.evidence.length}件 {isOpen ? "▾" : "▸"}
+                  {c.evidence.length === 0 ? "まだEvidenceなし" : "Evidence " + c.evidence.length + "件"}{" "}
+                  {isOpen ? "▾" : "▸"}
                 </span>
               </div>
-              <p className="mt-0.5 line-clamp-1 text-[11px] text-stone-500">いま足りない　{c.currentGap}</p>
+              {/* 開いている時は下に全文が出るので、ここでは繰り返さない。 */}
+              {!isOpen && (
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-stone-500">{c.currentGap}</p>
+              )}
             </button>
 
             {isOpen && (
               <div className="border-t border-stone-100 px-3 py-2.5">
                 <Field label="なぜ鍛えるか" body={c.why} />
+                <Field label="いま足りないこと（Current Gap）" body={c.currentGap} />
                 <div className="mt-2">
                   <p className="text-[10px] font-bold text-stone-400">練習していること</p>
                   <ul className="mt-1 flex flex-wrap gap-1">
@@ -59,10 +72,10 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
                   </ul>
                 </div>
                 <div className="mt-2">
-                  <p className="text-[10px] font-bold text-stone-400">証拠（Evidence）</p>
+                  <p className="text-[10px] font-bold text-stone-400">Evidence</p>
                   {c.evidence.length === 0 ? (
                     <p className="mt-0.5 text-[11px] text-stone-400">
-                      まだありません。実行した記録がここに溜まります。
+                      まだEvidenceなし。実際に使った記録がここに溜まります。
                     </p>
                   ) : (
                     <ul className="mt-0.5 flex flex-col gap-0.5">
@@ -74,7 +87,7 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
                     </ul>
                   )}
                 </div>
-                <Field label="次の練習" body={c.nextPractice} accent />
+                <Field label="次の練習（Next Practice）" body={c.nextPractice} accent />
               </div>
             )}
           </div>

@@ -1013,7 +1013,9 @@ export default function TodayPage() {
                       className="rounded-xl border px-3 py-2.5"
                       style={{
                         backgroundColor: themeFor(currentTask.area, currentTask.activityType).surface.soft,
-                        borderColor: themeFor(currentTask.area, currentTask.activityType).surface.border,
+                        borderTopColor: themeFor(currentTask.area, currentTask.activityType).surface.border,
+                        borderRightColor: themeFor(currentTask.area, currentTask.activityType).surface.border,
+                        borderBottomColor: themeFor(currentTask.area, currentTask.activityType).surface.border,
                         borderLeftWidth: 3,
                         borderLeftColor: themeFor(currentTask.area, currentTask.activityType).surface.primary,
                       }}
@@ -1033,7 +1035,9 @@ export default function TodayPage() {
                     className="rounded-xl border px-3 py-2.5"
                     style={{
                       backgroundColor: themeFor(nextTask.area, nextTask.activityType).surface.soft,
-                      borderColor: themeFor(nextTask.area, nextTask.activityType).surface.border,
+                      borderTopColor: themeFor(nextTask.area, nextTask.activityType).surface.border,
+                      borderRightColor: themeFor(nextTask.area, nextTask.activityType).surface.border,
+                      borderBottomColor: themeFor(nextTask.area, nextTask.activityType).surface.border,
                       borderLeftWidth: 3,
                       borderLeftColor: themeFor(nextTask.area, nextTask.activityType).surface.primary,
                     }}
@@ -1337,7 +1341,9 @@ function TimelineTaskCard({
       ref={nowRef as React.Ref<HTMLLIElement>}
       className="rounded-2xl border bg-white px-3.5 py-3 transition-shadow duration-200"
       style={{
-        borderColor: isFocused ? surface.primary : "#EAE8E6",
+        borderTopColor: isFocused ? surface.primary : "#EAE8E6",
+        borderRightColor: isFocused ? surface.primary : "#EAE8E6",
+        borderBottomColor: isFocused ? surface.primary : "#EAE8E6",
         borderLeftWidth: 3,
         borderLeftColor: surface.primary,
         boxShadow: isFocused ? "0 4px 16px -8px rgba(0,0,0,0.18)" : "0 1px 2px rgba(0,0,0,0.04)",
@@ -1346,7 +1352,8 @@ function TimelineTaskCard({
     >
       <div className="flex items-start gap-3">
         <TaskStateButton state={execState} onStart={onStart} onComplete={onComplete} onUndo={onUndo} />
-        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <div className="min-w-0 flex-1">
+          <button type="button" onClick={onOpen} className="w-full text-left">
           <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
             <span className="tabular-nums">
               {startTime}〜{endTime}
@@ -1400,19 +1407,20 @@ function TimelineTaskCard({
             )}
           </div>
 
-          {isFocused && !checked && runbook && (
-            <RunbookStrip runbook={runbook} nowHmValue={nowHmValue} />
-          )}
+          </button>
+
+          {/* RunbookStrip has its own button, so it must not sit inside the
+              card button — nested buttons are invalid HTML and React says so
+              as a hydration error. */}
+          {isFocused && !checked && runbook && <RunbookStrip runbook={runbook} nowHmValue={nowHmValue} />}
 
           {isFocused && !checked && task.definitionOfDone.length > 0 && (
-            <p className="mt-1.5 line-clamp-1 text-[11px] text-stone-500">
-              完了条件　{task.definitionOfDone[0]}
-            </p>
+            <p className="mt-1.5 line-clamp-1 text-[11px] text-stone-500">完了条件　{task.definitionOfDone[0]}</p>
           )}
           {isFocused && !checked && preparationCount > 0 && (
             <p className="mt-1 text-[10px] font-bold text-stone-400">準備Task {preparationCount}件</p>
           )}
-        </button>
+        </div>
       </div>
     </li>
   );

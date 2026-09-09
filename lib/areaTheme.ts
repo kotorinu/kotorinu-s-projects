@@ -144,9 +144,13 @@ export function themeFor(area: Area, activity: ActivityType | null): { surface: 
 
 /** Inline style for a card: tinted background, matching hairline, left rule. */
 export function cardStyle(theme: Theme): React.CSSProperties {
+  // 3辺ずつ指定する。borderColor(shorthand) と borderLeftColor(longhand)
+  // を同時に置くと、再レンダリング時にReactが警告を出す。
   return {
     backgroundColor: theme.soft,
-    borderColor: theme.border,
+    borderTopColor: theme.border,
+    borderRightColor: theme.border,
+    borderBottomColor: theme.border,
     borderLeftColor: theme.primary,
   };
 }

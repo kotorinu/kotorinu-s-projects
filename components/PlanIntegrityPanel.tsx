@@ -14,14 +14,18 @@ import type { Clock } from "@/lib/clock";
 import type { TaskStateOverlays } from "@/lib/taskState";
 import type { Task, TimeBlock } from "@/lib/types";
 
-// 計画の健全性を1か所で見るパネル (2026-09-09, §17/§21/§22/§23).
+// 計画の状態 (2026-09-09, §17/§21〜§23 → P0で二分割).
 //
-// 分けて置くと結局どちらも見なくなるので、「OSの中で矛盾していないか」と
-// 「Calendarと食い違っていないか」を同じ場所に出す。
+// 前のバージョンは「矛盾なし・Calendar一致」を1行にまとめていた。これは嘘に
+// なりうる: Validatorが見ているのはOSの内部だけで、Google Calendarが「今」
+// 一致しているかは誰も知らない。このアプリはCalendarを読み書きできないので、
+// 分かるのは「いつ照合したか」だけ。
 //
-// ただし、出せるものを全部出すと画面が埋まって逆に読まれない。so:
-//   ERROR と、手を動かせば直る差分（作る・直す・消す）だけが開いた状態で出る。
-//   「判定できない」は件数だけ見せて畳んでおく — 情報であって作業ではない。
+// だから2つに分ける:
+//   OS内部          いま計算した結果。断言してよい
+//   Google Calendar 照合した時刻の記録。「現在一致」とは絶対に言わない
+//
+// そしてsnapshotを読んだ後に予定を動かしたなら、その照合はもう古い。
 
 const TONE: Record<CalendarDiffType, { bg: string; text: string }> = {
   UPDATE: { bg: "bg-amber-100", text: "text-amber-900" },
@@ -31,9 +35,12 @@ const TONE: Record<CalendarDiffType, { bg: string; text: string }> = {
   MATCHED: { bg: "bg-emerald-100", text: "text-emerald-900" },
 };
 
-function formatReadAt(iso: string): string {
-  const [, m, d] = iso.split("T")[0].split("-");
-  return `${Number(m)}/${Number(d)}`;
+/** "2026/09/09 00:00" — 日付だけだと「今日照合した」に見えてしまう。 */
+function formatStamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 function DiffRow({ item }: { item: CalendarDiffItem }) {
@@ -66,12 +73,15 @@ export default function PlanIntegrityPanel({
   supersededBlocks,
   overlays,
   clock,
+  planLastChangedAt,
 }: {
   tasks: Task[];
   planBlocks: TimeBlock[];
   supersededBlocks: TimeBlock[];
   overlays: TaskStateOverlays;
   clock: Clock;
+  /** ISO timestamp of the newest plan edit, or null if nothing was moved. */
+  planLastChangedAt: string | null;
 }) {
   const issues = useMemo(
     () => validatePlan(tasks, planBlocks, overlays, clock),
@@ -91,38 +101,50 @@ export default function PlanIntegrityPanel({
     };
   }, [diff]);
 
-  // 「今すぐ手を動かせば直るもの」があるときだけ開く。
-  const needsAttention = issues.length > 0 || actionable.length > 0;
-  const [open, setOpen] = useState(needsAttention);
-  const [unknownOpen, setUnknownOpen] = useState(false);
+  // 照合した後に予定を動かしたなら、その照合はもう現在の計画を保証しない。
+  const snapshotStale = planLastChangedAt !== null && planLastChangedAt > calendarSnapshot.readAt;
+  const calendarNeedsWork = snapshotStale || actionable.length > 0;
 
-  const dot = issues.length > 0 ? "bg-danger" : actionable.length > 0 ? "bg-amber-500" : "bg-emerald-500";
-  const headline =
-    issues.length > 0
-      ? `矛盾${issues.length}件`
-      : actionable.length > 0
-        ? `Calendarへ反映 ${actionable.length}件`
-        : "矛盾なし・Calendar一致";
+  const [open, setOpen] = useState(issues.length > 0 || calendarNeedsWork);
+  const [unknownOpen, setUnknownOpen] = useState(false);
 
   return (
     <section className="mx-5 mt-2 rounded-xl border border-stone-150 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
-      >
-        <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
-        <span className="text-[12px] font-bold text-stone-700">計画の整合性</span>
-        <span className="text-[11px] text-stone-500">{headline}</span>
-        <span className="ml-auto shrink-0 text-[11px] text-stone-400">{open ? "閉じる" : "開く"}</span>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full px-3 py-2 text-left">
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] font-bold text-stone-700">計画の状態</span>
+          <span className="ml-auto shrink-0 text-[11px] text-stone-400">{open ? "閉じる" : "開く"}</span>
+        </div>
+        {/* 2行に分ける。1行にまとめると「Calendarも今OK」に読める。 */}
+        <div className="mt-1 flex flex-col gap-0.5">
+          <StatusLine
+            label="OS内部"
+            tone={issues.length > 0 ? "bad" : "good"}
+            value={issues.length > 0 ? `矛盾 ${issues.length}件` : "整合"}
+          />
+          <StatusLine
+            label="Google Calendar"
+            tone={calendarNeedsWork ? "warn" : "neutral"}
+            value={
+              snapshotStale
+                ? "再照合が必要"
+                : actionable.length > 0
+                  ? `要照合 ${actionable.length}件`
+                  : `差分 0件（${formatStamp(calendarSnapshot.readAt)}時点）`
+            }
+          />
+        </div>
       </button>
 
       {open && (
         <div className="border-t border-stone-150 px-3 py-2.5">
-          <h3 className="text-[11px] font-bold text-stone-500">OS内の矛盾</h3>
+          <h3 className="text-[11px] font-black tracking-wide text-stone-500">OS内部</h3>
+          <p className="mt-0.5 text-[10px] leading-snug text-stone-400">
+            いま計算した結果です。Taskと予定の間に矛盾があればここに出ます。
+          </p>
           {issues.length === 0 ? (
             <p className="mt-1 text-[11px] leading-snug text-stone-500">
-              矛盾はありません。実行するTaskはすべて時間が決まっていて、置き換え済みの予定は残っていません。
+              ✓ 整合。実行するTaskはすべて時間が決まっていて、置き換え済みの予定は残っていません。
             </p>
           ) : (
             <ul className="mt-1 flex flex-col gap-1.5">
@@ -136,14 +158,40 @@ export default function PlanIntegrityPanel({
             </ul>
           )}
 
-          <h3 className="mt-3 text-[11px] font-bold text-stone-500">Google Calendarとの差分</h3>
-          <p className="mt-0.5 text-[10px] leading-snug text-stone-400">
-            {formatReadAt(calendarSnapshot.readAt)}に読み込んだ {calendarSnapshot.coverageStart}〜
-            {calendarSnapshot.coverageEnd} と、今日以降の予定の比較。一致 {matched}件。
+          <h3 className="mt-4 text-[11px] font-black tracking-wide text-stone-500">Google Calendar</h3>
+          <dl className="mt-1 grid grid-cols-[5rem_1fr] gap-x-2 gap-y-1 text-[11px]">
+            <dt className="text-stone-400">最終照合</dt>
+            <dd className="tabular-nums font-bold text-stone-700">{formatStamp(calendarSnapshot.readAt)}</dd>
+            <dt className="text-stone-400">照合範囲</dt>
+            <dd className="text-stone-600">
+              {calendarSnapshot.coverageStart}〜{calendarSnapshot.coverageEnd}
+            </dd>
+            <dt className="text-stone-400">Calendar差分</dt>
+            <dd className={actionable.length > 0 ? "font-bold text-amber-700" : "text-stone-600"}>
+              {actionable.length}件{matched > 0 && `（一致 ${matched}件）`}
+            </dd>
+          </dl>
+          <p className="mt-1 text-[10px] leading-snug text-stone-400">
+            これは<span className="font-bold">この時刻時点で照合済み</span>
+            という記録であって、現在一致している保証ではありません。
+            このアプリはGoogle Calendarを読み書きしないため、照合後の変更は検知できません。
           </p>
 
+          {snapshotStale && (
+            <div className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2">
+              <p className="text-[11px] font-bold text-amber-900">Calendar再照合が必要</p>
+              <p className="mt-0.5 text-[10px] leading-relaxed text-amber-800">
+                最終照合（{formatStamp(calendarSnapshot.readAt)}）のあと、
+                {formatStamp(planLastChangedAt as string)} にOS側の予定を変更しました。
+                下の差分は変更前の照合結果を元にしているため、そのままでは信用できません。
+              </p>
+            </div>
+          )}
+
           {actionable.length === 0 ? (
-            <p className="mt-1 text-[11px] text-stone-500">Calendarへ反映が必要な予定はありません。</p>
+            <p className="mt-1.5 text-[11px] text-stone-500">
+              最終照合の時点では、Calendarへ反映が必要な予定はありませんでした。
+            </p>
           ) : (
             <>
               <ul className="mt-1.5 flex flex-col gap-1.5">
@@ -169,7 +217,7 @@ export default function PlanIntegrityPanel({
                 <span className="ml-auto text-[10px] text-stone-400">{unknownOpen ? "閉じる" : "見る"}</span>
               </button>
               <p className="mt-1 text-[10px] leading-snug text-stone-400">
-                Calendarには予定があるが、OS側に対応するTimeBlockが無いもの。読み込んだ範囲の外も含みます。
+                Calendarには予定があるが、OS側に対応するTimeBlockが無いもの。照合範囲の外も含みます。
                 対応するイベントIDが無いものを「一致」とは判定しません。
               </p>
               {unknownOpen && (
@@ -184,5 +232,39 @@ export default function PlanIntegrityPanel({
         </div>
       )}
     </section>
+  );
+}
+
+function StatusLine({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "good" | "warn" | "bad" | "neutral";
+}) {
+  const dot =
+    tone === "bad"
+      ? "bg-danger"
+      : tone === "warn"
+        ? "bg-amber-500"
+        : tone === "good"
+          ? "bg-emerald-500"
+          : "bg-stone-300";
+  const text =
+    tone === "bad"
+      ? "text-danger"
+      : tone === "warn"
+        ? "text-amber-700"
+        : tone === "good"
+          ? "text-emerald-700"
+          : "text-stone-500";
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+      <span className="w-[6.5rem] shrink-0 text-[10px] text-stone-400">{label}</span>
+      <span className={`text-[11px] font-bold ${text}`}>{value}</span>
+    </div>
   );
 }

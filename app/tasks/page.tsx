@@ -13,7 +13,7 @@ import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/
 import { allGapItems, blockers, outcomeMilestones } from "@/lib/dummy-data";
 import { mainGap, resolveGaps } from "@/lib/gapBoard";
 import { AREA_THEME, themeFor } from "@/lib/areaTheme";
-import { liveTimeBlocks, supersededByReschedule } from "@/lib/livePlan";
+import { liveTimeBlocks, planLastChangedAt, supersededByReschedule } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
 import PlanIntegrityPanel from "@/components/PlanIntegrityPanel";
 import { buildLabel } from "@/lib/buildInfo";
@@ -179,6 +179,11 @@ export default function TaskMapPage() {
     () => supersededByReschedule({ timeBlockOverrides, supersededBlockIds }),
     [timeBlockOverrides, supersededBlockIds]
   );
+
+  // P0: the Calendar snapshot only vouches for the plan as it stood when it
+  // was read. If the plan moved after that, say so instead of showing a 0
+  // that was true yesterday.
+  const planChangedAt = useMemo(() => planLastChangedAt({ timeBlockOverrides }), [timeBlockOverrides]);
 
   // §33: a Task-backed gap takes its status from the Task, so the board and
   // the task list can never disagree.
@@ -456,6 +461,7 @@ export default function TaskMapPage() {
         supersededBlocks={staleBlocks}
         overlays={overlays}
         clock={{ today, nowHm: nowHmValue }}
+        planLastChangedAt={planChangedAt}
       />
 
       {/* §14: 今月末どうなっていたいか。1〜2行だけ。 */}

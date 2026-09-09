@@ -7,6 +7,7 @@ import {
   allGapItems,
   blockers,
   capabilities,
+  goals,
   monthEndStates,
   outcomeMilestones,
   salesVideoLibrary,
@@ -92,6 +93,11 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     ? monthEndStates.find((m) => m.monthKey === "2026-09" && m.area === profile.area) ?? null
     : null;
   const areaCapabilities = profile ? capabilities.filter((c) => c.area === profile.area) : [];
+  // P4: 合宿までの Readiness。締切は Goal 側の実データから取る——ここで
+  // 日付をハードコードすると、Goalを動かした時に静かにズレる。
+  const campGoal = goals.find((g) => g.id === "g-genesis-camp") ?? null;
+  const campDaysLeft =
+    campGoal?.targetDate != null ? daysBetween(today, campGoal.targetDate) : null;
   const gaps = profile
     ? resolveGaps(allGapItems, profile.area, allTasks, overlays, new Set(taskStartedAt.keys()))
     : [];
@@ -145,7 +151,14 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {/* 追っている数字 — §8: 大面積の黒はやめ、Areaの淡いTintにする */}
           <section
             className="rounded-2xl border px-4 py-3.5"
-            style={{ backgroundColor: theme.soft, borderColor: theme.border, borderLeftWidth: 3, borderLeftColor: theme.primary }}
+            style={{
+              backgroundColor: theme.soft,
+              borderTopColor: theme.border,
+              borderRightColor: theme.border,
+              borderBottomColor: theme.border,
+              borderLeftWidth: 3,
+              borderLeftColor: theme.primary,
+            }}
           >
             <p className="text-[11px] font-bold text-stone-500">{headline.label}</p>
             <p className="mt-0.5 text-[30px] font-black leading-none tabular-nums" style={{ color: theme.text }}>
@@ -159,7 +172,14 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {monthGoal && (
             <section
               className="rounded-2xl border px-4 py-3"
-              style={{ backgroundColor: "#FFFFFF", borderColor: theme.border, borderLeftWidth: 3, borderLeftColor: theme.primary }}
+              style={{
+                backgroundColor: "#FFFFFF",
+                borderTopColor: theme.border,
+                borderRightColor: theme.border,
+                borderBottomColor: theme.border,
+                borderLeftWidth: 3,
+                borderLeftColor: theme.primary,
+              }}
             >
               <p className="text-[11px] font-bold text-stone-400">9月末の到達点</p>
               <p className="mt-0.5 text-[13px] font-bold leading-snug text-stone-800">{monthGoal.state}</p>
@@ -300,9 +320,25 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
           {areaCapabilities.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-              <p className="text-[12px] font-bold text-stone-500">鍛えている力</p>
-              <p className="mb-2 mt-0.5 text-[11px] text-stone-400">
-                Portable Skills。点数ではなく、証拠と次の練習で見ます。
+              <div className="flex items-baseline gap-2">
+                <p className="text-[12px] font-bold text-stone-500">
+                  {campDaysLeft !== null && campDaysLeft >= 0 ? "合宿まで" : "鍛えている力"}
+                </p>
+                {campDaysLeft !== null && campDaysLeft >= 0 && (
+                  <>
+                    <span className="tabular-nums text-[15px] font-black text-accent-dark">
+                      あと{campDaysLeft}日
+                    </span>
+                    {campGoal?.targetDate && (
+                      <span className="ml-auto text-[10px] font-bold text-stone-300">
+                        {formatMd(campGoal.targetDate)}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className="mb-2 mt-0.5 text-[11px] leading-relaxed text-stone-400">
+                持ち運べる力（Portable Skills）。点数はつけません。いま何が足りないか・証拠・次の練習だけで見ます。
               </p>
               <CapabilityMap capabilities={areaCapabilities} />
             </section>
@@ -313,7 +349,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               className="rounded-2xl border px-4 py-3.5"
               style={{
                 backgroundColor: ACTIVITY_THEME.READING.soft,
-                borderColor: ACTIVITY_THEME.READING.border,
+                borderTopColor: ACTIVITY_THEME.READING.border,
+                borderRightColor: ACTIVITY_THEME.READING.border,
+                borderBottomColor: ACTIVITY_THEME.READING.border,
                 borderLeftWidth: 3,
                 borderLeftColor: ACTIVITY_THEME.READING.primary,
               }}

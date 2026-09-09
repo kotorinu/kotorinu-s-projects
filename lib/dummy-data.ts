@@ -738,6 +738,14 @@ export const activeTimeBlocks: TimeBlock[] = timeBlocks.filter((tb) => tb.lifecy
 // ever been confirmed, so they simply don't exist as nodes yet (PROVISIONAL,
 // not fabricated). GENESIS/営業代行/RIALA link out to their real Outcome/
 // Master content via linkedUrl/note rather than duplicating it here.
+// Goal Tree (2026-09-09 更新, P1〜P3).
+//
+// 各Goalは「いつ」「何になっていたいか」に加えて、いまとの差(currentGap)と、
+// 次に積む1つのEvidence(nextEvidence)を持つ。差が測れていないものは null の
+// まま——測っていないことを「差が無い」と書かない。
+//
+// pathGapIds は既存のGapItemを並べたもの。工程をGoal側へ複製すると必ず片方が
+// 古くなるので、参照だけ持つ。
 export const goals: Goal[] = [
   {
     id: "g-life-philosophy",
@@ -748,6 +756,10 @@ export const goals: Goal[] = [
       "自分と周囲のウェルビーイングを実現することで、自分を取り巻く全ての人が笑顔で溢れていること",
     achievementCriteria: "測定可能な達成基準は設定しない（人生哲学のため、常に体現を目指す状態）",
     status: "進行中",
+    horizon: "PHILOSOPHY",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -762,26 +774,28 @@ export const goals: Goal[] = [
       "自分と関係する人の本質的な課題を解決し、その人に価値と喜びを届けることで、仲間とその家族の生活を守り、自身も没頭と成長を重ねた先で、なりたい理想像を叶えようと、のめり込んでいる状態を楽しんでいること",
     achievementCriteria: "測定可能な達成基準は設定しない（仕事哲学のため、常に体現を目指す状態）",
     status: "進行中",
+    horizon: "PHILOSOPHY",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
     updatedAt: now,
   },
-  // --- 時間軸Goal（5年後〜1か月後、2026-09-06正式復元） ---
-  // 本人と確定済みの内容（PROVISIONAL/未設定ではない）。GENESIS/営業代行/
-  // RIALAは「現在取り組んでいるProject/Area」であり、この時間軸チェーンと
-  // 意味が異なる別軸（g-direction配下）として維持する — 無理に一本の
-  // チェーンへ混ぜない（PRD.md Goal Tree §26）。半年後だけtargetDateの
-  // 確定値が無いため、期間から日付を計算せずnullのまま扱う。
   {
     id: "g-5year",
     parentId: "g-work-philosophy",
     title: "5年後",
     targetDate: "2031-09-01",
     desiredState:
-      "愛する家族と一緒に暮らし、家族との時間を大切にできている。\nオンラインを中心に場所に縛られず働き、家族との時間を確保しながら、自分自身も新しい経験や挑戦を通して成長している。\n個人として月収200万円・年収2,400万円を得ている。\n自分の事業を1つ持ち、自分が常に現場にいなくても、チームメンバーが自ら判断して事業を運営し、目標を達成できている。\n自分は既存事業の拡大や、新しい事業の立ち上げに力を注いでいる。",
+      "愛する家族と一緒に暮らし、家族との時間を大切にできている。\nオンラインを中心に場所に縛られず働き、家族との時間を確保しながら、自分自身も新しい経験や挑戦を通して成長している。\n個人として月収200万円・年収2,400万円を安定して得ている。",
     achievementCriteria: "達成基準は今回確定していない（Desired Stateのみ確定）。",
     status: "進行中",
+    horizon: "5Y",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -793,9 +807,13 @@ export const goals: Goal[] = [
     title: "3年後",
     targetDate: "2029-09-01",
     desiredState:
-      "東京の、仲間や職場の近くに住み、オフィスまで5〜10分で移動できる。\n東京駅・新宿・渋谷などの主要エリアにも出やすい生活をしている。\n5〜6人のチームをまとめるリーダーとして、メンバーの得意・不得意を把握し、適切な役割分担を行っている。\n目標設定・進捗確認・フィードバックを行い、チームとしてお客様に価値を届けながら、継続的に目標を達成している。\n年収は1,100〜1,200万円。\n仕事だけに偏らず、将来の家族形成や大切な人との時間も確保している。",
+      "東京の、仲間や職場の近くに住み、オフィスまで5〜10分で移動できる。\n東京駅・新宿・渋谷などの主要エリアにも出やすい生活をしている。\n5〜6人のチームをまとめるリーダーとして、メンバーの得意・不得意を把握し、適切な役割分担ができている。",
     achievementCriteria: "達成基準は今回確定していない（Desired Stateのみ確定）。",
     status: "進行中",
+    horizon: "3Y",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -807,10 +825,14 @@ export const goals: Goal[] = [
     title: "1年後",
     targetDate: "2027-09-01",
     desiredState:
-      "自分の人生の目的から、1年・1か月・1週間の目標を決め、その理由まで自分の言葉で説明できる。\n目標に合わない選択を断り、目標達成に必要な挑戦を自分で選べている。\nGENESISの事業に参画し、月50万円の報酬を継続的に得ている。\n事業の「集客・営業・商品提供・継続・売上・利益」の流れを説明でき、一つの業務領域に責任を持って、目標設定と改善を行っている。",
+      "自分の人生の目的から、1年・1か月・1週間の目標を決め、その理由まで自分の言葉で説明できる。\n目標に合わない選択を断り、目標達成に必要な挑戦を自分で選べている。\nGENESISの事業に参画し、月50万円の報酬を継続的に得ている。",
     achievementCriteria:
-      "・毎週、目標と行動を振り返っている\n・目標と、その目標を設定した理由を説明できる\n・毎月、目標につながる新しい挑戦を1つ実行している\n・自分の感情・強み・弱み・判断傾向を自己理解ノートにまとめている\n・週1冊の読書から、実際の行動を最低1つ変えている",
+      "・毎週、目標と行動を振り返っている\n・目標と、その目標を設定した理由を説明できる\n・毎月、目標につながる新しい挑戦を1つ実行している\n・自分の感情・強み・弱み・判断傾向を自己理解ノートにまとめている\n・週1冊の読書から、行動を1つ変えている",
     status: "進行中",
+    horizon: "1Y",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -820,14 +842,21 @@ export const goals: Goal[] = [
     id: "g-halfyear",
     parentId: "g-1year",
     title: "半年後",
-    targetDate: null, // 本人確定値なし。「半年後」という期間から日付を逆算・捏造しない
+    // 2026-09-09: 「半年後」という名前がすでに時期を決めているので、
+    // 2026-09 起点の半年＝2027-03-01 を置く。新しい約束を作ったのではなく、
+    // Journey上の位置を書いただけ。中身の達成基準は本人確定のまま。
+    targetDate: "2027-03-01",
     desiredState:
-      "営業代行で月30万円を継続して得ている。\n一定数以上の有効面談を経験したうえで、成約率75％を達成している。\n面談ごとに振り返りと改善を行い、自分の営業の型を言語化できている。\nまた、自分がどのような人でありたいかを見失わず、仕事上の判断と自分の人生目標を結び付けられている。",
+      "営業代行で月30万円を継続して得ている。\n一定数以上の有効面談を経験したうえで、成約率75％を達成している。\n面談ごとに振り返りと改善を行い、自分の営業の型を言語化できている。\nまた、自分がどのような人でありたいかを見失わずに判断できている。",
     achievementCriteria:
       "・営業代行の月額報酬30万円以上\n・直近20件以上の有効面談で成約率75％以上\n・面談後の振り返り・改善を毎回記録\n・週間の計画に対する行動達成率90％以上\n・自己理解ノートを週1回以上更新",
     status: "進行中",
+    horizon: "6M",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
-    note: "Target Dateは本人確定値が無いため未設定（PROVISIONAL）。「半年後」という期間からAIが日付を計算して確定データ扱いにしない。",
+    note: "targetDateは「半年後」という期間名から置いた位置。個別の期日を新たに約束したものではない。",
     createdAt: now,
     updatedAt: now,
   },
@@ -837,10 +866,14 @@ export const goals: Goal[] = [
     title: "3か月後",
     targetDate: "2026-12-01",
     desiredState:
-      "本業では、問題や遅延の可能性を早めに報告・相談でき、周囲が状況を把握できている。\n稼働調整を除き、残業は月10時間以内になっている。\n営業では、面談の流れ・質問・提案・クロージングを自分の営業の型としてまとめ、直近10件以上の有効面談で成約率50％以上を達成している。\n営業代行で月15万円以上を得ている。",
+      "本業では、問題や遅延の可能性を早めに報告・相談でき、周囲が状況を把握できている。\n稼働調整を除き、残業は月10時間以内になっている。\n営業では、面談の流れ・質問・提案・クロージングを自分の営業の型としてまとめ、直近10件の面談で改善を回せている。",
     achievementCriteria:
-      "・問題や遅延リスクが発生した当日中に報告・相談する\n・営業動画の学習と面談レビューを週1回以上行う\n・指摘事項を次回の面談で実践し、結果を記録する\n・自分の営業の型を資料として言語化する\n・表現力・論理的思考力・やり抜く力などについて、週1回改善点を振り返る",
+      "・問題や遅延リスクが発生した当日中に報告・相談する\n・営業動画の学習と面談レビューを週1回以上行う\n・指摘事項を次回の面談で実践し、結果を記録する\n・自分の営業の型を資料として言語化する\n・表現力・論理的思考力・やり抜く力を、実際の場面で使った記録を残す",
     status: "進行中",
+    horizon: "3M",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -851,11 +884,19 @@ export const goals: Goal[] = [
     parentId: "g-3month",
     title: "1か月後",
     targetDate: "2026-10-01",
+    // 2026-09-09 更新 (P3): 9月の実際の到達点へ書き換え。
+    // 「営業代行先が決まり」は済んでいるので理想から外し、いま決着をつける
+    // 3つ——成約1件 / RIALA移行と利用促進 / Portable Skillsの獲得——に絞る。
     desiredState:
-      "60日チャレンジの1か月目に予定されている課題をすべて完了している。\n「具体と抽象とは何か」「なぜ往復する必要があるのか」を、自分の言葉と複数の具体例を使って説明できる。\n営業代行先が決まり、担当する業務・報酬条件・開始日・目標が明確になっている。\n計画した行動の90％以上を実行し、未達分はその週の日曜日までにリカバリーできている。",
+      "営業代行で成約が1件出ている。\nRIALAの新アプリ移行を締めたうえで、実際に使う人・投稿する人が増え始めている。\n論理的思考・やり抜く力・リーダーシップ・基準値・継続を、営業とRIALAの実際の場面で使い、その事例を自分の言葉で説明できる。",
     achievementCriteria:
-      "・『具体⇄抽象トレーニング』の演習を毎日最低1問解く\n・回答だけでなく、「抽象化・具体例・実生活での活用」を記録する\n・未実施分は、その週の土日で必ずリカバリーする\n・営業代行準備の目標を、週単位の行動数に分解して実行する\n・自分の人生・1年・1か月・1週間の目標と、その理由を説明できる状態",
+      "・9月30日までに営業代行で成約1件\n・RIALA移行対象者全員の状態が確定し、利用状況のBaselineが取れている\n・5つの力それぞれについて、実際の場面で使ったEvidenceが残っている\n・決めた予定を最後まで実行し、未達は理由を残して再計画している",
     status: "進行中",
+    horizon: "1M",
+    currentGap:
+      "成約はまだ0件で、商品レクチャーと研修条件がどちらも未確定のため実商談まで進めていない。RIALAは移行が進行中でBaselineが未取得。5つの力はEvidenceがまだほとんど無い。",
+    nextEvidence: "17フェーズの自分版を1フェーズ書き切る（0/11 → 1/11）",
+    pathGapIds: [],
     linkedUrl: null,
     note: null,
     createdAt: now,
@@ -870,6 +911,10 @@ export const goals: Goal[] = [
       "自分が事業責任者／事業を持つ。方向性・目標・重要意思決定を担う。チームが自律的に実行する。自分は事業拡大、新規事業、家族、挑戦へ時間を使える。",
     achievementCriteria: "5年／3年／1年の具体的な達成基準はまだ確定していない（PROVISIONAL）",
     status: "進行中",
+    horizon: "PHILOSOPHY",
+    currentGap: null,
+    nextEvidence: null,
+    pathGapIds: [],
     linkedUrl: null,
     note: "5年後〜1か月後の時間軸Goalは正式復元済み（g-5year以下、Work Philosophy直下の別ブランチ）。GENESIS/営業代行/RIALAはこのDirectionが指す「現在取り組んでいるProject/Area」であり、時間軸チェーンと意味的に区別する（PRD.md Goal Tree §26）。",
     createdAt: now,
@@ -878,13 +923,22 @@ export const goals: Goal[] = [
   {
     id: "g-genesis-60day",
     parentId: "g-direction",
-    title: "GENESIS 60日チャレンジ",
+    title: "GENESIS",
     targetDate: null,
-    desiredState: "GENESISエリアの60日チャレンジ（実データはOutcomeを参照）",
-    achievementCriteria: "Outcome側のachievementCriteria（9項目）を参照",
+    // 2026-09-09 更新 (P3): 目的は「問い切りができること」ではなく、
+    // 持ち運べる力が身につくこと。問い切りはその手段のひとつ。
+    desiredState:
+      "論理的思考・やり抜く力・リーダーシップ・基準値・継続を、営業／RIALA／本業の実際の問題に対して使えている。\nそれぞれについて「いつ・何に・どう使って・どうなったか」をEvidenceとして説明できる。",
+    achievementCriteria:
+      "5つの力それぞれに、実際の場面で使った記録が1件以上ある。記録は「やった」ではなく、扱った問題・使った型・結果まで書けている。",
     status: "進行中",
-    linkedUrl: null,
-    note: "Outcome詳細はTASK MAP → 月末Outcome → GENESIS「詳しく見る」から確認できます",
+    horizon: "AREA",
+    currentGap:
+      "5つの力のうちEvidenceがあるのは基準値の1つだけ。問い切り・リーダーシップ・継続はまだ実行の記録が無い。",
+    nextEvidence: "問い切りを1件、Actionの実行まで通して記録する",
+    pathGapIds: ["gap-genesis-inquiry", "gap-genesis-action", "gap-genesis-abstraction", "gap-genesis-camp"],
+    linkedUrl: "/area/genesis",
+    note: "力の一覧と、いま何が足りないかはGENESIS Area Homeの「合宿まで」で見られます",
     createdAt: now,
     updatedAt: now,
   },
@@ -893,13 +947,16 @@ export const goals: Goal[] = [
     parentId: "g-genesis-60day",
     title: "GENESIS合宿",
     targetDate: "2026-10-03", // Countdown基準日はstartDate（PRD.md §28）
-
     desiredState:
-      "9月中に60日チャレンジのEvidence・Before/After・改善点を蓄積し、10/3〜10/4の合宿でOutputとして話せる状態にする。",
+      "5つの力について、合宿で「何に使って、何が変わったか」を具体例つきで話せる。\nBefore/Afterと、うまくいかなかった点・その原因まで説明できる。",
     achievementCriteria:
       "60日チャレンジEvidence整理・合宿で話せるBefore/After・未達/改善点整理・読書から行動化した事例・具体⇄抽象の変化・問題解決の変化・期限遵守/逆算管理の変化、をそれぞれ蓄積している",
     status: "進行中",
-    linkedUrl: null,
+    horizon: "AREA",
+    currentGap: "話せる材料がまだ揃っていない。Evidenceは基準値の1件のみ。",
+    nextEvidence: "今日の問い切りをAction実行まで通し、扱った問題と結果を残す",
+    pathGapIds: ["gap-genesis-camp"],
+    linkedUrl: "/area/genesis",
     note: "10/5〜10/8は北海道旅行が直後に続くため、10月第1週は通常稼働週として扱わない（Calendar Constraint参照）",
     createdAt: now,
     updatedAt: now,
@@ -909,11 +966,29 @@ export const goals: Goal[] = [
     parentId: "g-direction",
     title: "営業代行",
     targetDate: null,
-    desiredState: "営業代行エリアの実行（実データはSales Masterを参照）",
-    achievementCriteria: "Sales Master側のStructure Coverage / Practice Coverageを参照",
+    // 2026-09-09 更新 (P3): 9月の到達点を Goal 側にも明記する。
+    // 必要商談数・成約率・単価は根拠が無いので置かない。
+    desiredState: "9月30日までに、営業代行で成約を1件出す。",
+    achievementCriteria:
+      "成約が1件確定している。そこまでの工程（17フェーズ理解 → 商品理解 → ロープレ → テスト → 実商談 → FB改善 → 成約）のどこで止まっているかが、常に分かる状態になっている。",
     status: "進行中",
+    horizon: "AREA",
+    currentGap:
+      "17フェーズの基礎は揃ったが自分版が0/11。商品レクチャーと研修条件・テスト要件がどちらも未共有のため、ロープレより先へ進めない。",
+    nextEvidence: "自分版を1フェーズ書き切る（目的・OK状態・自分の質問の3つを埋める）",
+    // 17Phase理解 → 商品理解 → ロープレ → テスト → 実商談 → FB改善 → 成約
+    pathGapIds: [
+      "gap-sales-basics",
+      "gap-sales-own-version",
+      "gap-sales-path-product",
+      "gap-sales-roleplay",
+      "gap-sales-path-test",
+      "gap-sales-path-live",
+      "gap-sales-live",
+      "gap-sales-path-close",
+    ],
     linkedUrl: "/sales-master",
-    note: null,
+    note: "必要な商談数・成約率・単価は本人にも未共有のため、逆算して数値目標を作らない。",
     createdAt: now,
     updatedAt: now,
   },
@@ -922,11 +997,25 @@ export const goals: Goal[] = [
     parentId: "g-direction",
     title: "RIALA",
     targetDate: null,
-    desiredState: "RIALAエリアの運営AI移管（実データはRIALA Operations Masterを参照）",
-    achievementCriteria: "RIALA Outcome / Operations Master側の達成条件を参照",
+    // 2026-09-09 更新 (P3): 「移行を締める」と「利用・投稿を増やす」は
+    // 別の仕事。混ぜると、移行が終わっただけで前進した気になる。
+    desiredState:
+      "新RIALAアプリへの移行を締めたうえで、実際に使う人・投稿する人が増えている。",
+    achievementCriteria:
+      "移行対象者全員の状態（移行済み / 未完了 / 連絡不能 / 対象外）が確定している。そのうえで、利用状況のBaselineが取れ、月初と比べた変化を説明できる。",
     status: "進行中",
+    horizon: "AREA",
+    currentGap:
+      "移行は進行中。利用促進については、Active Userの定義・現在の利用人数・投稿者数・イベント参加数のいずれも未取得で、増えたかどうかを判定する基準がまだ無い。",
+    nextEvidence: "Active Userの判定基準を決め、取得できる数字を1つ記録する",
+    pathGapIds: [
+      "gap-riala-migration",
+      "gap-riala-path-baseline",
+      "gap-riala-path-activation",
+      "gap-riala-path-result",
+    ],
     linkedUrl: "/riala-master",
-    note: null,
+    note: "Baselineが無い状態で「◯人増やす」という目標は置かない。数値目標はBaseline取得後に決める。",
     createdAt: now,
     updatedAt: now,
   },
@@ -4263,14 +4352,19 @@ export const monthEndStates: MonthEndState[] = [
     monthKey: "2026-09",
     area: "GENESIS",
     state:
-      "4つの力を日々の実行で鍛え、問題を 目的→Fact→Gap→問い→Action へ構造化し、決めたことを最後までやり抜き、合宿で自分の変化とEvidenceを説明できる状態",
+      "論理的思考・やり抜く力・リーダーシップ・基準値・継続を、営業とRIALAの実際の問題に対して使い、合宿でEvidenceつきで説明できる状態",
   },
 ];
 
 // --- GENESIS Capability Map (P2-6/P16) ---
-// Task完了率を能力Scoreにしない。各能力について「最後にいつ練習したか」
-// 「証拠は何か」「いま何が足りないか」「次の練習は何か」だけを持つ。
-// 根拠のない 72点 / 80% のようなスコアは作らない。
+// Portable Skills (2026-09-09 更新, P4).
+//
+// GENESISの目的は問い切りそのものではなく、営業・RIALA・本業のどこへ持って
+// いっても使える力を身につけること。だから practices は「合宿までに何を
+// 通せていればいいか」の手順そのものにしてある。
+//
+// 点数は作らない。Evidenceが無いことは失敗ではなく、まだ記録が無いだけ——
+// 赤くしない。
 export const capabilities: Capability[] = [
   {
     id: "cap-logical",
@@ -4278,39 +4372,32 @@ export const capabilities: Capability[] = [
     title: "論理的思考",
     why: "合宿までに一番不安が大きい能力。問題を構造化できないと、営業もRIALAも「なんとなく」で進む。",
     practices: [
-      "事実と解釈を分ける",
       "Goal → Fact → Gap",
-      "Central Questionを1つに絞る",
+      "Central Questionを1つに決める",
       "Sub Questionsへ分解する",
       "優先順位をつける",
       "Actionへ落とす",
-      "出た答えを統合する",
-      "次の問いを立てる",
+      "実行する",
+      "事実と解釈を分ける",
     ],
     evidence: [],
     currentGap: "問い切りのフローは知っているが、Actionの実行まで通した記録がまだ無い",
-    nextPractice: "9/8 05:00 の問い切りで、17フェーズ理解のボトルネックをAction実行まで通す",
+    nextPractice: "9/9 05:30 の問い切りで、営業全工程のボトルネック仮説をAction実行まで通す",
     linkedRecurringRuleIds: ["r-001", "r-002"],
     linkedTaskIds: ["t-genesis-0908-inquiry", "t-genesis-0909-weakpoint"],
-  },
-  {
-    id: "cap-grit",
-    area: "GENESIS",
-    title: "やり抜く力",
-    why: "「継続できない人」という自認を、事実で置き換えるため。",
-    practices: ["決めた時間に始める", "決めた終了条件まで終わらせる", "未達なら理由を残して再計画する"],
-    evidence: [],
-    currentGap: "Execution Baseline 2026-09-08 から計測開始。まだ実績が1日分もない",
-    nextPractice: "今日の予定5件を、決めた時間どおりに始める",
-    linkedRecurringRuleIds: ["r-003"],
-    linkedTaskIds: [],
   },
   {
     id: "cap-leadership",
     area: "GENESIS",
     title: "リーダーシップ",
     why: "RIALA運営でも営業でも、自分から決めて動かす場面が増えるため。",
-    practices: ["自分から論点を出す", "決めて周りへ共有する", "相手が動ける形で渡す"],
+    practices: [
+      "問いを決める",
+      "担当を決める",
+      "時間を決める",
+      "回答を統合する",
+      "次の問いを出す",
+    ],
     evidence: [],
     currentGap: "RIALA運営で「確認する」までは動けているが、こちらから提案して決める場面の記録が無い",
     nextPractice: "RIALA運営で、判断が要る点を1つ自分の案付きで出す",
@@ -4318,11 +4405,23 @@ export const capabilities: Capability[] = [
     linkedTaskIds: [],
   },
   {
+    id: "cap-grit",
+    area: "GENESIS",
+    title: "やり抜く力",
+    why: "「継続できない人」という自認を、事実で置き換えるため。",
+    practices: ["決めたことを最後までやる", "未達なら原因を書いて再計画する"],
+    evidence: [],
+    currentGap: "Execution Baseline 2026-09-08 から計測開始。まだ実績が1日分もない",
+    nextPractice: "今日の予定5件を、決めた時間どおりに始める",
+    linkedRecurringRuleIds: ["r-003"],
+    linkedTaskIds: [],
+  },
+  {
     id: "cap-standard",
     area: "GENESIS",
     title: "基準値",
     why: "「これで十分」の線を自分で上げないと、成果の質が上がらない。",
-    practices: ["完了条件を先に決める", "満たしていなければ完了にしない", "仕事の型6原則を当てる"],
+    practices: ["完了条件（DoD）を先に決める", "DoDを満たさないものをDONEにしない"],
     evidence: ["ACTIVE Task 11件すべてに完了条件がある"],
     currentGap: "完了条件は書けているが、「未達のまま終了」を選んだ実績がまだ無く、基準が機能しているか未検証",
     nextPractice: "今日の完了時に、完了条件を読んでから押す",
@@ -4334,7 +4433,7 @@ export const capabilities: Capability[] = [
     area: "GENESIS",
     title: "継続",
     why: "1日の成果より、続いた日数の方が結果を決めるため。",
-    practices: ["毎日の積み上げ4本", "日報を出す", "Never miss twice"],
+    practices: ["思考トレーニング", "Action", "Calendarへ落とす", "日報を出す"],
     evidence: [],
     currentGap: "DAY 1。連続日数はこれから積む",
     nextPractice: "今日の積み上げ4本（思考トレーニング・アウトプット・Calendar化・日報）",

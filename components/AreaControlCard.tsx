@@ -48,7 +48,9 @@ export default function AreaControlCard({
         selected ? "shadow-md" : "shadow-sm hover:shadow-md"
       }`}
       style={{
-        borderColor: selected ? theme.primary : "#EAE8E6",
+        borderTopColor: selected ? theme.primary : "#EAE8E6",
+        borderRightColor: selected ? theme.primary : "#EAE8E6",
+        borderBottomColor: selected ? theme.primary : "#EAE8E6",
         borderLeftWidth: 3,
         borderLeftColor: theme.primary,
       }}

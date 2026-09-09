@@ -80,3 +80,23 @@ export function currentRunbookStep(
   const upcoming = runbook.steps.findIndex((s) => nowHm < s.startTime);
   return { currentIndex: -1, nextIndex: upcoming >= 0 ? upcoming : null };
 }
+
+/**
+ * When the live plan was last edited (2026-09-09, P0).
+ *
+ * Derived, never stored: every reschedule writes a block override carrying its
+ * own createdAt, so the newest of those IS the last time the plan moved. This
+ * is what tells the Calendar section whether its snapshot is still current —
+ * a snapshot read before the latest edit cannot vouch for the plan as it
+ * stands now.
+ *
+ * Returns null when nothing has been rescheduled: the shipped plan is exactly
+ * what the snapshot was compared against.
+ */
+export function planLastChangedAt(overlays: Pick<LivePlanOverlays, "timeBlockOverrides">): string | null {
+  let latest: string | null = null;
+  for (const o of Object.values(overlays.timeBlockOverrides)) {
+    if (latest === null || o.createdAt > latest) latest = o.createdAt;
+  }
+  return latest;
+}

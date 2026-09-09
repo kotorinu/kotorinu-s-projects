@@ -33,7 +33,9 @@ export default function CompletionToast({
       <div
         className="pointer-events-auto w-full max-w-[380px] rounded-2xl border bg-white px-4 py-3 shadow-lg transition-all duration-[240ms] ease-out"
         style={{
-          borderColor: milestone ? "#51B749" : "#EAE8E6",
+          borderTopColor: milestone ? "#51B749" : "#EAE8E6",
+          borderRightColor: milestone ? "#51B749" : "#EAE8E6",
+          borderBottomColor: milestone ? "#51B749" : "#EAE8E6",
           borderLeftWidth: 3,
           borderLeftColor: milestone ? "#51B749" : "#5484ED",
           opacity: shown ? 1 : 0,
