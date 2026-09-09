@@ -35,8 +35,28 @@ const TONE: Record<CalendarDiffType, { bg: string; text: string }> = {
   MATCHED: { bg: "bg-emerald-100", text: "text-emerald-900" },
 };
 
-/** "2026/09/09 00:00" — 日付だけだと「今日照合した」に見えてしまう。 */
+/**
+ * "2026/09/09 00:00" — 日付だけだと「今日照合した」に見えてしまう。
+ *
+ * new Date(iso).getHours() は絶対に使わない。このページは静的プリレンダリング
+ * されるので、UTCのビルドマシンは 09/08 15:00、JSTのブラウザは 09/09 00:00 と
+ * 表示し、hydration mismatch (React #418) になる。snapshot.readAt は自分の
+ * オフセット(+09:00)を文字列として持っているので、その場で切り出せば
+ * サーバでもブラウザでも同じ結果になる。
+ */
 function formatStamp(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const [, y, mo, d, h, mi] = m;
+  return `${y}/${mo}/${d} ${h}:${mi}`;
+}
+
+/**
+ * 予定を動かした時刻。UTCのISO文字列なので、閲覧者のローカル時刻へ直して出す。
+ * これが描画されるのは snapshotStale が true のとき——つまりブラウザ側で予定を
+ * 動かした後だけなので、サーバ描画とは比較されない。
+ */
+function formatLocalStamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const p = (n: number) => String(n).padStart(2, "0");
@@ -182,7 +202,7 @@ export default function PlanIntegrityPanel({
               <p className="text-[11px] font-bold text-amber-900">Calendar再照合が必要</p>
               <p className="mt-0.5 text-[10px] leading-relaxed text-amber-800">
                 最終照合（{formatStamp(calendarSnapshot.readAt)}）のあと、
-                {formatStamp(planLastChangedAt as string)} にOS側の予定を変更しました。
+                {formatLocalStamp(planLastChangedAt as string)} にOS側の予定を変更しました。
                 下の差分は変更前の照合結果を元にしているため、そのままでは信用できません。
               </p>
             </div>

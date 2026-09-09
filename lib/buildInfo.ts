@@ -11,13 +11,19 @@ export const COMMIT_SHA: string = RAW_SHA === "" ? "local" : RAW_SHA;
 export const COMMIT_SHA_SHORT: string = COMMIT_SHA === "local" ? "local" : COMMIT_SHA.slice(0, 7);
 export const BUILT_AT: string = RAW_BUILT_AT;
 
-/** "3ea783d・9/9 08:12" — small enough to sit in a footer. */
+/**
+ * "3ea783d・9/9 08:12 UTC" — small enough to sit in a footer.
+ *
+ * Read straight out of the ISO string rather than through Date's local-time
+ * getters. This label renders inside a statically prerendered page, so a
+ * UTC build machine and a JST browser would otherwise print different times
+ * and React would report a hydration mismatch (#418). The zone is stated
+ * instead of converted, which is also the more useful thing to show for a
+ * build timestamp.
+ */
 export function buildLabel(): string {
-  if (BUILT_AT === "") return COMMIT_SHA_SHORT;
-  const d = new Date(BUILT_AT);
-  if (Number.isNaN(d.getTime())) return COMMIT_SHA_SHORT;
-  const when = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes()
-  ).padStart(2, "0")}`;
-  return `${COMMIT_SHA_SHORT}・${when}`;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(BUILT_AT);
+  if (!m) return COMMIT_SHA_SHORT;
+  const [, , mo, d, h, mi] = m;
+  return `${COMMIT_SHA_SHORT}・${Number(mo)}/${Number(d)} ${h}:${mi} UTC`;
 }
