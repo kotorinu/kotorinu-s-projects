@@ -144,6 +144,11 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           ＜ TASK MAP
         </Link>
         <h1 className="mt-1 text-[24px] font-black tracking-tight">{profile.area}</h1>
+        {profile.area === "RIALA" && (
+          <p className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-[10px] font-bold leading-relaxed text-stone-500">
+            旧FANTS移行の記録は <span className="text-stone-700">HISTORICAL / EXCEPTION ONLY</span>。新規の判断と準備は上のAI OPSで行います。
+          </p>
+        )}
       </header>
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:px-5">
@@ -492,3 +497,4 @@ function Collapsible({
     </div>
   );
 }
+
