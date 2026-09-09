@@ -16,7 +16,7 @@ function preflight(a: Action, facts: Facts, ledger: Ledger, now: string) {
   if (problems.length) throw new Error(problems.join(" / "));
   if (a.type !== "EMAIL" || a.identity.confidence !== "HIGH" || !a.identity.email) throw new Error("HIGH以外・全体投稿は送信不可");
   const member = facts.members.items.find(m => m.id === a.subjectId);
-  if (!member || !member.active || member.isStaff) throw new Error("参加者の状態を確認できません");
+  if (!member || member.active !== true || member.isStaff !== false) throw new Error("参加者の状態を確認できません");
   const identity = resolveIdentity(member, facts);
   if (identity.confidence !== "HIGH" || identity.email !== a.identity.email) throw new Error("Identityが変わりました。再確認が必要です");
   const catalog = [...facts.events.items, ...facts.content.items];
@@ -96,11 +96,10 @@ export async function reconcile(store: Store, sender: Sender, id: string) {
 }
 export function publicAction(a: Action) {
   return { id: a.id, name: a.name, workflow: a.workflow, status: a.status, confidence: a.identity.confidence,
-    email: a.identity.email ? a.identity.email.replace(/^(.{2}).*(@.*)$/, "$1***$2") : null,
+    email: a.identity.email ? "[Email非表示]" : null,
     candidateCount: a.identity.candidates.length, identityReason: a.identity.reason,
     reason: a.reason, evidence: a.evidence.slice(0, 8).map(e => ({ ...e, quote: e.quote.replace(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[Email非表示]") })),
     draft: a.draft, subject: a.subject, recommendations: a.recommendations.map(c => ({ id: c.id, title: c.title, url: c.url, reason: c.topics.join("・") })),
     stopReason: a.stopReason, nextAction: a.nextAction, hash: approvalHash(a), updatedAt: a.updatedAt };
 }
 export type ActionCard = ReturnType<typeof publicAction>;
-

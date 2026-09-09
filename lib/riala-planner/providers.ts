@@ -5,24 +5,25 @@ import { evidenceValid, validEmail } from "./planner";
 export const unavailable = <T>(name: SourceName, reason: string): Source<T> => ({ name, sourceId: name, mode: "UNCONNECTED", readAt: null, complete: false, items: [], failure: reason });
 const string = (x: unknown, limit = 500) => typeof x === "string" && x.length <= limit && x.trim().length > 0;
 const date = (x: unknown) => typeof x === "string" && Number.isFinite(Date.parse(x));
+const nullableBoolean = (x: unknown) => x === null || typeof x === "boolean";
 const evidence = (x: unknown): x is Evidence => !!x && typeof x === "object" && evidenceValid(x as Evidence);
 export function validMember(x: unknown): x is Member {
   if (!x || typeof x !== "object") return false; const m = x as Member;
-  return string(m.id, 150) && string(m.name, 100) && !/[\r\n]/.test(m.name) && date(m.registeredAt) &&
-    (m.email === null || (typeof m.email === "string" && validEmail(m.email))) && typeof m.emailVerified === "boolean" &&
-    typeof m.isStaff === "boolean" && typeof m.active === "boolean" && evidence(m.evidence) && Array.isArray(m.interests) &&
+  return string(m.id, 150) && string(m.name, 100) && !/[\r\n]/.test(m.name) && (m.registeredAt === null || date(m.registeredAt)) &&
+    (m.email === null || (typeof m.email === "string" && validEmail(m.email))) && nullableBoolean(m.emailVerified) &&
+    nullableBoolean(m.isStaff) && nullableBoolean(m.active) && evidence(m.evidence) && Array.isArray(m.interests) &&
     m.interests.length <= 12 && m.interests.every(i => string(i.topic, 50) && evidence(i.evidence));
 }
 export function validCatalog(x: unknown): x is CatalogItem {
   if (!x || typeof x !== "object") return false; const c = x as CatalogItem;
   return string(c.id, 150) && string(c.title, 180) && string(c.summary, 1000) &&
     (c.url === null || string(c.url, 1000)) && Array.isArray(c.topics) && c.topics.length <= 20 && c.topics.every(t => string(t, 50)) &&
-    date(c.sourceUpdatedAt) && evidence(c.evidence) && (c.startsAt === undefined || date(c.startsAt)) &&
+    (c.sourceUpdatedAt === null || date(c.sourceUpdatedAt)) && evidence(c.evidence) && (c.startsAt === undefined || date(c.startsAt)) &&
     (c.durationIfKnown == null || Number.isFinite(c.durationIfKnown) && c.durationIfKnown >= 0);
 }
 export function validMail(x: unknown): x is Mail {
   if (!x || typeof x !== "object") return false; const m = x as Mail;
-  return string(m.id, 200) && string(m.threadId, 200) && date(m.timestamp) && string(m.subject, 500) &&
+  return string(m.id, 200) && string(m.threadId, 200) && date(m.timestamp) && typeof m.subject === "string" && m.subject.length <= 500 &&
     Array.isArray(m.recipients) && m.recipients.length <= 100 && m.recipients.every(r => typeof r === "string" && validEmail(r)) &&
     Array.isArray(m.recipientNames) && m.recipientNames.every(n => typeof n === "string" && n.length <= 100) && string(m.reference, 1000);
 }
@@ -60,35 +61,58 @@ export async function gmailToken(send = false): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: e.RIALA_GMAIL_CLIENT_ID, client_secret: e.RIALA_GMAIL_CLIENT_SECRET, refresh_token: refresh, grant_type: "refresh_token" }),
     cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000) });
-  if (!response.ok) throw new Error("Gmail認証失敗"); const body = await response.json() as { access_token?: string };
+  if (!response.ok) throw new Error("Gmail認証失敗"); const body = await response.json() as { access_token?: string; scope?: string };
+  if (!send && body.scope?.split(/\s+/).filter(Boolean).join(" ") !== GMAIL_READ_SCOPE) throw new Error("Gmail READ専用Scopeを確認できません");
   if (!body.access_token) throw new Error("Gmail認証失敗"); return body.access_token;
 }
 export const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+export const GMAIL_READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 export interface GmailMessage { id: string; threadId: string; internalDate: string; labelIds?: string[]; payload?: { headers?: { name: string; value: string }[]; body?: { data?: string }; parts?: { mimeType: string; body?: { data?: string } }[] } }
 export const header = (m: GmailMessage, name: string) => m.payload?.headers?.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
 export function recipients(raw: string): string[] { return [...new Set((raw.match(/[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []).map(s => s.toLowerCase()))]; }
 export class RealGmailProvider implements Provider<Mail> {
   async read(now: string): Promise<Source<Mail>> {
     try {
+      const deadline = AbortSignal.timeout(45000);
       const token = await gmailToken();
+      const get = async (url: string | URL) => {
+        const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", redirect: "error", signal: deadline });
+        if (!response.ok) throw new Error("Gmail read failed");
+        return response;
+      };
+      const profile = await (await get("https://gmail.googleapis.com/gmail/v1/users/me/profile?fields=emailAddress")).json() as { emailAddress?: string };
+      if (!profile.emailAddress || !validEmail(profile.emailAddress)) throw new Error("Gmail account unavailable");
+      const account = profile.emailAddress.toLowerCase();
       const after = Math.floor((Date.parse(now) - 90 * 86400000) / 1000); const before = Math.ceil(Date.parse(now) / 1000) + 1;
       const items: Mail[] = []; let page: string | undefined;
+      const seenPages = new Set<string>();
       do {
         const url = new URL(GMAIL_API); url.searchParams.set("q", `in:sent RIALA after:${after} before:${before}`); url.searchParams.set("maxResults", "50");
+        url.searchParams.set("fields", "messages(id),nextPageToken");
         if (page) url.searchParams.set("pageToken", page);
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(10000) });
-        if (!res.ok) throw new Error("Gmail read failed");
-        const body = await res.json() as { messages?: { id: string }[]; nextPageToken?: string };
-        for (const item of body.messages ?? []) {
-          if (items.length >= 200) throw new Error("Bound exceeded");
-          const detail = await fetch(`${GMAIL_API}/${encodeURIComponent(item.id)}?format=metadata&metadataHeaders=To&metadataHeaders=Bcc&metadataHeaders=Cc&metadataHeaders=Subject`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(10000) });
-          if (!detail.ok) throw new Error("Gmail metadata failed"); const m = await detail.json() as GmailMessage;
+        const body = await (await get(url)).json() as { messages?: { id: string }[]; nextPageToken?: string };
+        const messages = body.messages ?? [];
+        if (!Array.isArray(messages) || messages.length > 50 || items.length + messages.length > 200 || items.length + messages.length === 200 && body.nextPageToken) throw new Error("Bound exceeded");
+        for (let i = 0; i < messages.length; i += 5) {
+          const batch = await Promise.all(messages.slice(i, i + 5).map(async item => {
+          if (!item || !string(item.id, 200)) throw new Error("Invalid Gmail ID");
+          const detail = await get(`${GMAIL_API}/${encodeURIComponent(item.id)}?format=metadata&metadataHeaders=To&metadataHeaders=Bcc&metadataHeaders=Cc&metadataHeaders=Subject&fields=id,threadId,internalDate,labelIds,payload(headers)`);
+          const m = await detail.json() as GmailMessage;
+          if (m.id !== item.id || !m.labelIds?.includes("SENT")) throw new Error("Unexpected Gmail message");
           const to = [header(m, "To"), header(m, "Bcc"), header(m, "Cc")].join(",");
-          items.push({ id: m.id, threadId: m.threadId, recipients: recipients(to), recipientNames: [...to.matchAll(/(?:^|,)\s*"?([^"<,]+)"?\s*</g)].map(match => match[1].trim()), timestamp: new Date(Number(m.internalDate)).toISOString(), subject: header(m, "Subject").slice(0, 500), reference: `https://mail.google.com/mail/u/0/#sent/${encodeURIComponent(m.id)}` });
+          const mail = { id: m.id, threadId: m.threadId, recipients: recipients(to), recipientNames: [...to.matchAll(/(?:^|,)\s*"?([^"<,]+)"?\s*</g)].map(match => match[1].trim()), timestamp: new Date(Number(m.internalDate)).toISOString(), subject: header(m, "Subject").slice(0, 500), reference: `https://mail.google.com/mail/u/0/#sent/${encodeURIComponent(m.id)}` };
+          if (!validMail(mail)) throw new Error("Invalid Gmail metadata");
+          return mail;
+          }));
+          items.push(...batch);
         }
         page = body.nextPageToken;
+        if (page && (seenPages.has(page) || seenPages.size >= 4)) throw new Error("Invalid pagination");
+        if (page) seenPages.add(page);
       } while (page);
-      return { name: "gmail", sourceId: "gmail:sent:riala:90days", mode: "LIVE", complete: true, readAt: now, items, failure: null };
+      if (new Set(items.map(m => m.id)).size !== items.length) throw new Error("Duplicate Gmail messages");
+      return { name: "gmail", sourceId: "gmail:sent:riala:90days", mode: "LIVE", complete: true, readAt: now, items, failure: null,
+        diagnostics: { messageCount: items.length, latestMessageAt: items.map(m => m.timestamp).sort().at(-1) ?? null, accountMasked: `${account[0]}***@${account.split("@")[1]}`, scope: GMAIL_READ_SCOPE } };
     } catch { return unavailable("gmail", "Gmail履歴 未接続または取得失敗（直近90日・RIALA送信履歴・上限200件）"); }
   }
 }
@@ -103,4 +127,3 @@ export function configuredProviders(): Providers {
   return { members: source("members", validMember), events: source("events", validCatalog), content: source("content", validCatalog),
     gmail: process.env.RIALA_GMAIL_READ_REFRESH_TOKEN ? new RealGmailProvider() : source("gmail", validMail) };
 }
-

@@ -5,7 +5,7 @@ export function hash(value: unknown): string { return createHash("sha256").updat
 export const validEmail = (v: string) => /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v) && v.length <= 254;
 export const emailKey = (v: string) => v.trim().toLowerCase();
 export const safeUrl = (v: string | null): boolean => {
-  try { const u = new URL(v ?? ""); return u.protocol === "https:" && !u.username && !u.password && u.hostname === "community.riala.jp"; } catch { return false; }
+  try { const u = new URL(v ?? ""); return u.protocol === "https:" && !u.username && !u.password && ["community.riala.jp", "riala-learning.vercel.app"].includes(u.hostname); } catch { return false; }
 };
 export function evidenceValid(e: Evidence): boolean {
   try { return !!e.sourceId && !!e.quote.trim() && e.quote.length <= 600 && new URL(e.reference).protocol === "https:" && Number.isFinite(Date.parse(e.observedAt)); } catch { return false; }
@@ -59,15 +59,22 @@ export function previousMail(member: Member, facts: Facts, kind: "welcome" | "ev
     (kind === "welcome" ? /welcome|ようこそ|参加ありがとうございます|ご参加ありがとう/i.test(m.subject) : !!event && m.subject.includes(event.title)));
 }
 export function plan(ledger: Ledger, facts: Facts, now: string, runId: string): Run {
-  const problems = Object.values(facts).map(s => sourceProblem(s, now, ledger.settings.maxSourceAgeMinutes)).filter((s): s is string => !!s);
+  const problems = [facts.members, facts.gmail].map(s => sourceProblem(s, now, ledger.settings.maxSourceAgeMinutes)).filter((s): s is string => !!s);
+  const optionalProblems = [facts.events, facts.content].map(s => sourceProblem(s, now, ledger.settings.maxSourceAgeMinutes)).filter((s): s is string => !!s);
+  const events = sourceProblem(facts.events, now, ledger.settings.maxSourceAgeMinutes) ? [] : facts.events.items;
+  const contentItems = sourceProblem(facts.content, now, ledger.settings.maxSourceAgeMinutes) ? [] : facts.content.items;
   const run: Run = { id: runId, workflow: "RIALA", startedAt: now, completedAt: now,
-    sourcesRead: Object.values(facts).map(({ items: _items, ...meta }) => meta),
-    facts: [], decisions: [], actionIds: [], stopReason: problems.join(" / ") || null,
+    sourcesRead: Object.values(facts).map(s => ({ name: s.name, sourceId: s.sourceId, mode: s.mode, readAt: s.readAt, complete: s.complete, failure: s.failure, ...(s.diagnostics ? { diagnostics: s.diagnostics } : {}) })),
+    facts: [], decisions: optionalProblems.map(p => `${p}。このSourceの推薦は停止`), actionIds: [], stopReason: problems.join(" / ") || null,
     outcome: "停止", humanVerificationMinutes: null, humanCorrections: 0, managementMinutes: {}, measurementMode: null,
     cost: null, boundaryViolations: 0, reproducibility: hash(facts) };
   if (problems.length) { ledger.runs.push(run); return run; }
+  run.memberSummary = { total: facts.members.items.length, staffExcluded: facts.members.items.filter(m => m.isStaff === true).length,
+    activeMembers: facts.members.items.filter(m => m.active === true && m.isStaff === false).length,
+    unknownEligibility: facts.members.items.filter(m => m.active === null || m.isStaff === null).length, seenMemberIds: ledger.seenMemberIds.length };
   if (!ledger.baselineAt) {
     ledger.baselineAt = now; ledger.seenMemberIds = facts.members.items.map(m => m.id);
+    run.memberSummary.seenMemberIds = ledger.seenMemberIds.length;
     run.outcome = "初回Baselineを記録。既存会員への一括Welcomeは作成しません";
     run.facts.push(`参加者Source ${facts.members.items.length}件を基準として記録`);
     ledger.runs.push(run); return run;
@@ -89,29 +96,31 @@ export function plan(ledger: Ledger, facts: Facts, now: string, runId: string): 
   };
   const newMembers = facts.members.items.filter(m => !ledger.seenMemberIds.includes(m.id));
   run.facts.push(`前回以降に見つかった参加者 ${newMembers.length}件`);
-  for (const member of newMembers.filter(m => m.active && !m.isStaff)) {
-    const recs = matches(member, [...facts.events.items, ...facts.content.items], now);
+  for (const member of newMembers.filter(m => m.active === true && m.isStaff === false)) {
+    const recs = matches(member, [...events, ...contentItems], now);
     const sent = previousMail(member, facts, "welcome");
-    const old = Date.parse(member.registeredAt) < Date.parse(ledger.baselineAt);
+    const old = member.registeredAt === null || Date.parse(member.registeredAt) < Date.parse(ledger.baselineAt);
     add(member, "WELCOME", `WELCOME:${member.id}`, recs, "前回確認以降に参加者Sourceへ追加",
-      old ? "登録日はBaseline以前です。新規参加か移行・再取得か確認してください" : null);
+      old ? "登録日は不明またはBaseline以前です。新規参加か移行・再取得か確認してください" : null);
     if (sent) {
       const a = ledger.actions.find(a => a.businessKey === `WELCOME:${member.id}`)!;
       a.status = "SKIPPED"; a.stopReason = "GmailにWelcomeの送信履歴あり"; a.nextAction = "再送しません";
     }
   }
   ledger.seenMemberIds = [...new Set([...ledger.seenMemberIds, ...facts.members.items.map(m => m.id)])];
-  for (const event of facts.events.items) {
+  run.memberSummary.seenMemberIds = ledger.seenMemberIds.length;
+  if (run.memberSummary.unknownEligibility) run.decisions.push(`会員状態またはスタッフ区分が不明な${run.memberSummary.unknownEligibility}件は候補作成を停止`);
+  for (const event of events) {
     if (!event.startsAt) continue;
     const days = Math.ceil((Date.parse(event.startsAt) - Date.parse(now)) / 86400000);
     if (days < 1 || days > ledger.settings.eventLeadDays) continue;
-    for (const member of facts.members.items.filter(m => m.active && !m.isStaff && matches(m, [event], now).length)) {
+    for (const member of facts.members.items.filter(m => m.active === true && m.isStaff === false && matches(m, [event], now).length)) {
       if (previousMail(member, facts, "event", event)) { run.decisions.push(`EVENT ${event.id}: 外部履歴に案内済みの対象を除外`); continue; }
       // Stable across reminder stages; v0 never sends all stages to every member.
       add(member, "EVENT", `EVENT_INVITE:${member.id}:${event.id}`, [event], `開催まで${days}日・明示された関心と一致`);
     }
   }
-  const daily = facts.content.items.find(c => safeUrl(c.url) && evidenceValid(c.evidence));
+  const daily = contentItems.find(c => safeUrl(c.url) && evidenceValid(c.evidence));
   if (daily) {
     const key = `CONTENT_DAILY:${now.slice(0, 10)}`;
     if (!ledger.actions.some(a => a.businessKey === key)) {
@@ -123,4 +132,3 @@ export function plan(ledger: Ledger, facts: Facts, now: string, runId: string): 
   }
   run.outcome = `${run.actionIds.length}件の候補を準備（送信0件）`; ledger.runs.push(run); return run;
 }
-
