@@ -16,6 +16,7 @@ import { AREA_THEME, themeFor } from "@/lib/areaTheme";
 import { liveTimeBlocks, supersededByReschedule } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
 import PlanIntegrityPanel from "@/components/PlanIntegrityPanel";
+import { buildLabel } from "@/lib/buildInfo";
 import { phaseCoverage } from "@/lib/sales";
 import { salesPhases } from "@/lib/dummy-data";
 import AreaControlCard from "@/components/AreaControlCard";
@@ -851,6 +852,10 @@ export default function TaskMapPage() {
           )}
         </section>
       )}
+
+      {/* §P5: which build is on screen. Deliberately the quietest thing on
+          the page — it only matters when something looks wrong. */}
+      <p className="mt-6 px-5 text-right text-[10px] text-stone-300">build {buildLabel()}</p>
 
       {selectedTask && (
         <TaskDetailSheet

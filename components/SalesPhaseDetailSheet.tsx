@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { liveSalesFeedback, practitionerFeedback, roleplayFeedback } from "@/lib/dummy-data";
 import { feedbackForPhase, masteryStatusLabel } from "@/lib/sales";
 import PhaseOwnVersionEditor from "@/components/PhaseOwnVersionEditor";
@@ -54,36 +54,58 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
-          <Section title="① 基礎">
+          {/* ① 基礎 — 教材。読むもの。本人の進捗ではない (§P9). */}
+          <SourceSection>
             {hasBasics ? (
-              <div className="flex flex-col gap-2 text-[13px] leading-relaxed text-stone-700">
+              <div className="flex flex-col gap-3 text-[13px] leading-relaxed text-stone-700">
                 {phase.purpose && (
-                  <Field label="目的" value={phase.purpose} />
+                  <div>
+                    <p className="text-[10px] font-black tracking-wide text-stone-400">目的</p>
+                    <p className="mt-0.5">{phase.purpose}</p>
+                  </div>
                 )}
                 {phase.okConditions.length > 0 ? (
-                  <ListField label="OK状態（次へ進む条件）" items={phase.okConditions} />
+                  <TickList label="OK状態（次へ進む条件）" items={phase.okConditions} />
                 ) : (
-                  phase.okState && <Field label="OK状態" value={phase.okState} />
+                  phase.okState && (
+                    <div>
+                      <p className="text-[10px] font-black tracking-wide text-stone-400">OK状態</p>
+                      <p className="mt-0.5">{phase.okState}</p>
+                    </div>
+                  )
                 )}
-                {phase.checkPoints.length > 0 && <ListField label="確認事項" items={phase.checkPoints} />}
-                {phase.sourceQuestions.length > 0 && <ListField label="質問例" items={phase.sourceQuestions} />}
-                {phase.ngExamples.length > 0 && <ListField label="NG例" items={phase.ngExamples} />}
+                {phase.checkPoints.length > 0 && <ListField label="確認すること" items={phase.checkPoints} />}
+                {/* 質問例とNG例は最初から開かない。全部展開すると文字壁になり、
+                    肝心の目的とOK状態が読まれなくなる (§P8). */}
+                {phase.sourceQuestions.length > 0 && (
+                  <Collapsible label="質問例" count={phase.sourceQuestions.length} items={phase.sourceQuestions} />
+                )}
+                {phase.ngExamples.length > 0 && (
+                  <Collapsible label="NG例" count={phase.ngExamples.length} items={phase.ngExamples} />
+                )}
               </div>
             ) : (
               <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[12px] text-stone-400">
                 営業フェーズ分解ワークシートの内容がまだ登録されていません。ワークシートを共有いただければ反映します。
               </p>
             )}
-          </Section>
+          </SourceSection>
 
-          <Section title="② 自分版">
+          {/* ①を読んで終わりにしない導線 (§P10). */}
+          {hasBasics && (
+            <p className="mt-4 rounded-xl bg-accent-soft px-3 py-2.5 text-[12px] font-bold leading-relaxed text-accent-dark">
+              この内容を、自分ならどう説明する？
+            </p>
+          )}
+
+          <OwnSection>
             <PhaseOwnVersionEditor phase={phase} />
             {phase.myTransitionTalk.length > 0 && (
               <div className="mt-2">
                 <ListFieldOrEmpty label="次フェーズへのつなぎ" items={phase.myTransitionTalk} />
               </div>
             )}
-          </Section>
+          </OwnSection>
 
           <Section title="③ 実践者FB">
             {linkedPractitionerFb.length === 0 ? (
@@ -145,21 +167,88 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
   );
 }
 
+// ① と ② は性質が違うので、見出しだけでなく面ごと分ける (§P9)。
+// ①は与えられた教材（灰・SOURCE表記）、②は本人が書くもの（アクセント色・
+// USER表記）。同じ見た目にすると「17/17できた」と本人の進捗が混ざる。
+function SourceSection({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-stone-150 bg-stone-50/60 px-3.5 py-3">
+      <div className="mb-2 flex items-baseline gap-2">
+        <h3 className="text-[11px] font-black tracking-wide text-stone-500">① 基礎</h3>
+        <span className="rounded-full bg-stone-200/70 px-1.5 py-0.5 text-[9px] font-bold text-stone-500">
+          SOURCE 営業ワークシート
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function OwnSection({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-2 rounded-2xl border border-accent-soft bg-white px-3.5 py-3">
+      <div className="mb-2 flex items-baseline gap-2">
+        <h3 className="text-[11px] font-black tracking-wide text-accent-dark">② 自分版</h3>
+        <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold text-accent-dark">
+          YOU 琴音さんの理解
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** OK状態は「満たしたかどうか」なので ・ ではなく ✓ で並べる (§P8). */
+function TickList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black tracking-wide text-stone-400">{label}</p>
+      <ul className="mt-1 flex flex-col gap-1">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-1.5">
+            <span className="mt-[3px] shrink-0 text-[11px] font-black text-emerald-500">✓</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** 参考情報は畳んでおく。件数だけ見せて、必要な時だけ開く (§P8). */
+function Collapsible({ label, count, items }: { label: string; count: number; items: string[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 text-left"
+      >
+        <span className="text-[10px] font-black tracking-wide text-stone-400">{label}</span>
+        <span className="tabular-nums text-[10px] font-bold text-stone-300">{count}件</span>
+        <span className="ml-auto text-[10px] font-bold text-accent-dark">{open ? "閉じる" : "見る"}</span>
+      </button>
+      {open && (
+        <ul className="mt-1 flex flex-col gap-1">
+          {items.map((item, i) => (
+            <li key={i} className="flex items-start gap-1.5">
+              <span className="mt-0.5 shrink-0 text-stone-300">・</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-5 first:mt-4">
       <h3 className="mb-1.5 text-[11px] font-black tracking-wide text-stone-400">{title}</h3>
       {children}
     </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <p>
-      <span className="font-bold text-stone-400">{label}　</span>
-      {value}
-    </p>
   );
 }
 

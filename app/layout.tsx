@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { TodayExecutionProvider } from "@/lib/todayExecutionStore";
 import { ClockProvider } from "@/lib/currentTime";
+import { BUILT_AT, COMMIT_SHA } from "@/lib/buildInfo";
 
 const notoSansJp = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -27,6 +28,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className={`${notoSansJp.variable} h-full`}>
+      {/* Which build this is, readable without opening the UI (§P5). */}
+      <head>
+        <meta name="x-commit-sha" content={COMMIT_SHA} />
+        <meta name="x-built-at" content={BUILT_AT} />
+      </head>
       <body className="h-full min-h-screen bg-stone-200 font-[var(--font-noto-sans-jp)] text-foreground">
         {/* Responsive Root Shell (2026-09-06): mobile keeps the original
             phone-card presentation (max-w-[430px], centered, shadowed).
