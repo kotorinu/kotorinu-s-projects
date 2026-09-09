@@ -15,8 +15,7 @@ import { mainGap, resolveGaps } from "@/lib/gapBoard";
 import { AREA_THEME, themeFor } from "@/lib/areaTheme";
 import { liveTimeBlocks, planLastChangedAt, supersededByReschedule } from "@/lib/livePlan";
 import { REPLAN_REASON_LABEL } from "@/lib/replan";
-import PlanIntegrityPanel from "@/components/PlanIntegrityPanel";
-import { buildLabel } from "@/lib/buildInfo";
+import PlanHealthBanner, { PlanOkMark, usePlanHealth } from "@/components/PlanHealthBanner";
 import { phaseCoverage } from "@/lib/sales";
 import { salesPhases } from "@/lib/dummy-data";
 import AreaControlCard from "@/components/AreaControlCard";
@@ -184,6 +183,16 @@ export default function TaskMapPage() {
   // was read. If the plan moved after that, say so instead of showing a 0
   // that was true yesterday.
   const planChangedAt = useMemo(() => planLastChangedAt({ timeBlockOverrides }), [timeBlockOverrides]);
+
+  // §20: 出す/出さないの判断に必要なぶんだけ計算する。詳細は /system。
+  const planHealth = usePlanHealth(
+    allTasks,
+    planBlocks,
+    staleBlocks,
+    overlays,
+    { today, nowHm: nowHmValue },
+    planChangedAt
+  );
 
   // §33: a Task-backed gap takes its status from the Task, so the board and
   // the task list can never disagree.
@@ -455,14 +464,8 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      <PlanIntegrityPanel
-        tasks={allTasks}
-        planBlocks={planBlocks}
-        supersededBlocks={staleBlocks}
-        overlays={overlays}
-        clock={{ today, nowHm: nowHmValue }}
-        planLastChangedAt={planChangedAt}
-      />
+      {/* §19/§20: 健康なら何も出さない。問題があるときだけBanner。 */}
+      <PlanHealthBanner health={planHealth} />
 
       {/* §14: 今月末どうなっていたいか。1〜2行だけ。 */}
       <section className="mt-2 px-5">
@@ -859,9 +862,13 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {/* §P5: which build is on screen. Deliberately the quietest thing on
-          the page — it only matters when something looks wrong. */}
-      <p className="mt-6 px-5 text-right text-[10px] text-stone-300">build {buildLabel()}</p>
+      {/* §21/§54: 診断はSystem Statusへ。日常のTASK MAPの主役にしない。 */}
+      <div className="mt-6 flex items-center justify-end gap-2 px-5">
+        <PlanOkMark health={planHealth} />
+        <Link href="/system" className="text-[10px] text-stone-300">
+          System Status ＞
+        </Link>
+      </div>
 
       {selectedTask && (
         <TaskDetailSheet

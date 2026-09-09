@@ -124,6 +124,10 @@ export interface Task {
   recommendedTiming: RecommendedTiming | null; // when a Preparation Task should be done
   contextTags: string[]; // "いつ・どの状況でやるか" — only tags that prevent hesitation at execution time
   varianceMinutes: number | null; // actualMinutes - estimateMinutes, once both are known
+  // 見積り学習の単位 (2026-09-09, §42). 明確に繰り返すTaskにだけ付ける。
+  // area だけで束ねると別物のTaskが混ざって平均が意味を失うので、これが
+  // 無いTaskには次回見積りの提案を出さない。AIで大量生成しない。
+  estimateGroupId: string | null;
   variancePercent: number | null;
   varianceReason: VarianceReason | null; // a category, picked only on a large overrun — not a prompt for prose
   nextEstimateMinutes: number | null; // AI-suggested next estimate, once same-type history exists (Phase 1: always null, no history yet)
@@ -193,17 +197,6 @@ export const NORTH_STAR_LABEL: Record<NorthStar, string> = {
   DIRECTION: "Long-term Direction",
 };
 
-/**
- * カード表面に出す1行。全文はGoalのdesiredStateから読む。
- *
- * 3枚を横に並べるので、390pxだと1枚あたり8〜9文字/行しか入らない。14文字を
- * 超えると2行に収まらず途中で切れて、かえって読めなくなる。短くしてある。
- */
-export const NORTH_STAR_ONE_LINER: Record<NorthStar, string> = {
-  LIFE: "関わる人が笑顔で溢れている",
-  WORK: "課題を解決し、価値を届ける",
-  DIRECTION: "事業を持ち、チームが自走する",
-};
 
 export const GOAL_HORIZON_LABEL: Record<GoalHorizon, string> = {
   "1M": "1か月後",

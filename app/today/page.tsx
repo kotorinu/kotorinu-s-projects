@@ -5,13 +5,17 @@ import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince } from "@/lib/date";
 import { useClock } from "@/lib/currentTime";
 import { capabilityBadge } from "@/lib/capability";
-import { buildTimeline, minutesUntil, TimelineItem } from "@/lib/timeline";
+import { minutesUntil, type TimelineItem } from "@/lib/timeline";
 import { computeVariance } from "@/lib/execution";
 import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } from "@/lib/dayPlan";
 import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/executionBaseline";
 import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
 import RunbookStrip from "@/components/RunbookStrip";
 import CalendarSyncStrip from "@/components/CalendarSyncStrip";
+import CalendarOnlyCard from "@/components/CalendarOnlyCard";
+import ActualMinutesDialog from "@/components/ActualMinutesDialog";
+import { buildCalendarDay, type DayEntry } from "@/lib/calendarDay";
+import { useCalendarDay } from "@/lib/useCalendarDay";
 import CompletionToast from "@/components/CompletionToast";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { useReschedule } from "@/lib/useReschedule";
@@ -28,7 +32,7 @@ import {
   overdueTasks as computeOverdueTasks,
 } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
-import type { CarryoverDisposition, FixedEventType, RecurringRule, SessionRunbook, Task } from "@/lib/types";
+import type { CarryoverDisposition, RecurringRule, SessionRunbook, Task, TimeBlock } from "@/lib/types";
 import { DEPART_MS, useDeparting } from "@/lib/useDeparting";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
@@ -39,11 +43,6 @@ import RecurringDetailSheet from "@/components/RecurringDetailSheet";
 import OutcomeDetailSheet from "@/components/OutcomeDetailSheet";
 import Confetti from "@/components/Confetti";
 
-const fixedEventTypeIcon: Record<FixedEventType, string> = {
-  MILESTONE: "🏕",
-  TRAVEL: "✈",
-  FIXED_APPOINTMENT: "📌",
-};
 
 const WEEKDAY_LABEL = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -63,7 +62,6 @@ type Celebration =
 
 // Note: "is this Task still open?" now lives in lib/taskState.ts
 // (isTaskOpen), because it has to account for the runtime completion /
-// disposition overlays, not just the immutable fixture status.
 
 export default function TodayPage() {
   // Task status / started / completed / actualMinutes / varianceReason all
@@ -102,6 +100,7 @@ export default function TodayPage() {
     startWork,
     endWork,
     bankedMinutes,
+    setManualActualMinutes,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
   // "Done" = a durable completion record (or an authored-complete fixture
@@ -144,6 +143,8 @@ export default function TodayPage() {
   const { reschedule, currentBlockFor } = useReschedule();
   const [yesterdaySummaryOpen, setYesterdaySummaryOpen] = useState(false);
   const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
+  // §28: 実績の修正はTask Detailの奥ではなく、完了カードから1タップで開く。
+  const [actualEditTask, setActualEditTask] = useState<Task | null>(null);
   const [rescheduleDateValue, setRescheduleDateValue] = useState("");
 
   function fireCelebration(c: Celebration, durationMs: number) {
@@ -351,7 +352,6 @@ export default function TodayPage() {
     [today]
   );
   const fixedEventsAllDayToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime === null), [fixedEventsToday]);
-  const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
 
   // §5/§6: 実行順が予定と変わったとき、Calendarをどう直せばいいか。
   // 開始時刻は保存済みのISOから読む（render中に時計を呼ばない）。
@@ -364,10 +364,28 @@ export default function TodayPage() {
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   }, [startedTaskId, taskStartedAt]);
 
-  const timeline = useMemo(
-    () => buildTimeline(activeTimeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue, startedTaskId),
-    [activeTimeBlocksToday, fixedEventsTimedToday, nowHmValue, startedTaskId]
+  // §1: 今日の時間割の第一SourceはGoogle Calendar。OSはその上に重ねる。
+  // 最初の描画はSnapshotから同期的に作られるので、開いた瞬間に予定が出る。
+  const calendar = useCalendarDay(today, today);
+  const day = useMemo(
+    () =>
+      buildCalendarDay({
+        date: today,
+        events: calendar.events,
+        planBlocks,
+        tasks: allTasks,
+        nowHm: nowHmValue,
+        startedTaskId,
+      }),
+    [today, calendar.events, planBlocks, nowHmValue, startedTaskId]
   );
+  const timeline = day.timed;
+  // ISO文字列から直接切り出す。new Date().getHours() を使うと、静的
+  // プリレンダリング時にUTCで焼かれてhydration mismatchになる。
+  const calendarStamp = useMemo(() => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(calendar.readAt);
+    return m ? `${Number(m[2])}/${Number(m[3])} ${m[4]}:${m[5]}` : calendar.readAt;
+  }, [calendar.readAt]);
 
   // A STARTED Task with no TimeBlock today (started from the 時間未定 list,
   // or from an overdue/upcoming Task) has nowhere to render inside the
@@ -392,7 +410,7 @@ export default function TodayPage() {
   // §8: a card that was just moved to another day stays on screen for one
   // short beat, marked as leaving, instead of blinking out. Nothing here
   // delays the state change itself — TODAY is already correct.
-  const { rendered: timelineRows, departing: departingKeys } = useDeparting(timeline, itemKey);
+  const { rendered: timelineRows, departing: departingKeys } = useDeparting(timeline, entryKey);
 
   // Indexed against the rows actually rendered, so a departing card above the
   // divider does not shove it out of place for the length of the animation.
@@ -430,12 +448,6 @@ export default function TodayPage() {
   );
 
   // §13/§14: only blocks of 60min+ that actually have an authored runbook.
-  function runbookForBlock(item: Extract<TimelineItem, { kind: "task" }>): SessionRunbook | null {
-    const block = planBlocks.find(
-      (b) => b.taskId === item.task.id && b.date === today && b.startTime === item.startTime
-    );
-    return block ? runbookFor(block) : null;
-  }
 
   const preparationCountByTaskId = useMemo(() => {
     const map = new Map<string, number>();
@@ -656,14 +668,41 @@ export default function TodayPage() {
       />
 
       <section className="px-5 pt-4 lg:col-start-1">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-bold text-stone-800">今日のTimeline</h2>
+          <button
+            type="button"
+            onClick={calendar.refresh}
+            className="shrink-0 text-[10px] font-bold text-stone-400"
+            title="Google Calendarを読み直す"
+          >
+            {calendar.loading
+              ? "Calendar取得中…"
+              : calendar.source === "LIVE"
+                ? `Calendar 最新・${calendarStamp}`
+                : `Calendar snapshot 最終取得 ${calendarStamp}`}
+            {" ⟳"}
+          </button>
         </div>
 
-        {fixedEventsAllDayToday.length > 0 && (
-          <p className="mb-2.5 text-[11px] font-bold text-stone-400">
-            本日終日：{fixedEventsAllDayToday.map((e) => e.title).join("・")}
-          </p>
+        {/* §9: 終日イベント（読了期限など）は時間の枠を持たないので、
+            Timelineへ差し込まず見出しの下に置く。 */}
+        {(day.deadlines.length > 0 || fixedEventsAllDayToday.length > 0) && (
+          <div className="mb-2.5">
+            <p className="text-[10px] font-black tracking-widest text-stone-400">TODAY DEADLINES</p>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {day.deadlines.map((d) => (
+                <li key={d.key} className="text-[11px] font-bold leading-snug text-stone-500">
+                  ・{d.title}
+                </li>
+              ))}
+              {fixedEventsAllDayToday.map((e) => (
+                <li key={e.id} className="text-[11px] font-bold leading-snug text-stone-500">
+                  ・{e.title}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {startedAcrossMidnight && startedTask && (
@@ -702,39 +741,42 @@ export default function TodayPage() {
           <div className="flex flex-col gap-5">
             {timeline.length > 0 && (
               <ul className="flex flex-col gap-2">
-                {timelineRows.map((item, i) => (
+                {timelineRows.map((entry, i) => (
                   <FragmentWithIndicator
-                    key={itemKey(item)}
+                    key={entry.key}
                     showIndicator={i === nowIndicatorIndex}
                     nowHmValue={nowHmValue}
-                    leaving={departingKeys.has(itemKey(item))}
+                    leaving={departingKeys.has(entry.key)}
                   >
-                    {item.kind === "task" ? (
+                    {/* §8: Calendarの時刻に、OSのTask（DoD/Why）を重ねる。
+                        Taskが無い予定は偽Task化せず、そのまま予定として出す。 */}
+                    {entry.task !== null ? (
                       <TimelineTaskCard
-                        item={item}
-                        checked={isDone(item.task)}
-                        started={startedTaskId === item.task.id}
-                        actualMinutes={taskActualMinutes.get(item.task.id) ?? null}
+                        item={{
+                          kind: "task",
+                          startTime: entry.startTime ?? "00:00",
+                          endTime: entry.endTime ?? "00:00",
+                          timeBlock: entry.timeBlock ?? placeholderBlock(entry),
+                          task: entry.task,
+                          status: entry.status,
+                        }}
+                        checked={isDone(entry.task)}
+                        started={startedTaskId === entry.task.id}
+                        actualMinutes={taskActualMinutes.get(entry.task.id) ?? null}
                         nowHmValue={nowHmValue}
-                        runbook={runbookForBlock(item)}
-                        onStart={() => requestStart(item.task.id)}
-                        onComplete={() => requestComplete(item.task)}
-                        onUndo={() => undoComplete(item.task)}
-                        onOpen={() => setSelectedTask(item.task)}
-                        preparationCount={preparationCountByTaskId.get(item.task.id) ?? 0}
-                        nowRef={item.status === "NOW" ? nowCardRef : undefined}
+                        runbook={entry.timeBlock ? runbookFor(entry.timeBlock) : null}
+                        pendingCalendar={entry.role === "OS_PENDING_CALENDAR"}
+                        osTimeWas={entry.osTimeWas}
+                        onStart={() => requestStart(entry.task!.id)}
+                        onComplete={() => requestComplete(entry.task!)}
+                        onUndo={() => undoComplete(entry.task!)}
+                        onOpen={() => setSelectedTask(entry.task!)}
+                        onEditActual={() => setActualEditTask(entry.task!)}
+                        preparationCount={preparationCountByTaskId.get(entry.task.id) ?? 0}
+                        nowRef={entry.status === "NOW" ? nowCardRef : undefined}
                       />
-                    ) : item.kind === "recurring" ? (
-                      <TimelineRecurringCard
-                        item={item}
-                        checked={recurringDone.has(item.rule.id)}
-                        onToggle={() => toggleRecurring(item.rule.id)}
-                        onOpen={() => setSelectedRecurring(item.rule)}
-                      />
-                    ) : item.kind === "plain" ? (
-                      <TimelinePlainCard item={item} />
                     ) : (
-                      <TimelineFixedCard item={item} />
+                      <CalendarOnlyCard entry={entry} />
                     )}
                   </FragmentWithIndicator>
                 ))}
@@ -993,6 +1035,23 @@ export default function TodayPage() {
         <CompletionToast feedback={completionFeedback} onDismiss={() => setCompletionFeedback(null)} />
       )}
 
+      {actualEditTask && (
+        <ActualMinutesDialog
+          task={actualEditTask}
+          timerMinutes={bankedMinutes(actualEditTask.id) || null}
+          currentActual={taskActualMinutes.get(actualEditTask.id) ?? null}
+          onSave={(minutes) => {
+            setManualActualMinutes(actualEditTask.id, minutes);
+            setActualEditTask(null);
+          }}
+          onClear={() => {
+            setManualActualMinutes(actualEditTask.id, null);
+            setActualEditTask(null);
+          }}
+          onClose={() => setActualEditTask(null)}
+        />
+      )}
+
       {selectedTask && (
         <TaskDetailSheet
           task={selectedTask}
@@ -1202,8 +1261,33 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 
 const timelineStatusLabel: Record<string, string> = { NOW: "NOW", NEXT: "NEXT", PAST: "", LATER: "" };
 
-function itemKey(item: TimelineItem): string {
-  return item.kind === "fixed" ? item.event.id : item.timeBlock.id;
+/**
+ * CalendarにあるがOS側のTimeBlockが無いTask用の、表示専用の枠。
+ * 保存しない・実行状態を持たない——TimelineTaskCardが時刻を読むためだけの器。
+ */
+function placeholderBlock(entry: DayEntry): TimeBlock {
+  return {
+    id: `cal-${entry.key}`,
+    taskId: entry.task?.id ?? null,
+    recurringRuleId: null,
+    label: entry.title,
+    date: "",
+    startTime: entry.startTime ?? "00:00",
+    endTime: entry.endTime ?? "00:00",
+    status: "PLANNED",
+    calendarSyncEnabled: true,
+    calendarEventId: entry.key,
+    source: "USER",
+    lifecycle: "ACTIVE",
+    supersededReason: null,
+    supersededOn: null,
+    executionEnvironment: "ANY",
+  };
+}
+
+/** DayEntryは自分でkeyを持っている（Calendarのevent id、またはOSのblock id）。 */
+function entryKey(entry: DayEntry): string {
+  return entry.key;
 }
 
 function FragmentWithIndicator({
@@ -1317,10 +1401,13 @@ function TimelineTaskCard({
   actualMinutes,
   nowHmValue,
   runbook,
+  pendingCalendar = false,
+  osTimeWas = null,
   onStart,
   onComplete,
   onUndo,
   onOpen,
+  onEditActual,
   preparationCount,
   nowRef,
 }: {
@@ -1330,10 +1417,16 @@ function TimelineTaskCard({
   actualMinutes: number | null;
   nowHmValue: string;
   runbook: SessionRunbook | null;
+  /** Calendarにまだ枠が無い（OS側だけで動かした直後）。 */
+  pendingCalendar?: boolean;
+  /** Calendarの時刻を採用した結果、OSが持っていた古い時刻。 */
+  osTimeWas?: { startTime: string; endTime: string } | null;
   onStart: () => void;
   onComplete: () => void;
   onUndo: () => void;
   onOpen: () => void;
+  /** §29: 完了カードから直接、実績時間を直す。 */
+  onEditActual: () => void;
   preparationCount: number;
   nowRef?: React.RefObject<HTMLElement | null>;
 }) {
@@ -1438,6 +1531,27 @@ function TimelineTaskCard({
           )}
           {isFocused && !checked && preparationCount > 0 && (
             <p className="mt-1 text-[10px] font-bold text-stone-400">準備Task {preparationCount}件</p>
+          )}
+
+          {/* §17: 時刻はCalendarを採用した。OSが違う値を持っていたことは残す。 */}
+          {osTimeWas && (
+            <p className="mt-1 text-[10px] text-stone-400">
+              Calendarの時刻を採用（OSは {osTimeWas.startTime}〜{osTimeWas.endTime}）
+            </p>
+          )}
+          {pendingCalendar && (
+            <p className="mt-1 text-[10px] font-bold text-amber-700">Calendar未反映</p>
+          )}
+
+          {/* §28/§29: 実績の修正はTask Detailの奥ではなく、完了カードの上で。 */}
+          {checked && (
+            <button
+              type="button"
+              onClick={onEditActual}
+              className="mt-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-bold text-stone-600"
+            >
+              {actualMinutes !== null ? `実績 ${actualMinutes}分を修正 ✎` : "実績を入力 ✎"}
+            </button>
           )}
         </div>
       </div>
@@ -1565,84 +1679,8 @@ function CrossMidnightBanner({
   );
 }
 
-function TimelineRecurringCard({
-  item,
-  checked,
-  onToggle,
-  onOpen,
-}: {
-  item: Extract<TimelineItem, { kind: "recurring" }>;
-  checked: boolean;
-  onToggle: () => void;
-  onOpen: () => void;
-}) {
-  const { rule, startTime, endTime, status } = item;
-  const isPast = status === "PAST";
-  return (
-    <li
-      className="flex items-start gap-3 rounded-2xl bg-white px-3.5 py-3"
-      style={{ opacity: isPast || checked ? 0.55 : 1 }}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label="完了にする"
-        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all duration-150 ${
-          checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent active:scale-90"
-        }`}
-      >
-        ✓
-      </button>
-      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
-          <span className="tabular-nums">
-            {startTime}〜{endTime}
-          </span>
-          {isPast && !checked && <span>・未確認</span>}
-        </div>
-        <p className={`mt-0.5 text-[14px] font-bold ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
-          {rule.title}
-        </p>
-      </button>
-    </li>
-  );
-}
 
-function TimelinePlainCard({ item }: { item: Extract<TimelineItem, { kind: "plain" }> }) {
-  const { timeBlock, startTime, endTime, status } = item;
-  const isPast = status === "PAST";
-  return (
-    <li className="rounded-2xl bg-stone-100/70 px-3.5 py-2.5" style={{ opacity: isPast ? 0.55 : 1 }}>
-      <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
-        <span className="tabular-nums">
-          {startTime}〜{endTime}
-        </span>
-      </div>
-      <p className="mt-0.5 text-[13px] font-bold text-stone-600">{timeBlock.label}</p>
-    </li>
-  );
-}
 
-function TimelineFixedCard({ item }: { item: Extract<TimelineItem, { kind: "fixed" }> }) {
-  const { event, startTime, endTime, status } = item;
-  const isPast = status === "PAST";
-  return (
-    <li
-      className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-3.5 py-3"
-      style={{ opacity: isPast ? 0.55 : 1 }}
-    >
-      <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
-        <span className="tabular-nums">
-          {startTime}〜{endTime}
-        </span>
-        <span>予定</span>
-      </div>
-      <p className="mt-0.5 text-[14px] font-bold text-stone-700">
-        {fixedEventTypeIcon[event.type]} {event.title}
-      </p>
-    </li>
-  );
-}
 
 function TaskRow({
   task,

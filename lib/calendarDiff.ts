@@ -45,7 +45,7 @@ export const DIFF_TYPE_LABEL: Record<CalendarDiffType, string> = {
   MISSING_IN_CALENDAR: "Calendarに枠が無い",
   ADOPT_CALENDAR_TIME: "Calendarの時刻に合わせる",
   STALE_IN_CALENDAR: "Calendarに残骸がある",
-  MISSING_IN_OS: "OSに未取り込み",
+  MISSING_IN_OS: "Calendarのみ",
   NEEDS_RECHECK: "再照合が必要",
   MATCHED: "一致",
 };
@@ -55,7 +55,7 @@ export const DIFF_TYPE_HINT: Record<CalendarDiffType, string> = {
     "実行すると決めたのにCalendarへ枠がありません。枠が入るまで、このTaskは「実行枠が未定」として扱います。",
   ADOPT_CALENDAR_TIME: "時刻はCalendarが正本です。OS側の予定をCalendarに合わせます。",
   STALE_IN_CALENDAR: "OSで別日へ移した予定のCalendarイベントが残っています。",
-  MISSING_IN_OS: "Calendarにある予定に、OS側のTimeBlockが対応していません。",
+  MISSING_IN_OS: "Calendarにあり、OS側にTaskはありません。参加予定・面談・移動などは、これが正常な状態です。",
   NEEDS_RECHECK: "照合範囲の外、または対応するイベントが見つかりません。もう一度Calendarを読めば分かります。",
   MATCHED: "OSとCalendarが一致しています。",
 };
@@ -203,7 +203,7 @@ export function calendarDiff({
       title: event.summary,
       osWhen: null,
       calendarWhen: when(event.date, event.startTime, event.endTime),
-      action: "Calendarにあるこの予定を、OSのTimeBlockとして取り込む",
+      action: "対応不要。Taskにする必要があれば、OS側で作る",
     });
   }
 
@@ -232,7 +232,21 @@ export function needsRecheck(items: CalendarDiffItem[]): CalendarDiffItem[] {
   return items.filter((i) => i.type === "NEEDS_RECHECK");
 }
 
-/** いま人が手を動かして直すもの。再照合待ちは含めない。 */
+/**
+ * いま人が手を動かして直すもの。
+ *
+ * MISSING_IN_OS は含めない (§7)。Calendarにあってもすべてが独立したTaskに
+ * なるわけではない——参加する会、面談、移動、契約手続き。それらは「OSが
+ * 取りこぼしている」のではなく、Taskにする必要が無いだけ。ここへ入れると
+ * 毎日ゼロにならない警告が出続け、本当に直すべきものが埋もれる。
+ */
 export function actionableNow(items: CalendarDiffItem[]): CalendarDiffItem[] {
-  return items.filter((i) => i.type !== "MATCHED" && i.type !== "NEEDS_RECHECK");
+  return items.filter(
+    (i) => i.type === "ADOPT_CALENDAR_TIME" || i.type === "STALE_IN_CALENDAR" || i.type === "MISSING_IN_CALENDAR"
+  );
+}
+
+/** Calendarにあり、OSはTaskとして持っていないもの。正常な状態 (§7)。 */
+export function calendarOnlyItems(items: CalendarDiffItem[]): CalendarDiffItem[] {
+  return items.filter((i) => i.type === "MISSING_IN_OS");
 }

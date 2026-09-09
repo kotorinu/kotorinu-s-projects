@@ -469,7 +469,19 @@ export default function TaskDetailSheet({
           <Section title="予定・実績">
             <dl className="flex flex-col gap-1.5 text-[13px]">
               <Row label="予定時間" value={task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"} />
+              {/* §53: 期限と実行予定は別概念。違っていること自体はエラーでは
+                  ない——9/8が期限のTaskを9/9に実行するのは、遅れてはいるが
+                  計画としては正しい。並べて出し、片方をもう片方の間違いとして
+                  見せない。 */}
               <Row label="期限" value={formatMd(task.deadline)} />
+              <Row
+                label="実行予定"
+                value={
+                  nextBlock
+                    ? `${formatMd(nextBlock.date)} ${nextBlock.startTime}〜${nextBlock.endTime}`
+                    : "未定"
+                }
+              />
               <Row label="担当" value={capabilityOwnerLabel(task.aiCapability)} />
               {started && shownActualMinutes === null && <Row label="状態" value="実行中" />}
               {shownActualMinutes !== null &&

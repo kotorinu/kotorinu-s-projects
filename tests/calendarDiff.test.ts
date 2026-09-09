@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { actionableNow, calendarActionItems, calendarDiff, needsRecheck } from "../lib/calendarDiff";
+import {
+  actionableNow,
+  calendarActionItems,
+  calendarDiff,
+  calendarOnlyItems,
+  needsRecheck,
+} from "../lib/calendarDiff";
 import { calendarSnapshot } from "../lib/calendarSnapshot";
 import { activeTimeBlocks } from "../lib/dummy-data";
 import { liveTimeBlocks } from "../lib/livePlan";
@@ -168,13 +174,20 @@ test("§4: 差分の種類に「判定できない」という語が残ってい
   }
 });
 
-test("G: Calendarにあって OS が知らない予定は、OS側の取りこぼしとして出る", () => {
+test("§7: CalendarにあってOSにTaskが無いのは正常。ERRORにしない", () => {
   const items = calendarDiff({ planBlocks: [], supersededBlocks: [], snapshot });
   const orphan = items.find((i) => i.eventId === "n6junh2nm14156ogrv518pqh68");
   assert.equal(orphan?.type, "MISSING_IN_OS");
   assert.equal(orphan?.blockId, null);
   assert.equal(orphan?.title, "【参加】営業実践クラス");
-  assert.match(orphan?.action ?? "", /取り込む/);
+  // 参加予定は独立したTaskではない。直すべきものとして数えない。
+  assert.match(orphan?.action ?? "", /対応不要/);
+  assert.equal(
+    actionableNow(items).some((i) => i.type === "MISSING_IN_OS"),
+    false,
+    "Calendar-onlyを「いま直すもの」に混ぜない"
+  );
+  assert.equal(calendarOnlyItems(items).length > 0, true);
 });
 
 test("G: 終日イベントは実行枠として扱わない", () => {
@@ -225,15 +238,21 @@ test("G: 出荷している計画は、一致をIDなしで名乗らない", () 
   }
 });
 
-test("actionableNow は再照合待ちを含まない", () => {
+test("actionableNow は再照合待ちもCalendar-onlyも含まない", () => {
   const real = liveTimeBlocks({ timeBlockOverrides: {}, supersededBlockIds: new Set() });
   const items = calendarDiff({ planBlocks: real, supersededBlocks: [], snapshot });
   const now = actionableNow(items);
   const later = needsRecheck(items);
+  const normal = calendarOnlyItems(items);
   const all = calendarActionItems(items);
   assert.equal(now.some((i) => i.type === "NEEDS_RECHECK"), false);
   assert.equal(now.some((i) => i.type === "MATCHED"), false);
-  assert.equal(now.length + later.length, all.length, "一致以外は、いま直すか再照合かのどちらか");
+  assert.equal(now.some((i) => i.type === "MISSING_IN_OS"), false);
+  assert.equal(
+    now.length + later.length + normal.length,
+    all.length,
+    "一致以外は、いま直す / 再照合 / 正常なCalendar-only のどれか"
+  );
 });
 
 test("出荷しているfixtureのイベントIDは、実Calendarに存在する", () => {

@@ -21,7 +21,6 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 import {
   GOAL_HORIZON_LABEL,
   NORTH_STAR_LABEL,
-  NORTH_STAR_ONE_LINER,
   type GapItem,
   type Goal,
 } from "@/lib/types";
@@ -80,9 +79,6 @@ function GoalTreeContent() {
         <p className="mt-0.5 text-xs font-medium text-stone-400">いまはどこへ向かっているか</p>
       </header>
 
-      {/* §7: North Star は常に上にある。全文ではなく1行。 */}
-      <NorthStarRow stars={stars} onOpen={select} />
-
       {/* §8/P2: 開いた瞬間に「あと何日で、何になっていればいいか」。 */}
       {milestone && <NextMilestoneCard goal={milestone} today={today} />}
 
@@ -128,6 +124,10 @@ function GoalTreeContent() {
         )}
       </div>
 
+      {/* §23/§24: 5 YEAR の下。横幅を丸ごと使って全文を読ませる。
+          スペースが余っているのに3枚の小カードへ圧縮して切るのは禁止。 */}
+      <NorthStarSection stars={stars} onOpen={select} />
+
       {/* Mobile: Tap → Sheet (§9)。 */}
       {selected && sheetOpen && (
         <div className="fixed inset-0 z-40 flex items-end lg:hidden">
@@ -154,30 +154,70 @@ function GoalTreeContent() {
   );
 }
 
-/** §7: Life / Work / Direction を3枚のCompact Cardで。全文はTap。 */
-function NorthStarRow({ stars, onOpen }: { stars: Goal[]; onOpen: (id: string) => void }) {
+/**
+ * §22〜§25: North Star は本人が確定した全文がSource of Truth。
+ * AIが要約・言い換えしない。Desktopは横幅を使って読ませ、Mobileだけ
+ * Accordionにする——ただし畳むのは表示であって、文そのものは短縮しない。
+ */
+function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: string) => void }) {
+  const [openId, setOpenId] = useState<string | null>(stars[0]?.id ?? null);
   if (stars.length === 0) return null;
+
   return (
-    <section className="mt-2 px-5">
-      <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">NORTH STAR</p>
-      <div className="grid grid-cols-3 gap-1.5">
+    <section className="mt-4 px-5">
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 rounded-full bg-stone-800" />
+        <p className="text-[11px] font-black tracking-widest text-stone-800">NORTH STAR</p>
+        <span className="h-px flex-1 bg-stone-200" />
+      </div>
+      <p className="mb-2 mt-1 pl-[18px] text-[10px] text-stone-400">
+        期限を持たないもの。ここへ向かって、上の期間Goalが並んでいます。
+      </p>
+
+      <div className="flex flex-col gap-2">
         {stars.map((g) => {
           const star = g.isNorthStar;
           if (star === null) return null;
+          const open = openId === g.id;
           return (
-            <button
-              key={g.id}
-              type="button"
-              onClick={() => onOpen(g.id)}
-              className="rounded-xl border border-stone-150 bg-white px-2.5 py-2 text-left"
-            >
-              <p className="text-[9px] font-black leading-tight tracking-wide text-accent-dark">
-                {NORTH_STAR_LABEL[star]}
+            <div key={g.id} className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : g.id)}
+                className="flex w-full items-baseline gap-2 text-left lg:cursor-default"
+              >
+                <span className="text-[11px] font-black tracking-wide text-accent-dark">
+                  {NORTH_STAR_LABEL[star]}
+                </span>
+                <span className="ml-auto text-[10px] font-bold text-stone-300 lg:hidden">
+                  {open ? "閉じる" : "全文を読む"}
+                </span>
+              </button>
+
+              {/* Desktopは常に全文。Mobileは開いたときだけ全文、閉じていても
+                  冒頭2行は見える (§25)。 */}
+              <p
+                className={`mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-stone-700 lg:line-clamp-none ${
+                  open ? "" : "line-clamp-2"
+                }`}
+              >
+                {g.desiredState}
               </p>
-              <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-snug text-stone-700">
-                {NORTH_STAR_ONE_LINER[star]}
-              </p>
-            </button>
+
+              {g.achievementCriteria && (open || false) && (
+                <p className="mt-2 whitespace-pre-line text-[11px] leading-relaxed text-stone-400">
+                  {g.achievementCriteria}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onOpen(g.id)}
+                className="mt-2 text-[11px] font-bold text-accent-dark"
+              >
+                このNorth Starの詳細 ＞
+              </button>
+            </div>
           );
         })}
       </div>

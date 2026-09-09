@@ -7,6 +7,8 @@ const items = [
   { href: "/today", label: "TODAY", icon: "☀" },
   { href: "/tasks", label: "TASK MAP", icon: "🗂" },
   { href: "/goals", label: "GOAL TREE", icon: "🌳" },
+  // §33: 計測を次の計画へ戻す画面。4つ目の主要タブとして扱う。
+  { href: "/pdca", label: "PDCA", icon: "🔁" },
 ];
 
 export default function BottomNav() {

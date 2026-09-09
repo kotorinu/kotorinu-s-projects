@@ -140,7 +140,15 @@ export default function PlanIntegrityPanel({
           <StatusLine
             label="Google Calendar"
             tone={snapshotFresh ? (actionable.length > 0 ? "warn" : "neutral") : "warn"}
-            value={snapshotFresh ? (actionable.length > 0 ? `要反映 ${actionable.length}件` : "最新") : "再照合が必要"}
+            // §14: Snapshotを「最新」とは呼ばない。取得後に本人がCalendarを
+            // 編集したかどうかを、このアプリは知る手段がない。
+            value={
+              snapshotFresh
+                ? actionable.length > 0
+                  ? `要反映 ${actionable.length}件`
+                  : "照合済み（Snapshot）"
+                : "再照合が必要"
+            }
             badge="SOURCE OF TRUTH"
           />
         </div>
@@ -184,8 +192,8 @@ export default function PlanIntegrityPanel({
               {calendarSnapshot.coverageStart}〜{calendarSnapshot.coverageEnd}
             </dd>
             <dt className="text-stone-400">状態</dt>
-            <dd className={snapshotFresh ? "font-bold text-emerald-700" : "font-bold text-amber-700"}>
-              {snapshotFresh ? "最新" : "再照合が必要"}
+            <dd className={snapshotFresh ? "font-bold text-stone-700" : "font-bold text-amber-700"}>
+              {snapshotFresh ? "照合済み（Snapshot）" : "再照合が必要"}
             </dd>
             <dt className="text-stone-400">要反映</dt>
             <dd className={actionable.length > 0 ? "font-bold text-amber-700" : "text-stone-600"}>
@@ -193,6 +201,9 @@ export default function PlanIntegrityPanel({
             </dd>
           </dl>
           <p className="mt-1 text-[10px] leading-snug text-stone-400">{AUTHORITY_NOTE}</p>
+          <p className="mt-1 text-[10px] leading-snug text-stone-400">
+            これは静的Snapshotです。Live読み取りが有効なときだけ「最新」と表示します。
+          </p>
 
           {changedSinceSnapshot && (
             <div className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2">

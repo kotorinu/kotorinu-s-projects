@@ -89,6 +89,9 @@ interface RolloverState {
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
   // taskIds whose actualMinutes were typed in rather than timed.
   manualActualTaskIds: string[];
+  // §43/§44: 採用した次回見積り。過去のTaskの estimateMinutes は書き換えない
+  // ——当時どう見積もったかは記録なので、後から直すと学習の元が消える。
+  nextEstimates: Record<string, number>;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   // 自分版 (§5): the three own-version fields per Sales phase. The fixture is
   // immutable, so what the user writes lives here; coverage is always derived
@@ -155,6 +158,7 @@ function emptyRolloverState(): RolloverState {
     deadlineOverrides: {},
     lifecycleOverrides: {},
     manualActualTaskIds: [],
+    nextEstimates: {},
     phaseOwnVersions: {},
     replanFlags: {},
     timeBlockOverrides: {},
@@ -264,6 +268,8 @@ interface TodayExecutionApi {
   // measurement, but not a timer reading, so it is tagged as manual and shown
   // that way. Pass null to remove it.
   setManualActualMinutes: (taskId: string, minutes: number | null) => void;
+  setNextEstimate: (taskId: string, minutes: number | null) => void;
+  nextEstimates: Record<string, number>;
   manualActualTaskIds: Set<string>;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
@@ -314,6 +320,7 @@ interface PersistedShape {
   deadlineOverrides: Record<string, string>;
   lifecycleOverrides: Record<string, TaskLifecycleRecord>;
   manualActualTaskIds: string[];
+  nextEstimates: Record<string, number>;
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
   replanFlags: Record<string, ReplanFlag>;
   timeBlockOverrides: Record<string, TimeBlockOverride>;
@@ -341,6 +348,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
     manualActualTaskIds: state.manualActualTaskIds,
+    nextEstimates: state.nextEstimates,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -371,6 +379,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     deadlineOverrides: parsed.deadlineOverrides ?? {},
     lifecycleOverrides: parsed.lifecycleOverrides ?? {},
     manualActualTaskIds: parsed.manualActualTaskIds ?? [],
+    nextEstimates: parsed.nextEstimates ?? {},
     phaseOwnVersions: parsed.phaseOwnVersions ?? {},
     replanFlags: parsed.replanFlags ?? {},
     timeBlockOverrides: parsed.timeBlockOverrides ?? {},
@@ -483,6 +492,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     deadlineOverrides: state.deadlineOverrides,
     lifecycleOverrides: state.lifecycleOverrides,
     manualActualTaskIds: new Set(state.manualActualTaskIds),
+    nextEstimates: state.nextEstimates,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -675,6 +685,13 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
           manualActualTaskIds: [...ids],
           completions,
         };
+      }),
+    setNextEstimate: (taskId, minutes) =>
+      setState((s) => {
+        const next = { ...s.nextEstimates };
+        if (minutes === null) delete next[taskId];
+        else next[taskId] = minutes;
+        return { ...s, nextEstimates: next };
       }),
     setTaskLifecycle: (record, taskId) =>
       setState((s) => {
