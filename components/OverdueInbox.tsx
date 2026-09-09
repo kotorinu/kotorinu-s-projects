@@ -7,7 +7,7 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 import TaskCompleteDialog from "@/components/TaskCompleteDialog";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { useReschedule } from "@/lib/useReschedule";
-import type { Task } from "@/lib/types";
+import type { Task, TaskCompletionRecord } from "@/lib/types";
 
 // 期限超過 Inbox (2026-09-06 Execution Management round).
 //
@@ -22,7 +22,16 @@ import type { Task } from "@/lib/types";
 // Nothing here silently rewrites history: a late completion keeps
 // originalDeadline and records the delay, and やめる is a recorded
 // DROPPED decision rather than a delete.
-export default function OverdueInbox({ tasks, today }: { tasks: Task[]; today: string }) {
+export default function OverdueInbox({
+  tasks,
+  today,
+  onCompleted,
+}: {
+  tasks: Task[];
+  today: string;
+  /** 完了した後に、呼び出し側の共通フィードバック（実績の聞き取りを含む）へ渡す。 */
+  onCompleted?: (task: Task, record: TaskCompletionRecord) => void;
+}) {
   const {
     taskStartedAt,
     deadlineOverrides,
@@ -40,15 +49,18 @@ export default function OverdueInbox({ tasks, today }: { tasks: Task[]; today: s
   const [dateValue, setDateValue] = useState("");
 
   function complete(task: Task, metDefinitionOfDone: boolean) {
-    completeTask(
-      buildCompletionRecord(task, {
-        today,
-        startedIso: taskStartedAt.get(task.id),
-        metDefinitionOfDone,
-        deadlineOverrides,
-      })
-    );
+    const record = buildCompletionRecord(task, {
+      today,
+      startedIso: taskStartedAt.get(task.id),
+      metDefinitionOfDone,
+      deadlineOverrides,
+    });
+    completeTask(record);
     setCompletingTask(null);
+    // ここから完了しても、Timelineから完了したときと同じフィードバックと
+    // 実績の聞き取りを通す (2026-09-10)。期限を過ぎたTaskこそ実績が空のまま
+    // になりやすく、PDCAの入力が永久に埋まらない原因になっていた。
+    onCompleted?.(task, record);
   }
 
   // "今日やる" / "別日に移す" re-place the Task's work date without touching

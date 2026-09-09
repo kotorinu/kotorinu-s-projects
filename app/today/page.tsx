@@ -14,6 +14,7 @@ import RunbookStrip from "@/components/RunbookStrip";
 import CalendarSyncStrip from "@/components/CalendarSyncStrip";
 import CalendarOnlyCard from "@/components/CalendarOnlyCard";
 import ActualMinutesDialog from "@/components/ActualMinutesDialog";
+import { CONFIDENCE_LABEL, proposeEstimate } from "@/lib/pdca";
 import { buildCalendarDay, type DayEntry } from "@/lib/calendarDay";
 import { useCalendarDay } from "@/lib/useCalendarDay";
 import CompletionToast from "@/components/CompletionToast";
@@ -32,7 +33,14 @@ import {
   overdueTasks as computeOverdueTasks,
 } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
-import type { CarryoverDisposition, RecurringRule, SessionRunbook, Task, TimeBlock } from "@/lib/types";
+import type {
+  CarryoverDisposition,
+  RecurringRule,
+  SessionRunbook,
+  Task,
+  TaskCompletionRecord,
+  TimeBlock,
+} from "@/lib/types";
 import { DEPART_MS, useDeparting } from "@/lib/useDeparting";
 import { usePrefersReducedMotion } from "@/lib/useReducedMotion";
 import ProgressBar from "@/components/ProgressBar";
@@ -145,6 +153,8 @@ export default function TodayPage() {
   const [reschedulingTaskId, setReschedulingTaskId] = useState<string | null>(null);
   // §28: 実績の修正はTask Detailの奥ではなく、完了カードから1タップで開く。
   const [actualEditTask, setActualEditTask] = useState<Task | null>(null);
+  // §52: 完了直後に実績を聞く相手。編集(actualEditTask)とは文言が違うだけ。
+  const [askActualTask, setAskActualTask] = useState<Task | null>(null);
   const [rescheduleDateValue, setRescheduleDateValue] = useState("");
 
   function fireCelebration(c: Celebration, durationMs: number) {
@@ -172,6 +182,7 @@ export default function TodayPage() {
         ],
         unlocked: null,
         celebrate: "NONE",
+        nextEstimate: null,
       });
     }
   }
@@ -240,6 +251,39 @@ export default function TodayPage() {
     [today, workDateOverrides, lifecycleOverrides, planBlocks]
   );
 
+  /**
+   * 完了したあとに必ず通る処理 (§37/§51/§52)。
+   *
+   * Timelineから完了しても期限超過Inboxから完了しても同じ体験になるように、
+   * ここへ集約する。分かれていたせいで、期限を過ぎたTaskだけ実績を聞かれず、
+   * PDCAの入力が永久に埋まらなかった。
+   */
+  function afterComplete(
+    task: Task,
+    record: TaskCompletionRecord,
+    remaining: number,
+    nextTitle: string | null
+  ) {
+    const proposal = proposeEstimate(task, allTasks, { ...completions, [task.id]: record });
+    setCompletionFeedback(
+      buildCompletionFeedback({
+        task,
+        record,
+        salesCoverage: task.linkedSalesMaster ? phaseCoverage(salesPhases, phaseOwnVersions) : null,
+        remainingToday: remaining,
+        nextTaskTitle: nextTitle,
+        streakDays: streak.days,
+        nextEstimate: proposal
+          ? { minutes: proposal.suggestedMinutes, confidence: CONFIDENCE_LABEL[proposal.confidence] }
+          : null,
+      })
+    );
+    fireCompletionCelebration(task);
+    // Timerを使っていないと実績が空のままになる。完了直後にだけ聞く。
+    // 答えないのも正しい選択なのでSkipできる。
+    if (record.actualMinutes === null) setAskActualTask(task);
+  }
+
   function confirmComplete(task: Task, metDefinitionOfDone: boolean) {
     if (startedTaskId === task.id) endWork(task.id, "COMPLETE");
     const record = buildCompletionRecord(task, {
@@ -256,17 +300,7 @@ export default function TodayPage() {
     // comes from the record and the real remaining plan; nothing invented.
     const remaining = todayTasks.filter((t) => t.id !== task.id && !isDone(t)).length;
     const next = todayTasks.find((t) => t.id !== task.id && !isDone(t)) ?? null;
-    setCompletionFeedback(
-      buildCompletionFeedback({
-        task,
-        record,
-        salesCoverage: task.linkedSalesMaster ? phaseCoverage(salesPhases, phaseOwnVersions) : null,
-        remainingToday: remaining,
-        nextTaskTitle: next?.title ?? null,
-        streakDays: streak.days,
-      })
-    );
-    fireCompletionCelebration(task);
+    afterComplete(task, record, remaining, next?.title ?? null);
   }
 
   // OVERDUE is derived (期限 < 今日 かつ 未完了 かつ 未DROP), never a stored
@@ -951,7 +985,15 @@ export default function TodayPage() {
           made overdue Tasks impossible to complete. */}
       {overdue.length > 0 && (
         <section className="mx-5 mt-4 lg:col-start-2">
-          <OverdueInbox tasks={overdue} today={today} />
+          <OverdueInbox
+              tasks={overdue}
+              today={today}
+              onCompleted={(task, record) => {
+                const remaining = todayTasks.filter((t) => t.id !== task.id && !isDone(t)).length;
+                const next = todayTasks.find((t) => t.id !== task.id && !isDone(t)) ?? null;
+                afterComplete(task, record, remaining, next?.title ?? null);
+              }}
+            />
         </section>
       )}
 
@@ -1025,6 +1067,7 @@ export default function TodayPage() {
               ],
               unlocked: result.raisedReplan ? "再計画が必要として記録しました" : null,
               celebrate: "NONE",
+              nextEstimate: null,
             });
             setReschedulingTask(null);
           }}
@@ -1049,6 +1092,21 @@ export default function TodayPage() {
             setActualEditTask(null);
           }}
           onClose={() => setActualEditTask(null)}
+        />
+      )}
+
+      {askActualTask && (
+        <ActualMinutesDialog
+          task={askActualTask}
+          timerMinutes={null}
+          currentActual={null}
+          askMode
+          onSave={(minutes) => {
+            setManualActualMinutes(askActualTask.id, minutes);
+            setAskActualTask(null);
+          }}
+          onClear={() => setAskActualTask(null)}
+          onClose={() => setAskActualTask(null)}
         />
       )}
 

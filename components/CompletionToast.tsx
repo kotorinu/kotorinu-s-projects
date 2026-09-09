@@ -63,6 +63,13 @@ export default function CompletionToast({
             {feedback.unlocked && (
               <p className="mt-1 text-[11px] font-bold text-[#2C55B8]">{feedback.unlocked}</p>
             )}
+            {/* §37/§51: 完了した瞬間が、次の見積りを直す一番いいタイミング。
+                ただし提案までで、勝手には変えない。採用はPDCAで押す。 */}
+            {feedback.nextEstimate && (
+              <p className="mt-1 text-[11px] font-bold text-stone-500">
+                次回候補 {feedback.nextEstimate.minutes}分（{feedback.nextEstimate.confidence}）
+              </p>
+            )}
           </div>
           <button
             type="button"

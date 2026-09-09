@@ -1,5 +1,5 @@
 import { computeVariance } from "./execution";
-import type { Task, TaskCompletionRecord, VarianceReason } from "./types";
+import type { ReplanFlag, Task, TaskCompletionRecord, TaskDispositionRecord, VarianceReason } from "./types";
 
 // PDCA — 計測を次の計画へ戻す (2026-09-09, §33〜§50).
 //
@@ -145,6 +145,10 @@ export interface DailyReview {
   /** 予定より時間がかかった / 早かった、説明する価値のあるものだけ。 */
   over: CheckItem[];
   under: CheckItem[];
+  /** §47: 今日Replanしたもの。「終わらなかった」も今日の事実。 */
+  replanned: Array<{ task: Task; reason: string; detail: string }>;
+  /** §47: 自分では動かせず止まったもの。 */
+  blocked: Array<{ task: Task; note: string | null }>;
 }
 
 export interface DailyReviewInput {
@@ -153,6 +157,8 @@ export interface DailyReviewInput {
   completions: Record<string, TaskCompletionRecord>;
   varianceReasons: Map<string, VarianceReason>;
   allTasks: Task[];
+  replanFlags?: Record<string, ReplanFlag>;
+  dispositions?: Record<string, TaskDispositionRecord>;
 }
 
 export function buildDailyReview({
@@ -161,6 +167,8 @@ export function buildDailyReview({
   completions,
   varianceReasons,
   allTasks,
+  replanFlags = {},
+  dispositions = {},
 }: DailyReviewInput): DailyReview {
   const doneToday = tasks.filter((t) => completions[t.id]?.completedOnDate === date);
 
@@ -200,10 +208,24 @@ export function buildDailyReview({
     else under.push(item);
   }
 
+  // §47: 今日Replanしたもの / 止まっているもの。数を出すのではなく、
+  // 「何が終わらなかったか」を1行ずつ。これも今日の事実。
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const replanned = Object.values(replanFlags)
+    .filter((f) => f.raisedOnDate === date)
+    .map((f) => ({ task: byId.get(f.taskId), reason: f.reason as string, detail: f.detail }))
+    .filter((x): x is { task: Task; reason: string; detail: string } => x.task !== undefined);
+  const blocked = Object.values(dispositions)
+    .filter((d) => d.disposition === "BLOCKED" && d.decidedOnDate === date)
+    .map((d) => ({ task: byId.get(d.taskId), note: d.note }))
+    .filter((x): x is { task: Task; note: string | null } => x.task !== undefined);
+
   // 実績が1件も無ければ、合計も出さない。0分と書くと「0分で終わった」に読める。
   const hasActual = actual > 0 || doneToday.length > missingActual;
   return {
     date,
+    replanned,
+    blocked,
     plannedMinutes: counted > 0 ? planned : null,
     actualMinutes: hasActual ? actual : null,
     varianceMinutes: counted > 0 && hasActual ? actual - planned : null,
@@ -235,14 +257,24 @@ export interface WeeklyReview {
   /** 繰り返しズレているグループ。ここが次週変えるものの候補。 */
   groups: WeeklyGroupStat[];
   reasons: Array<{ reason: VarianceReason; count: number }>;
+  /** §48: 今週Replanした回数。多いなら見積りか計画量のどちらかが合っていない。 */
+  replanCount: number;
+  /**
+   * §48: 次週へ変えること。**最大3件**。
+   * 全部を挙げると何も変わらないので、ズレの大きい順に絞る。
+   */
+  changeNextWeek: Array<{ label: string; from: number | null; to: number }>;
 }
+
+export const MAX_WEEKLY_CHANGES = 3;
 
 export function buildWeeklyReview(
   from: string,
   to: string,
   tasks: Task[],
   completions: Record<string, TaskCompletionRecord>,
-  varianceReasons: Map<string, VarianceReason>
+  varianceReasons: Map<string, VarianceReason>,
+  replanFlags: Record<string, ReplanFlag> = {}
 ): WeeklyReview {
   const inRange = tasks.filter((t) => {
     const d = completions[t.id]?.completedOnDate;
@@ -286,13 +318,28 @@ export function buildWeeklyReview(
     if (r) reasonCounts.set(r, (reasonCounts.get(r) ?? 0) + 1);
   }
 
+  const sortedGroups = groups.sort(
+    (a, b) => Math.abs(b.averageDriftMinutes ?? 0) - Math.abs(a.averageDriftMinutes ?? 0)
+  );
+
   return {
     from,
     to,
     completed: inRange.length,
     withActual: inRange.filter((t) => completions[t.id]?.actualMinutes != null).length,
+    replanCount: Object.values(replanFlags).filter((f) => f.raisedOnDate >= from && f.raisedOnDate <= to)
+      .length,
+    // ズレが実際に出ているものだけ、上から3件。
+    changeNextWeek: sortedGroups
+      .filter((g) => g.averageDriftMinutes !== null && Math.abs(g.averageDriftMinutes) >= CHECK_MINUTES)
+      .slice(0, MAX_WEEKLY_CHANGES)
+      .map((g) => ({
+        label: g.groupLabel,
+        from: g.estimates.length > 0 ? Math.round(g.estimates.reduce((s, v) => s + v, 0) / g.estimates.length) : null,
+        to: g.suggestedMinutes,
+      })),
     // ズレの大きい順。次週何を変えるかを決めるための並び。
-    groups: groups.sort((a, b) => Math.abs(b.averageDriftMinutes ?? 0) - Math.abs(a.averageDriftMinutes ?? 0)),
+    groups: sortedGroups,
     reasons: [...reasonCounts.entries()]
       .map(([reason, count]) => ({ reason, count }))
       .sort((a, b) => b.count - a.count),

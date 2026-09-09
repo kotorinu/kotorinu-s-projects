@@ -19,6 +19,14 @@ export interface CompletionFeedback {
   /** What this unlocks next, when there is a real next thing. */
   unlocked: string | null;
   celebrate: "NONE" | "SUBTLE" | "MILESTONE";
+  /**
+   * 次回の見積り候補 (2026-09-10, §37/§51).
+   *
+   * 完了した瞬間が、次の見積りを直す一番いいタイミング——記憶が新しく、
+   * 「思ったより長かった」がまだ手の中にある。ただし**自動では変えない**。
+   * ここは提案までで、採用はPDCAで本人が押す。
+   */
+  nextEstimate: { minutes: number; confidence: string } | null;
 }
 
 export function buildCompletionFeedback(args: {
@@ -28,6 +36,7 @@ export function buildCompletionFeedback(args: {
   remainingToday: number;
   nextTaskTitle: string | null;
   streakDays: number;
+  nextEstimate?: { minutes: number; confidence: string } | null;
 }): CompletionFeedback {
   const { task, record, salesCoverage, remainingToday, nextTaskTitle, streakDays } = args;
   const changed: string[] = [];
@@ -70,7 +79,7 @@ export function buildCompletionFeedback(args: {
           ? "SUBTLE"
           : "SUBTLE";
 
-  return { headline, changed, unlocked, celebrate };
+  return { headline, changed, unlocked, celebrate, nextEstimate: args.nextEstimate ?? null };
 }
 
 /** §50: what a finished Sales phase changes, stated exactly. */

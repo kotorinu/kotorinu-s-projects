@@ -22,6 +22,12 @@ export default function ActualMinutesDialog({
   timerMinutes,
   /** いま採用されている実績。未入力なら null。 */
   currentActual,
+  /**
+   * §52: 完了直後に聞いている場合。Timerを使っていないTaskは実績が空のまま
+   * になり、そのままではPDCAの入力が永久に埋まらない。ただし**無理に値を
+   * 作らせない**——Skipできる。
+   */
+  askMode = false,
   onSave,
   onClear,
   onClose,
@@ -29,6 +35,7 @@ export default function ActualMinutesDialog({
   task: Task;
   timerMinutes: number | null;
   currentActual: number | null;
+  askMode?: boolean;
   onSave: (minutes: number) => void;
   onClear: () => void;
   onClose: () => void;
@@ -48,7 +55,7 @@ export default function ActualMinutesDialog({
         className="absolute inset-0 bg-stone-900/45"
       />
       <div className="relative w-full max-w-[430px] rounded-t-3xl bg-white p-5 shadow-2xl lg:rounded-3xl">
-        <p className="text-[11px] font-bold text-stone-400">実績時間</p>
+        <p className="text-[11px] font-bold text-stone-400">{askMode ? "✓ 完了しました" : "実績時間"}</p>
         <p className="mt-0.5 line-clamp-2 text-[15px] font-black leading-snug text-stone-900">{task.title}</p>
 
         <dl className="mt-3 grid grid-cols-[4rem_1fr] gap-x-3 gap-y-1 text-[12px]">
@@ -124,7 +131,7 @@ export default function ActualMinutesDialog({
             保存
           </button>
           <button type="button" onClick={onClose} className="rounded-full px-3 py-2.5 text-[12px] font-bold text-stone-400">
-            キャンセル
+            {askMode ? "スキップ" : "キャンセル"}
           </button>
           {currentActual !== null && (
             <button
@@ -137,7 +144,9 @@ export default function ActualMinutesDialog({
           )}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
-          保存すると、完了記録・今日の集計・PDCAの実績がすべて同じ値になります。
+          {askMode
+            ? "スキップしても構いません。分からない時間を埋めるより、空のままの方が正確です。"
+            : "保存すると、完了記録・今日の集計・PDCAの実績がすべて同じ値になります。"}
         </p>
       </div>
     </div>

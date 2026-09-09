@@ -27,7 +27,8 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 type Tab = "TODAY" | "WEEK";
 
 export default function PdcaPage() {
-  const { currentDate: today, completions, varianceReasonByTaskId } = useTodayExecution();
+  const { currentDate: today, completions, varianceReasonByTaskId, replanFlags, dispositions } =
+    useTodayExecution();
   const [tab, setTab] = useState<Tab>("TODAY");
 
   const daily = useMemo(
@@ -38,14 +39,16 @@ export default function PdcaPage() {
         completions,
         varianceReasons: varianceReasonByTaskId,
         allTasks,
+        replanFlags,
+        dispositions,
       }),
-    [today, completions, varianceReasonByTaskId]
+    [today, completions, varianceReasonByTaskId, replanFlags, dispositions]
   );
 
   const weekFrom = useMemo(() => addDaysToYmd(today, -6), [today]);
   const weekly = useMemo(
-    () => buildWeeklyReview(weekFrom, today, allTasks, completions, varianceReasonByTaskId),
-    [weekFrom, today, completions, varianceReasonByTaskId]
+    () => buildWeeklyReview(weekFrom, today, allTasks, completions, varianceReasonByTaskId, replanFlags),
+    [weekFrom, today, completions, varianceReasonByTaskId, replanFlags]
   );
 
   return (
@@ -99,6 +102,34 @@ export default function PdcaPage() {
             items={daily.under}
           />
 
+          {daily.replanned.length > 0 && (
+            <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <p className="text-[11px] font-bold text-stone-400">今日Replanしたもの</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {daily.replanned.map((r) => (
+                  <li key={r.task.id} className="rounded-xl bg-stone-50 px-3 py-2">
+                    <p className="text-[12px] font-bold text-stone-800">{r.task.title}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-stone-500">{r.detail}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {daily.blocked.length > 0 && (
+            <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
+              <p className="text-[11px] font-bold text-stone-400">止まっているもの</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {daily.blocked.map((b) => (
+                  <li key={b.task.id} className="rounded-xl bg-amber-50 px-3 py-2">
+                    <p className="text-[12px] font-bold text-amber-900">{b.task.title}</p>
+                    {b.note && <p className="mt-0.5 text-[11px] leading-snug text-amber-800">{b.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {daily.over.length === 0 && daily.under.length === 0 && daily.completed > 0 && (
             <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[11px] leading-relaxed text-stone-500">
               見積りと実績の差が {"15分"}未満・{"20%"}未満に収まっています。この見積りは当たっているので、
@@ -111,7 +142,7 @@ export default function PdcaPage() {
           <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
             <p className="text-[11px] font-bold text-stone-400">直近7日</p>
             <p className="mt-1 text-[12px] text-stone-600">
-              完了 {weekly.completed}件・実績あり {weekly.withActual}件
+              完了 {weekly.completed}件・実績あり {weekly.withActual}件・Replan {weekly.replanCount}回
             </p>
             {weekly.withActual === 0 && (
               <p className="mt-1 text-[11px] leading-relaxed text-stone-400">
@@ -119,6 +150,27 @@ export default function PdcaPage() {
               </p>
             )}
           </section>
+
+          {/* §48: 次週へ変えること。全部挙げると何も変わらないので最大3件。 */}
+          {weekly.changeNextWeek.length > 0 && (
+            <section className="rounded-2xl border border-accent-soft bg-white px-4 py-3.5">
+              <p className="text-[11px] font-black text-accent-dark">次週へ変えること</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {weekly.changeNextWeek.map((c) => (
+                  <li key={c.label} className="rounded-xl bg-accent-soft px-3 py-2">
+                    <p className="text-[12px] font-bold text-stone-800">{c.label}</p>
+                    <p className="mt-0.5 text-[12px] tabular-nums font-bold text-accent-dark">
+                      {c.from !== null ? `${c.from}分 → ` : "次回 "}
+                      {c.to}分
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+                ここを変えないと、来週も同じだけズレます。採用は各Taskの「次回見積に採用」から。
+              </p>
+            </section>
+          )}
 
           {weekly.groups.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">

@@ -285,8 +285,14 @@ function JourneyCard({
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
         <span
-          className={`mt-3 h-3 w-3 shrink-0 rounded-full ${
-            isNext ? "bg-accent ring-4 ring-accent-soft" : "bg-white ring-2 ring-stone-200"
+          className={`shrink-0 rounded-full transition-all duration-200 ${
+            selected ? "mt-4 h-4 w-4 bg-accent ring-4 ring-accent-soft" : "mt-3 h-3 w-3"
+          } ${
+            selected
+              ? ""
+              : isNext
+                ? "bg-accent ring-4 ring-accent-soft"
+                : "bg-white ring-2 ring-stone-200"
           }`}
         />
         <span className="mt-1 w-px flex-1 bg-stone-200" />
@@ -295,14 +301,22 @@ function JourneyCard({
       <button
         type="button"
         onClick={onSelect}
-        className={`mb-2 min-w-0 flex-1 rounded-2xl border bg-white px-3.5 py-2.5 text-left transition-colors ${
-          selected ? "border-accent" : "border-stone-150"
+        className={`mb-2 min-w-0 flex-1 rounded-2xl border bg-white text-left transition-all duration-200 ${
+          selected
+            ? "border-accent px-4 py-3.5 shadow-[0_2px_10px_-4px_rgba(47,111,228,0.35)]"
+            : "border-stone-150 px-3.5 py-2.5"
         }`}
       >
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] font-black text-stone-800">{GOAL_HORIZON_LABEL[goal.horizon]}</span>
+          <span className={`font-black text-stone-800 ${selected ? "text-[16px]" : "text-[13px]"}`}>
+            {GOAL_HORIZON_LABEL[goal.horizon]}
+          </span>
           {headline && (
-            <span className={`tabular-nums text-[12px] font-black ${isNext ? "text-accent-dark" : "text-stone-400"}`}>
+            <span
+              className={`tabular-nums font-black ${selected ? "text-[15px]" : "text-[12px]"} ${
+                isNext || selected ? "text-accent-dark" : "text-stone-400"
+              }`}
+            >
               {headline}
             </span>
           )}

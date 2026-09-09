@@ -6,11 +6,14 @@ import { calendarSnapshot } from "../lib/calendarSnapshot";
 import { tasks as allTasks } from "../lib/dummy-data";
 import { liveTimeBlocks } from "../lib/livePlan";
 import {
+  CONFIDENCE_LABEL,
   buildDailyReview,
+  buildWeeklyReview,
   estimateGroupOf,
   proposeCalendarDuration,
   proposeEstimate,
 } from "../lib/pdca";
+import { buildCompletionFeedback } from "../lib/completionFeedback";
 import { fakeClock } from "../lib/clock";
 import { validatePlan } from "../lib/planValidator";
 import { isTaskOverdue } from "../lib/taskState";
@@ -362,4 +365,145 @@ test("§18: 元のDeadline履歴を消さない", () => {
   // 実行日を動かしても、Taskのdeadlineそのものは触らない。
   assert.equal(task.deadline, "2026-09-08");
   assert.equal(isTaskOverdue(task, TODAY, noOverlays()), true, "遅れてはいる");
+});
+
+// ===== 完了の瞬間にPDCAを始める (§37/§51/§52) =====
+
+test("§51: 完了フィードバックに次回候補が入る", () => {
+  const a = makeTask({ id: "t-a", title: "A", area: "RIALA", estimateGroupId: "RIALA_MEMBER_STATUS" });
+  const b = makeTask({
+    id: "t-b",
+    title: "B",
+    area: "RIALA",
+    estimateGroupId: "RIALA_MEMBER_STATUS",
+    estimateMinutes: 30,
+  });
+  const record = completion("t-b", 30, 60);
+  // 完了したそのTask自身の実績も標本に入るので、ここは2件＝参考値。
+  const proposal = proposeEstimate(b, [a, b], { "t-a": completion("t-a", 30, 60), "t-b": record });
+  assert.ok(proposal);
+  const fb = buildCompletionFeedback({
+    task: b,
+    record,
+    salesCoverage: null,
+    remainingToday: 1,
+    nextTaskTitle: "次のTask",
+    streakDays: 1,
+    nextEstimate: { minutes: proposal.suggestedMinutes, confidence: CONFIDENCE_LABEL[proposal.confidence] },
+  });
+  assert.deepEqual(fb.nextEstimate, { minutes: 60, confidence: "参考値" });
+  assert.ok(fb.changed.some((c) => c.includes("30分")), "差も事実として出る");
+
+  // 1件しか実績が無ければ「暫定」。件数で言い方が変わる (§39)。
+  const lone = proposeEstimate(b, [b], { "t-b": record });
+  assert.equal(lone?.confidence, "PROVISIONAL");
+  assert.equal(CONFIDENCE_LABEL[lone!.confidence], "暫定");
+});
+
+test("§37: 提案は出すが、自動でestimateを書き換えない", () => {
+  const b = makeTask({
+    id: "t-b",
+    title: "B",
+    area: "RIALA",
+    estimateGroupId: "RIALA_MEMBER_STATUS",
+    estimateMinutes: 30,
+  });
+  const record = completion("t-b", 30, 60);
+  buildCompletionFeedback({
+    task: b,
+    record,
+    salesCoverage: null,
+    remainingToday: 0,
+    nextTaskTitle: null,
+    streakDays: 1,
+    nextEstimate: { minutes: 60, confidence: "暫定" },
+  });
+  assert.equal(b.estimateMinutes, 30, "Task自身の見積りは触らない");
+  assert.equal(record.estimateMinutes, 30, "完了記録の予定も触らない");
+});
+
+test("§52: 実績が無い完了はそれと分かる（値を作らない）", () => {
+  const t = makeTask({ id: "t-x", title: "未計測", area: "RIALA", estimateMinutes: 60 });
+  const record = { ...completion("t-x", 60, 0), actualMinutes: null, varianceMinutes: null };
+  const fb = buildCompletionFeedback({
+    task: t,
+    record,
+    salesCoverage: null,
+    remainingToday: 0,
+    nextTaskTitle: null,
+    streakDays: 1,
+  });
+  assert.equal(fb.nextEstimate, null);
+  assert.equal(
+    fb.changed.some((c) => c.includes("実績")),
+    false,
+    "測っていないのに実績を書かない"
+  );
+});
+
+// ===== PDCA Daily/Weekly の残り (§47/§48) =====
+
+test("§47: 今日Replanしたもの / 止まっているものが出る", () => {
+  const t = makeTask({ id: "t-r", title: "動かしたTask", area: "RIALA" });
+  const u = makeTask({ id: "t-b", title: "止まったTask", area: "RIALA" });
+  const review = buildDailyReview({
+    date: TODAY,
+    tasks: [t, u],
+    completions: {},
+    varianceReasons: new Map<string, VarianceReason>(),
+    allTasks: [t, u],
+    replanFlags: {
+      "t-r": {
+        taskId: "t-r",
+        reason: "POSTPONED",
+        detail: "2026-09-09 から 2026-09-10 へ移動",
+        raisedOnDate: TODAY,
+        raisedAt: `${TODAY}T21:00:00+09:00`,
+      },
+    },
+    dispositions: {
+      "t-b": {
+        taskId: "t-b",
+        disposition: "BLOCKED",
+        decidedOnDate: TODAY,
+        decidedAt: `${TODAY}T21:00:00+09:00`,
+        note: "商品レクチャー待ち",
+      },
+    },
+  });
+  assert.equal(review.replanned.length, 1);
+  assert.equal(review.replanned[0].task.id, "t-r");
+  assert.equal(review.blocked.length, 1);
+  assert.equal(review.blocked[0].note, "商品レクチャー待ち");
+});
+
+test("§48: 次週へ変えることは最大3件、ズレが小さいものは出さない", () => {
+  const mk = (id: string, group: string) =>
+    makeTask({ id, title: id, area: "RIALA", estimateGroupId: group });
+  const tasks = [
+    mk("t-1", "RIALA_MEMBER_STATUS"),
+    mk("t-2", "DAILY_PLANNING"),
+    mk("t-3", "READING_60P"),
+    mk("t-4", "GENESIS_INQUIRY"),
+  ];
+  const weekly = buildWeeklyReview(
+    "2026-09-04",
+    TODAY,
+    tasks,
+    {
+      "t-1": completion("t-1", 30, 90), // +60 大きくズレる
+      "t-2": completion("t-2", 20, 60), // +40
+      "t-3": completion("t-3", 60, 100), // +40
+      "t-4": completion("t-4", 60, 65), // +5 → 出さない
+    },
+    new Map<string, VarianceReason>(),
+    {}
+  );
+  assert.ok(weekly.changeNextWeek.length <= 3, "全部挙げると何も変わらない");
+  assert.equal(
+    weekly.changeNextWeek.some((c) => c.label.includes("問い切り")),
+    false,
+    "5分のズレを「変えること」に入れない"
+  );
+  assert.equal(weekly.replanCount, 0);
 });
