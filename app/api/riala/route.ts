@@ -1,28 +1,22 @@
-import { configuredStore } from "@/lib/riala-planner/store";
-import { configuredProviders } from "@/lib/riala-planner/providers";
-import { GmailSender } from "@/lib/riala-planner/sender";
-import { approveAndSend, publicAction, reconcile, scan } from "@/lib/riala-planner/service";
-import { authConfigured, authenticated, COOKIE, equalSecret, rateLimit, sameOrigin, session } from "@/lib/riala-planner/security";
-import { approvalHash } from "@/lib/riala-planner/planner";
+import { configuredStore } from "../../../lib/riala-planner/store";
+import { configuredProviders } from "../../../lib/riala-planner/providers";
+import { GmailSender } from "../../../lib/riala-planner/sender";
+import { approveAndSend, publicAction, reconcile, scan } from "../../../lib/riala-planner/service";
+import { authConfigured, authenticated, COOKIE, equalSecret, rateLimit, RateLimitError, sameOrigin, session } from "../../../lib/riala-planner/security";
+import { approvalHash } from "../../../lib/riala-planner/planner";
+import { configuration, observedReadiness } from "../../../lib/riala-planner/readiness";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 const response = (body: unknown, status = 200, extra: Record<string, string> = {}) => Response.json(body, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...extra } });
-function readiness() {
-  const env = process.env;
-  return { auth: authConfigured(), store: !!configuredStore(), send: new GmailSender().enabled,
-    members: !!env.RIALA_MEMBERS_SOURCE_URL, gmail: !!env.RIALA_GMAIL_READ_REFRESH_TOKEN,
-    events: !!env.RIALA_EVENTS_SOURCE_URL, content: !!env.RIALA_CONTENT_SOURCE_URL,
-    mode: env.VERCEL || env.NODE_ENV === "production" ? "PRODUCTION" : "LOCAL", autoSendAllowed: false };
-}
 export async function GET(request: Request) {
   try {
-    const ready = readiness();
-    if (!authenticated(request)) return response({ authenticated: false, readiness: ready });
+    const ready = observedReadiness();
+    if (!authenticated(request)) return response({ authenticated: false, readiness: ready, configuration: configuration() });
     const store = configuredStore(); if (!store) return response({ authenticated: true, readiness: ready, blocker: "永続Planner Store未接続" });
     const ledger = await store.read();
-    return response({ authenticated: true, readiness: ready, settings: ledger.settings, baselineAt: ledger.baselineAt,
+    return response({ authenticated: true, readiness: observedReadiness(ledger), configuration: configuration(), settings: ledger.settings, baselineAt: ledger.baselineAt,
       actions: ledger.actions.slice(-100).map(publicAction), runs: ledger.runs.slice(-10), totalActions: ledger.actions.length });
   } catch { return response({ error: "Plannerの保存先または設定を確認してください。処理は停止しています" }, 503); }
 }
@@ -31,7 +25,12 @@ export async function POST(request: Request) {
   if (!request.headers.get("content-type")?.startsWith("application/json")) return response({ error: "JSONのみ受け付けます" }, 415);
   try {
     const raw = await request.text(); if (raw.length > 20000) return response({ error: "リクエストが大きすぎます" }, 413);
-    const body = JSON.parse(raw) as Record<string, unknown>;
+    let body: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return response({ error: "JSONオブジェクトが必要です" }, 400);
+      body = parsed as Record<string, unknown>;
+    } catch { return response({ error: "JSONの形式を確認してください" }, 400); }
     const store = configuredStore();
     if (!store || !authConfigured()) return response({ error: "認証または永続Planner Storeが未設定です。Source取得・承認・送信は停止しています" }, 503);
     if (body.command === "login") {
@@ -45,6 +44,7 @@ export async function POST(request: Request) {
     if (body.command === "logout") return response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0` });
     if (body.command === "scan") { await rateLimit(store, "scan", 3); return response({ run: await scan(store, configuredProviders(), now) }); }
     if (body.command === "approve") {
+      if (!new GmailSender().enabled) return response({ error: "送信はOFFです。外部送信は行いません" }, 409);
       if (!Array.isArray(body.selections) || !body.selections.every(s => s && typeof s.id === "string" && typeof s.hash === "string")) return response({ error: "承認対象が不正です" }, 400);
       await approveAndSend(store, configuredProviders(), new GmailSender(), body.selections, now); return response({ ok: true });
     }
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return response({ error: "未対応の操作です" }, 400);
   } catch (error) {
     // Do not log provider payloads, emails, or credentials.
-    return response({ error: error instanceof Error && !/https?:|token|secret|password|ECONN|ENOENT/i.test(error.message) ? error.message : "処理を停止しました。接続と保存先を確認してください" }, 409);
+    if (error instanceof RateLimitError) return response({ error: "操作回数の上限です。1分後に再試行してください" }, 429, { "Retry-After": "60" });
+    return response({ error: "処理を停止しました。接続・保存先・対象の最新状態を確認してください" }, 409);
   }
 }
-

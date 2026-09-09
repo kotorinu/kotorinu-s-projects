@@ -4,8 +4,8 @@ export type SourceName = "members" | "gmail" | "events" | "content";
 export interface Evidence { sourceId: string; reference: string; quote: string; observedAt: string }
 export interface Interest { topic: string; evidence: Evidence }
 export interface Member {
-  id: string; name: string; registeredAt: string; email: string | null;
-  emailVerified: boolean; isStaff: boolean; active: boolean;
+  id: string; name: string; registeredAt: string | null; email: string | null;
+  emailVerified: boolean | null; isStaff: boolean | null; active: boolean | null;
   interests: Interest[]; evidence: Evidence;
 }
 export interface Mail {
@@ -14,12 +14,13 @@ export interface Mail {
 }
 export interface CatalogItem {
   id: string; title: string; url: string | null; topics: string[];
-  summary: string; sourceUpdatedAt: string; evidence: Evidence;
+  summary: string; sourceUpdatedAt: string | null; evidence: Evidence;
   startsAt?: string; durationIfKnown?: number | null;
 }
 export interface Source<T> {
   name: SourceName; sourceId: string; mode: "LIVE" | "SNAPSHOT" | "UNCONNECTED";
   readAt: string | null; complete: boolean; items: T[]; failure: string | null;
+  diagnostics?: { messageCount: number; latestMessageAt: string | null; accountMasked: string; scope: string };
 }
 export interface Facts {
   members: Source<Member>; gmail: Source<Mail>; events: Source<CatalogItem>; content: Source<CatalogItem>;
@@ -46,6 +47,7 @@ export interface Run {
   managementMinutes: Partial<Record<"explanation" | "preparation" | "approval" | "correction" | "verification" | "reconciliation", number>>;
   measurementMode: "MANUAL_BASELINE" | "AI_ASSISTED" | null;
   cost: number | null; boundaryViolations: number; reproducibility: string;
+  memberSummary?: { total: number; staffExcluded: number; activeMembers: number; unknownEligibility: number; seenMemberIds: number };
 }
 export interface Settings { eventLeadDays: number; maxSourceAgeMinutes: number; autoSendAllowed: false }
 export interface Ledger {
@@ -71,4 +73,3 @@ export interface Store {
   read(): Promise<Ledger>;
   transact<T>(fn: (ledger: Ledger) => T): Promise<T>;
 }
-
