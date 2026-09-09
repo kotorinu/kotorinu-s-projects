@@ -11,6 +11,7 @@ import { tasksEffectiveOnDate, tasksScheduledOnDate, pendingCarryoverTasks } fro
 import { executionDayNumber, executionStreak, isBeforeBaseline } from "@/lib/executionBaseline";
 import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
 import RunbookStrip from "@/components/RunbookStrip";
+import CalendarSyncStrip from "@/components/CalendarSyncStrip";
 import CompletionToast from "@/components/CompletionToast";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { useReschedule } from "@/lib/useReschedule";
@@ -352,6 +353,17 @@ export default function TodayPage() {
   const fixedEventsAllDayToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime === null), [fixedEventsToday]);
   const fixedEventsTimedToday = useMemo(() => fixedEventsToday.filter((e) => e.startTime !== null), [fixedEventsToday]);
 
+  // §5/§6: 実行順が予定と変わったとき、Calendarをどう直せばいいか。
+  // 開始時刻は保存済みのISOから読む（render中に時計を呼ばない）。
+  const startedAtHm = useMemo(() => {
+    if (!startedTaskId) return null;
+    const iso = taskStartedAt.get(startedTaskId);
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }, [startedTaskId, taskStartedAt]);
+
   const timeline = useMemo(
     () => buildTimeline(activeTimeBlocksToday, allTasks, recurringRules, fixedEventsTimedToday, nowHmValue, startedTaskId),
     [activeTimeBlocksToday, fixedEventsTimedToday, nowHmValue, startedTaskId]
@@ -635,6 +647,13 @@ export default function TodayPage() {
           </ul>
         </section>
       )}
+
+      <CalendarSyncStrip
+        todayBlocks={activeTimeBlocksToday}
+        startedTaskId={startedTaskId}
+        startedAtHm={startedAtHm}
+        startedMinutes={startedTaskId ? bankedMinutes(startedTaskId) : 0}
+      />
 
       <section className="px-5 pt-4 lg:col-start-1">
         <div className="mb-3 flex items-center justify-between">

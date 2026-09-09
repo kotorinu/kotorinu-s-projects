@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { calendarActionItems, calendarDiff } from "../lib/calendarDiff";
+import { actionableNow, calendarActionItems, calendarDiff, needsRecheck } from "../lib/calendarDiff";
 import { calendarSnapshot } from "../lib/calendarSnapshot";
 import { activeTimeBlocks } from "../lib/dummy-data";
 import { liveTimeBlocks } from "../lib/livePlan";
 import { makeBlock } from "./helpers";
 
-// §41-G / §22/§23 — OS と Google Calendar の差分。
-// いちばん大事なルール: calendarEventId が無いものを MATCHED と呼ばない。
+// §41-G / §3・§4 — OS と Google Calendar の差分。
+//
+// Calendar が WHEN の正本になったので、差分の向きが決まっている:
+//   時刻が違う     → OSがCalendarへ合わせる（ADOPT_CALENDAR_TIME）
+//   Calendarに無い → まだ「いつやるか」が決まっていない
+//   OSに無い       → Calendarの予定をOSが取り込めていない
+// そして「判定できない」とは言わない。再照合すれば分かる。
 
 const snapshot = calendarSnapshot;
 
-test("G: a block whose event matches the calendar is MATCHED", () => {
+test("G: 時刻が一致していれば MATCHED", () => {
   const block = makeBlock({
     id: "b-1",
     taskId: "t-1",
@@ -22,32 +27,36 @@ test("G: a block whose event matches the calendar is MATCHED", () => {
     calendarEventId: "p0nh30q6j3join6m3ue5ehb830",
     calendarSyncEnabled: true,
   });
-  const items = calendarDiff({ planBlocks: [block], supersededBlocks: [], snapshot });
-  const mine = items.find((i) => i.blockId === "b-1");
+  const mine = calendarDiff({ planBlocks: [block], supersededBlocks: [], snapshot }).find(
+    (i) => i.blockId === "b-1"
+  );
   assert.equal(mine?.type, "MATCHED");
   assert.equal(mine?.calendarWhen, "9/9 19:00-21:10");
 });
 
-test("G: a time that drifted is UPDATE, and shows both sides", () => {
+test("G: 時刻が違えば、直す先はOS側である", () => {
   const block = makeBlock({
     id: "b-1",
     taskId: "t-1",
     label: "営業 17フェーズ",
     date: "2026-09-09",
     startTime: "19:00",
-    endTime: "20:00",
+    endTime: "20:00", // OSは短くしているが、Calendarは21:10のまま
     calendarEventId: "p0nh30q6j3join6m3ue5ehb830",
     calendarSyncEnabled: true,
   });
   const item = calendarDiff({ planBlocks: [block], supersededBlocks: [], snapshot }).find(
     (i) => i.blockId === "b-1"
   );
-  assert.equal(item?.type, "UPDATE");
+  assert.equal(item?.type, "ADOPT_CALENDAR_TIME");
   assert.equal(item?.osWhen, "9/9 19:00-20:00");
   assert.equal(item?.calendarWhen, "9/9 19:00-21:10");
+  // 「Calendarを直す」ではない。正本はCalendar。
+  assert.match(item?.action ?? "", /OS側の予定をCalendarの時刻に合わせる/);
+  assert.equal(/Calendarイベントの日時を.*修正/.test(item?.action ?? ""), false);
 });
 
-test("G: a block with no event id is never MATCHED", () => {
+test("G: calendarEventIdが無いものは MATCHED にならず、枠が未定として出る", () => {
   const wanted = makeBlock({
     id: "b-new",
     taskId: "t-1",
@@ -57,7 +66,7 @@ test("G: a block with no event id is never MATCHED", () => {
     endTime: "07:00",
     calendarSyncEnabled: true,
   });
-  const notWanted = makeBlock({
+  const osOnly = makeBlock({
     id: "b-os-only",
     taskId: "t-2",
     label: "OS内だけの予定",
@@ -66,17 +75,18 @@ test("G: a block with no event id is never MATCHED", () => {
     endTime: "14:00",
     calendarSyncEnabled: false,
   });
-  const items = calendarDiff({ planBlocks: [wanted, notWanted], supersededBlocks: [], snapshot });
-  assert.equal(items.find((i) => i.blockId === "b-new")?.type, "CREATE");
-  assert.equal(items.find((i) => i.blockId === "b-os-only")?.type, "UNKNOWN");
+  const items = calendarDiff({ planBlocks: [wanted, osOnly], supersededBlocks: [], snapshot });
+  // syncEnabledの有無に関係なく、Calendarに枠が無いことの意味は同じ。
+  assert.equal(items.find((i) => i.blockId === "b-new")?.type, "MISSING_IN_CALENDAR");
+  assert.equal(items.find((i) => i.blockId === "b-os-only")?.type, "MISSING_IN_CALENDAR");
   assert.equal(
-    items.some((i) => i.blockId !== null && i.eventId === null && i.type === "MATCHED"),
+    items.some((i) => i.eventId === null && i.type === "MATCHED"),
     false,
-    "MATCHED without an event id must be impossible"
+    "イベントIDが無いのに一致と判定することは不可能でなければならない"
   );
 });
 
-test("G: a rescheduled-away block leaves a DELETE on the calendar", () => {
+test("G: 別日へ移した予定のCalendarイベントは残骸として出る", () => {
   const moved = makeBlock({
     id: "b-new",
     taskId: "t-1",
@@ -97,13 +107,43 @@ test("G: a rescheduled-away block leaves a DELETE on the calendar", () => {
     lifecycle: "SUPERSEDED",
   });
   const items = calendarDiff({ planBlocks: [moved], supersededBlocks: [old], snapshot });
-  assert.equal(items.find((i) => i.blockId === "b-new")?.type, "CREATE");
-  const del = items.find((i) => i.blockId === "b-old");
-  assert.equal(del?.type, "DELETE");
-  assert.equal(del?.calendarWhen, "9/9 19:00-21:10", "the stale event is still 9/9");
+  assert.equal(items.find((i) => i.blockId === "b-new")?.type, "MISSING_IN_CALENDAR");
+  const stale = items.find((i) => i.blockId === "b-old");
+  assert.equal(stale?.type, "STALE_IN_CALENDAR");
+  assert.equal(stale?.calendarWhen, "9/9 19:00-21:10");
 });
 
-test("G: outside the window we actually read, the answer is UNKNOWN", () => {
+test("G: 同じイベントを2行に分けて出さない", () => {
+  const moved = makeBlock({
+    id: "b-new",
+    taskId: "t-1",
+    label: "営業 17フェーズ",
+    date: "2026-09-10",
+    startTime: "20:00",
+    endTime: "21:00",
+    calendarSyncEnabled: true,
+  });
+  const old = makeBlock({
+    id: "b-old",
+    taskId: "t-1",
+    label: "営業 17フェーズ",
+    date: "2026-09-09",
+    startTime: "19:00",
+    endTime: "21:10",
+    calendarEventId: "p0nh30q6j3join6m3ue5ehb830",
+    lifecycle: "SUPERSEDED",
+  });
+  const forEvent = calendarDiff({
+    planBlocks: [moved],
+    supersededBlocks: [old],
+    snapshot,
+    from: "2026-09-09",
+  }).filter((i) => i.eventId === "p0nh30q6j3join6m3ue5ehb830");
+  assert.equal(forEvent.length, 1, "1つのイベントにつき1行");
+  assert.equal(forEvent[0].type, "STALE_IN_CALENDAR");
+});
+
+test("§4: 照合範囲の外は「判定できない」ではなく「再照合が必要」", () => {
   const old = makeBlock({
     id: "b-0908",
     taskId: "t-1",
@@ -117,57 +157,36 @@ test("G: outside the window we actually read, the answer is UNKNOWN", () => {
   const item = calendarDiff({ planBlocks: [old], supersededBlocks: [], snapshot }).find(
     (i) => i.blockId === "b-0908"
   );
-  assert.equal(item?.type, "UNKNOWN");
-  assert.match(item?.action ?? "", /範囲\(2026-09-09〜2026-09-11\)の外/);
+  assert.equal(item?.type, "NEEDS_RECHECK");
+  assert.match(item?.action ?? "", /Calendarを読み直す/);
 });
 
-test("G: a calendar event the OS knows nothing about is surfaced, not ignored", () => {
+test("§4: 差分の種類に「判定できない」という語が残っていない", () => {
+  const items = calendarDiff({ planBlocks: [], supersededBlocks: [], snapshot });
+  for (const i of items) {
+    assert.equal(/判定できない/.test(i.action), false, `"${i.action}" に判定できないが残っている`);
+  }
+});
+
+test("G: Calendarにあって OS が知らない予定は、OS側の取りこぼしとして出る", () => {
   const items = calendarDiff({ planBlocks: [], supersededBlocks: [], snapshot });
   const orphan = items.find((i) => i.eventId === "n6junh2nm14156ogrv518pqh68");
-  assert.equal(orphan?.type, "UNKNOWN");
+  assert.equal(orphan?.type, "MISSING_IN_OS");
   assert.equal(orphan?.blockId, null);
   assert.equal(orphan?.title, "【参加】営業実践クラス");
+  assert.match(orphan?.action ?? "", /取り込む/);
 });
 
-test("G: all-day markers are not treated as missing work blocks", () => {
+test("G: 終日イベントは実行枠として扱わない", () => {
   const items = calendarDiff({ planBlocks: [], supersededBlocks: [], snapshot });
   assert.equal(
     items.some((i) => i.eventId === "3uuj3g1oe8tmnm6aebutpbrd5c"),
     false,
-    "【読了期限】 is a note, not a block the OS failed to create"
+    "【読了期限】はメモであって、OSが作り忘れた枠ではない"
   );
 });
 
-test("G: the real shipped plan produces a diff, and MATCHED is not assumed", () => {
-  const live = liveTimeBlocks({ timeBlockOverrides: {}, supersededBlockIds: new Set() });
-  const items = calendarDiff({ planBlocks: live, supersededBlocks: [], snapshot });
-  assert.ok(items.length > 0);
-  for (const item of items) {
-    if (item.type === "MATCHED") assert.ok(item.eventId, "MATCHED always has an event id");
-  }
-  const actions = calendarActionItems(items);
-  assert.ok(actions.length <= items.length);
-  assert.equal(actions.some((i) => i.type === "MATCHED"), false);
-});
-
-test("G: every fixture event id inside the window exists in the snapshot", () => {
-  const inWindow = activeTimeBlocks.filter(
-    (b) =>
-      b.lifecycle === "ACTIVE" &&
-      b.calendarEventId !== null &&
-      b.date >= snapshot.coverageStart &&
-      b.date <= snapshot.coverageEnd
-  );
-  const known = new Set(snapshot.events.map((e) => e.id));
-  const missing = inWindow.filter((b) => !known.has(b.calendarEventId as string));
-  assert.deepEqual(
-    missing.map((b) => b.id + " → " + b.calendarEventId),
-    [],
-    "a fixture claims a Calendar event that the real calendar does not have"
-  );
-});
-
-test("G: yesterday's disagreements stay out of the queue", () => {
+test("G: 昨日の食い違いはqueueに入れない", () => {
   const past = makeBlock({
     id: "b-0908",
     taskId: "t-1",
@@ -192,42 +211,40 @@ test("G: yesterday's disagreements stay out of the queue", () => {
     snapshot,
     from: "2026-09-09",
   });
-  assert.equal(items.some((i) => i.blockId === "b-0908"), false, "past days are history");
-  assert.equal(items.find((i) => i.blockId === "b-0909")?.type, "CREATE");
-  assert.equal(
-    items.some((i) => i.calendarWhen?.startsWith("9/8")),
-    false,
-    "and neither are the calendar's own past events"
-  );
+  assert.equal(items.some((i) => i.blockId === "b-0908"), false, "過ぎた日は履歴");
+  assert.equal(items.find((i) => i.blockId === "b-0909")?.type, "MISSING_IN_CALENDAR");
+  assert.equal(items.some((i) => i.calendarWhen?.startsWith("9/8")), false);
 });
 
-test("G: a stale event is reported once, as DELETE — not twice", () => {
-  const moved = makeBlock({
-    id: "b-new",
-    taskId: "t-1",
-    label: "営業 17フェーズ",
-    date: "2026-09-10",
-    startTime: "20:00",
-    endTime: "21:00",
-    calendarSyncEnabled: true,
-  });
-  const old = makeBlock({
-    id: "b-old",
-    taskId: "t-1",
-    label: "営業 17フェーズ",
-    date: "2026-09-09",
-    startTime: "19:00",
-    endTime: "21:10",
-    calendarEventId: "p0nh30q6j3join6m3ue5ehb830",
-    lifecycle: "SUPERSEDED",
-  });
-  const items = calendarDiff({
-    planBlocks: [moved],
-    supersededBlocks: [old],
-    snapshot,
-    from: "2026-09-09",
-  });
-  const forEvent = items.filter((i) => i.eventId === "p0nh30q6j3join6m3ue5ehb830");
-  assert.equal(forEvent.length, 1, "one event, one row");
-  assert.equal(forEvent[0].type, "DELETE");
+test("G: 出荷している計画は、一致をIDなしで名乗らない", () => {
+  const live = liveTimeBlocks({ timeBlockOverrides: {}, supersededBlockIds: new Set() });
+  const items = calendarDiff({ planBlocks: live, supersededBlocks: [], snapshot });
+  assert.ok(items.length > 0);
+  for (const item of items) {
+    if (item.type === "MATCHED") assert.ok(item.eventId, "MATCHEDには必ずイベントIDがある");
+  }
+});
+
+test("actionableNow は再照合待ちを含まない", () => {
+  const real = liveTimeBlocks({ timeBlockOverrides: {}, supersededBlockIds: new Set() });
+  const items = calendarDiff({ planBlocks: real, supersededBlocks: [], snapshot });
+  const now = actionableNow(items);
+  const later = needsRecheck(items);
+  const all = calendarActionItems(items);
+  assert.equal(now.some((i) => i.type === "NEEDS_RECHECK"), false);
+  assert.equal(now.some((i) => i.type === "MATCHED"), false);
+  assert.equal(now.length + later.length, all.length, "一致以外は、いま直すか再照合かのどちらか");
+});
+
+test("出荷しているfixtureのイベントIDは、実Calendarに存在する", () => {
+  const inWindow = activeTimeBlocks.filter(
+    (b) =>
+      b.lifecycle === "ACTIVE" &&
+      b.calendarEventId !== null &&
+      b.date >= snapshot.coverageStart &&
+      b.date <= snapshot.coverageEnd
+  );
+  const known = new Set(snapshot.events.map((e) => e.id));
+  const missing = inWindow.filter((b) => !known.has(b.calendarEventId as string));
+  assert.deepEqual(missing.map((b) => b.id + " → " + b.calendarEventId), []);
 });

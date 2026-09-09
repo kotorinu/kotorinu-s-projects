@@ -15,6 +15,7 @@ import type { Task, TimeBlock } from "./types";
 
 export type PlanIssueCode =
   | "ACTIVE_WITHOUT_BLOCK"
+  | "ACTIVE_WITHOUT_CALENDAR"
   | "MULTIPLE_ACTIVE_BLOCKS"
   | "SUPERSEDED_BLOCK_IN_PLAN"
   | "WORKDATE_BLOCK_MISMATCH"
@@ -29,6 +30,7 @@ export interface PlanIssue {
 
 export const PLAN_ISSUE_LABEL: Record<PlanIssueCode, string> = {
   ACTIVE_WITHOUT_BLOCK: "実行予定なのに時間が決まっていない",
+  ACTIVE_WITHOUT_CALENDAR: "実行すると決めたのにCalendarへ枠が無い",
   MULTIPLE_ACTIVE_BLOCKS: "同じTaskに現在の予定が複数ある",
   SUPERSEDED_BLOCK_IN_PLAN: "置き換え済みの予定が現在計画に残っている",
   WORKDATE_BLOCK_MISMATCH: "実行日と予定の日付が食い違っている",
@@ -93,6 +95,19 @@ export function validatePlan(
         detail: "実行時間が決まっていないのに実行計画へ入っている",
       });
       continue;
+    }
+
+    // §2: Google CalendarがWHENの正本になったので、「やると決めた」の意味は
+    // 「Calendarに枠がある」と同じになった。OSの中だけで時間を持っているTask
+    // は、実行日が決まっているように見えて実際には誰とも約束していない。
+    // これを正常な状態として放置しない。
+    if (!blocks.some((b) => b.calendarEventId !== null)) {
+      issues.push({
+        code: "ACTIVE_WITHOUT_CALENDAR",
+        taskId: task.id,
+        taskTitle: task.title,
+        detail: `OS上は ${blocks[0].date} ${blocks[0].startTime} だが、Calendarに対応する枠が無い（実行枠が未定）`,
+      });
     }
 
     // Several blocks are fine when the work is genuinely split across

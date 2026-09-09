@@ -1,42 +1,63 @@
 import { calendarSnapshot, type CalendarSnapshot, type CalendarSnapshotEvent } from "./calendarSnapshot";
 import type { TimeBlock } from "./types";
 
-// OS ⇄ Google Calendar diff (2026-09-09, §22/§23).
+// OS ⇄ Google Calendar 差分 (2026-09-09, §22/§23 → §3/§4で役割を確定).
 //
-// The rule this exists to enforce: a block with NO calendarEventId is never
-// reported as MATCHED. "I can't tell" is a real answer and it has its own
-// type. Silently assuming agreement is how a plan drifts for a week without
-// anyone noticing.
+// Google Calendar が WHEN の正本になったので、差分の意味も変わった。以前は
+// 「どちらかを直す」だったが、いまは向きが決まっている:
+//
+//   時刻が違う      → OSがCalendarへ合わせる（Calendarを直しに行かない）
+//   Calendarに無い  → まだ「いつやるか」が決まっていない
+//   OSに無い        → Calendarにある予定をOSが取り込めていない
+//
+// そして「判定できない」という言い方をやめた (§4)。照合範囲の外や、照合後に
+// 予定が動いた場合は、判定不能なのではなく **再照合すれば分かる** ので、そう
+// 書く。ユーザーが取れる行動が違う。
 
-export type CalendarDiffType = "CREATE" | "UPDATE" | "DELETE" | "MATCHED" | "UNKNOWN";
+export type CalendarDiffType =
+  /** OSで実行すると決めたが、Calendarに枠が無い。＝いつやるかが未確定。 */
+  | "MISSING_IN_CALENDAR"
+  /** 時刻が違う。Calendarが正なので、OS側を合わせる。 */
+  | "ADOPT_CALENDAR_TIME"
+  /** OSで別日へ移したのに、Calendarに古いイベントが残っている。 */
+  | "STALE_IN_CALENDAR"
+  /** Calendarにある予定を、OSがまだ取り込んでいない。 */
+  | "MISSING_IN_OS"
+  /** 照合すれば分かる。範囲外、またはイベントが見つからない。 */
+  | "NEEDS_RECHECK"
+  /** 一致。calendarEventIdがあるものだけがここに来る。 */
+  | "MATCHED";
 
 export interface CalendarDiffItem {
   type: CalendarDiffType;
   blockId: string | null;
   eventId: string | null;
   title: string;
-  /** What the OS plans, as "9/9 19:00-21:10" — null when the OS has nothing. */
+  /** OSが持っている予定。null＝OS側に無い。 */
   osWhen: string | null;
-  /** What Calendar holds — null when Calendar has nothing (or wasn't read). */
+  /** Calendarが持っている予定。null＝Calendar側に無い（または未取得）。 */
   calendarWhen: string | null;
-  /** The one thing to do about it, in the user's words. */
+  /** 次にやること。1つだけ。 */
   action: string;
 }
 
 export const DIFF_TYPE_LABEL: Record<CalendarDiffType, string> = {
-  CREATE: "Calendarに無い",
-  UPDATE: "時間・内容がずれている",
-  DELETE: "Calendarに残骸がある",
+  MISSING_IN_CALENDAR: "Calendarに枠が無い",
+  ADOPT_CALENDAR_TIME: "Calendarの時刻に合わせる",
+  STALE_IN_CALENDAR: "Calendarに残骸がある",
+  MISSING_IN_OS: "OSに未取り込み",
+  NEEDS_RECHECK: "再照合が必要",
   MATCHED: "一致",
-  UNKNOWN: "判定できない",
 };
 
 export const DIFF_TYPE_HINT: Record<CalendarDiffType, string> = {
-  CREATE: "OSで決めた予定がCalendarに登録されていません。",
-  UPDATE: "同じ予定がOSとCalendarで違う時間・違うタイトルになっています。",
-  DELETE: "OS側で差し替えた予定のCalendarイベントが残っています。",
+  MISSING_IN_CALENDAR:
+    "実行すると決めたのにCalendarへ枠がありません。枠が入るまで、このTaskは「実行枠が未定」として扱います。",
+  ADOPT_CALENDAR_TIME: "時刻はCalendarが正本です。OS側の予定をCalendarに合わせます。",
+  STALE_IN_CALENDAR: "OSで別日へ移した予定のCalendarイベントが残っています。",
+  MISSING_IN_OS: "Calendarにある予定に、OS側のTimeBlockが対応していません。",
+  NEEDS_RECHECK: "照合範囲の外、または対応するイベントが見つかりません。もう一度Calendarを読めば分かります。",
   MATCHED: "OSとCalendarが一致しています。",
-  UNKNOWN: "Calendarを読んだ範囲外、または対応するイベントIDが無いため判定できません。",
 };
 
 function when(date: string, start: string | null, end: string | null): string {
@@ -51,9 +72,9 @@ function inCoverage(date: string, snap: CalendarSnapshot): boolean {
 }
 
 /**
- * Titles never match character-for-character — the OS stores a task label,
- * Calendar stores a formatted summary. Comparing time is meaningful;
- * comparing titles is not, so only time drives UPDATE.
+ * タイトルは一致判定に使わない。OSはTaskのラベル、Calendarは整形済みの
+ * サマリを持っているので、文字列としては最初から違う。意味があるのは時刻の
+ * 比較だけ。
  */
 function timeDiffers(block: TimeBlock, event: CalendarSnapshotEvent): boolean {
   return (
@@ -64,16 +85,14 @@ function timeDiffers(block: TimeBlock, event: CalendarSnapshotEvent): boolean {
 }
 
 export interface CalendarDiffInput {
-  /** The live plan (post-reschedule), not the fixture. */
+  /** ライブの計画（reschedule後）。fixtureではない。 */
   planBlocks: TimeBlock[];
-  /** Blocks replaced by a reschedule — their Calendar events are now stale. */
+  /** 差し替えで置き換えられた枠。Calendarに残骸が残りうる。 */
   supersededBlocks: TimeBlock[];
   snapshot?: CalendarSnapshot;
   /**
-   * Only reconcile from this date forward (YYYY-MM-DD). Yesterday's
-   * disagreements are history: nobody is going to go back and fix a Calendar
-   * event for a day that has already happened, so putting them in the queue
-   * just buries the ones that matter.
+   * この日付以降だけを照合する。昨日の食い違いは履歴であって、いま直せる
+   * ものではない——queueに入れても、本当に直すべきものを埋めるだけ。
    */
   from?: string;
 }
@@ -95,29 +114,17 @@ export function calendarDiff({
     const osWhen = when(block.date, block.startTime, block.endTime);
 
     if (block.calendarEventId === null) {
-      // No id — the only two honest answers are "needs creating" (the user
-      // asked for it on Calendar) or "we can't tell".
-      if (block.calendarSyncEnabled) {
-        items.push({
-          type: "CREATE",
-          blockId: block.id,
-          eventId: null,
-          title: block.label,
-          osWhen,
-          calendarWhen: null,
-          action: "Google Calendarへこの予定を新規作成する",
-        });
-      } else {
-        items.push({
-          type: "UNKNOWN",
-          blockId: block.id,
-          eventId: null,
-          title: block.label,
-          osWhen,
-          calendarWhen: null,
-          action: "Calendarに載せるかどうかを決める（IDが無いので一致とは判定しない）",
-        });
-      }
+      // idが無いものを「一致」と呼ぶことは絶対にしない。Calendarが正本である
+      // 以上、枠が無いということは「いつやるかが決まっていない」ということ。
+      items.push({
+        type: "MISSING_IN_CALENDAR",
+        blockId: block.id,
+        eventId: null,
+        title: block.label,
+        osWhen,
+        calendarWhen: null,
+        action: "Google Calendarへ実行枠を作る（枠ができるまで実行枠は未定）",
+      });
       continue;
     }
 
@@ -125,31 +132,29 @@ export function calendarDiff({
     const event = byId.get(block.calendarEventId);
 
     if (!event) {
-      // Either outside the window we read, or the event is gone. Those are
-      // different problems, so they get different wording.
       items.push({
-        type: "UNKNOWN",
+        type: "NEEDS_RECHECK",
         blockId: block.id,
         eventId: block.calendarEventId,
         title: block.label,
         osWhen,
         calendarWhen: null,
         action: inCoverage(block.date, snapshot)
-          ? "Calendar側にこのイベントが見つからない。削除されたか確認する"
-          : `Calendarを読んだ範囲(${snapshot.coverageStart}〜${snapshot.coverageEnd})の外。再取得が必要`,
+          ? "Calendar側にこのイベントが見つからない。削除されたかを再照合で確かめる"
+          : `照合した範囲(${snapshot.coverageStart}〜${snapshot.coverageEnd})の外。Calendarを読み直す`,
       });
       continue;
     }
 
     if (timeDiffers(block, event)) {
       items.push({
-        type: "UPDATE",
+        type: "ADOPT_CALENDAR_TIME",
         blockId: block.id,
         eventId: event.id,
         title: block.label,
         osWhen,
         calendarWhen: when(event.date, event.startTime, event.endTime),
-        action: "Calendarイベントの日時をOSに合わせて修正する",
+        action: "OS側の予定をCalendarの時刻に合わせる",
       });
     } else {
       items.push({
@@ -164,19 +169,18 @@ export function calendarDiff({
     }
   }
 
-  // A rescheduled-away block whose Calendar event still exists: the calendar
-  // is now telling the user to do something at a time they already moved.
+  // 別日へ移した枠のCalendarイベントがまだ生きている場合。Calendarが正本
+  // である以上、これは「その時刻にやることになっている」と言い続けている。
   for (const block of supersededBlocks) {
     if (block.calendarEventId === null) continue;
     if (!onOrAfter(block.date)) continue;
     if (claimed.has(block.calendarEventId)) continue;
     const event = byId.get(block.calendarEventId);
     if (!event) continue;
-    // Claimed here too, so the orphan pass below does not ALSO report it as
-    // "Calendar has this, the OS does not" — it is one problem, not two.
+    // ここでもclaimedへ入れる。下のループで「OSに無い」として二重に出さない。
     claimed.add(event.id);
     items.push({
-      type: "DELETE",
+      type: "STALE_IN_CALENDAR",
       blockId: block.id,
       eventId: event.id,
       title: block.label,
@@ -186,33 +190,49 @@ export function calendarDiff({
     });
   }
 
-  // Calendar events inside the read window that the OS has no block for.
+  // Calendarにあって、OSが知らない予定。正本はCalendarなので、これは
+  // 「Calendarが間違っている」ではなく「OSが取り込めていない」。
   for (const event of snapshot.events) {
     if (claimed.has(event.id)) continue;
-    if (event.allDay) continue; // all-day markers are notes, not work blocks
+    if (event.allDay) continue; // 終日はメモであって実行枠ではない
     if (!onOrAfter(event.date)) continue;
     items.push({
-      type: "UNKNOWN",
+      type: "MISSING_IN_OS",
       blockId: null,
       eventId: event.id,
       title: event.summary,
       osWhen: null,
       calendarWhen: when(event.date, event.startTime, event.endTime),
-      action: "Calendarにあるが、OSに対応するTimeBlockが無い",
+      action: "Calendarにあるこの予定を、OSのTimeBlockとして取り込む",
     });
   }
 
   const order: Record<CalendarDiffType, number> = {
-    UPDATE: 0,
-    DELETE: 1,
-    CREATE: 2,
-    UNKNOWN: 3,
-    MATCHED: 4,
+    ADOPT_CALENDAR_TIME: 0,
+    STALE_IN_CALENDAR: 1,
+    MISSING_IN_CALENDAR: 2,
+    MISSING_IN_OS: 3,
+    NEEDS_RECHECK: 4,
+    MATCHED: 5,
   };
-  return items.sort((a, b) => order[a.type] - order[b.type] || (a.osWhen ?? a.calendarWhen ?? "").localeCompare(b.osWhen ?? b.calendarWhen ?? ""));
+  return items.sort(
+    (a, b) =>
+      order[a.type] - order[b.type] ||
+      (a.osWhen ?? a.calendarWhen ?? "").localeCompare(b.osWhen ?? b.calendarWhen ?? "")
+  );
 }
 
-/** Everything that is not already agreeing — what the Manager Inbox shows. */
+/** 一致していないものすべて。Manager Inboxが出すもの。 */
 export function calendarActionItems(items: CalendarDiffItem[]): CalendarDiffItem[] {
   return items.filter((i) => i.type !== "MATCHED");
+}
+
+/** 再照合すれば消えるかもしれないもの。行動が「Calendarを読み直す」に集約される。 */
+export function needsRecheck(items: CalendarDiffItem[]): CalendarDiffItem[] {
+  return items.filter((i) => i.type === "NEEDS_RECHECK");
+}
+
+/** いま人が手を動かして直すもの。再照合待ちは含めない。 */
+export function actionableNow(items: CalendarDiffItem[]): CalendarDiffItem[] {
+  return items.filter((i) => i.type !== "MATCHED" && i.type !== "NEEDS_RECHECK");
 }

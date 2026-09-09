@@ -182,6 +182,29 @@ export type GoalStatus = "進行中" | "達成" | "一時停止" | "未達成";
 // sitting on the spine.
 export type GoalHorizon = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y" | "PHILOSOPHY" | "AREA";
 
+// North Star = 期限を持たない3つ (2026-09-09, §7).
+// Journeyの上に常時置く。開かないと理想が分からない状態をやめるため、
+// 表面は1〜2行、全文はTapで開く。
+export type NorthStar = "LIFE" | "WORK" | "DIRECTION";
+
+export const NORTH_STAR_LABEL: Record<NorthStar, string> = {
+  LIFE: "Life Philosophy",
+  WORK: "Work Philosophy",
+  DIRECTION: "Long-term Direction",
+};
+
+/**
+ * カード表面に出す1行。全文はGoalのdesiredStateから読む。
+ *
+ * 3枚を横に並べるので、390pxだと1枚あたり8〜9文字/行しか入らない。14文字を
+ * 超えると2行に収まらず途中で切れて、かえって読めなくなる。短くしてある。
+ */
+export const NORTH_STAR_ONE_LINER: Record<NorthStar, string> = {
+  LIFE: "関わる人が笑顔で溢れている",
+  WORK: "課題を解決し、価値を届ける",
+  DIRECTION: "事業を持ち、チームが自走する",
+};
+
 export const GOAL_HORIZON_LABEL: Record<GoalHorizon, string> = {
   "1M": "1か月後",
   "3M": "3か月後",
@@ -210,6 +233,11 @@ export interface Goal {
   // このGoalへ至る道筋を、既存のGapItemの並びとして表す。Goal側に手順を
   // 複製しない——同じ工程が2箇所にあると必ず片方が古くなる。
   pathGapIds: string[];
+  // このGoalがどのNorth Starに繋がるか (§10)。近い順に書く。説明は付けない
+  // ——「なぜ繋がるか」を毎回書くと、それこそが文字壁になる。
+  northStars: NorthStar[];
+  // North Star自身のGoalなら、それが何か。それ以外は null。
+  isNorthStar: NorthStar | null;
   // A Goal node can point at the Area's real detail instead of duplicating
   // it — an Outcome/Master already has the canonical content (RIALA's
   // achievementCriteria[], Sales Master's phases, etc). Never copy that

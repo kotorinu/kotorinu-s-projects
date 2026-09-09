@@ -1,5 +1,5 @@
 import { daysBetween } from "./date";
-import type { GapItem, Goal, GoalHorizon } from "./types";
+import type { GapItem, GapStatus, Goal, GoalHorizon, NorthStar } from "./types";
 
 // GOAL TREE の並べ替え (2026-09-09, P1/P2/P5).
 //
@@ -59,6 +59,47 @@ export function areaGoals(goals: Goal[]): Goal[] {
 /** why側。時間軸には乗らないが、Journeyの終点として最後に置く。 */
 export function philosophyGoals(goals: Goal[]): Goal[] {
   return goals.filter((g) => g.horizon === "PHILOSOPHY");
+}
+
+/**
+ * North Star 3枚 (§7)。Life → Work → Direction の順で固定する。
+ * この順番は「何のために」から「何をするか」への並びなので、入れ替えない。
+ */
+const NORTH_STAR_ORDER: NorthStar[] = ["LIFE", "WORK", "DIRECTION"];
+
+export function northStarGoals(goals: Goal[]): Goal[] {
+  return goals
+    .filter((g): g is Goal & { isNorthStar: NorthStar } => g.isNorthStar !== null)
+    .sort((a, b) => NORTH_STAR_ORDER.indexOf(a.isNorthStar) - NORTH_STAR_ORDER.indexOf(b.isNorthStar));
+}
+
+/**
+ * カード表面に出す1行 (§8)。
+ *
+ * 「いまどこまで来ているか」を1つだけ。Evidenceがあればそれ、無ければGapを
+ * 出す。両方出すと2行になり、カードが説明文に戻ってしまう。
+ */
+export interface GoalSurfaceLine {
+  kind: "EVIDENCE" | "GAP" | "NONE";
+  text: string;
+}
+
+export function surfaceLine(goal: Goal): GoalSurfaceLine {
+  if (goal.nextEvidence !== null) return { kind: "EVIDENCE", text: goal.nextEvidence };
+  if (goal.currentGap !== null) return { kind: "GAP", text: goal.currentGap };
+  return { kind: "NONE", text: "" };
+}
+
+/** 道筋のうち、いま止まっている一歩。カード表面の補助に使う。 */
+export function currentStep(goal: Goal, gaps: GapItem[]): GapItem | null {
+  const path = goalPath(goal, gaps);
+  if (path.length === 0) return null;
+  const order: GapStatus[] = ["DOING", "READY", "WAITING", "BACKLOG"];
+  for (const status of order) {
+    const hit = path.find((g) => g.status === status);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /**

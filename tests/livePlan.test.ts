@@ -133,8 +133,16 @@ test("§17: after a real reschedule the plan is still consistent", () => {
   overlays.workDateOverrides[target.taskId as string] = plan.workDate;
 
   const issues = validatePlan(tasks, live, overlays, fakeClock(TODAY, "21:00"));
-  const summary = issues.map((i) => `${i.code} ${i.taskTitle}: ${i.detail}`).join("\n");
-  assert.deepEqual(issues, [], `reschedule broke plan consistency:\n${summary}`);
+  // §2: Calendar が WHEN の正本になったので、OS内で予定を動かした直後に
+  // 「Calendarに枠が無い」と報告されるのは矛盾ではなく、反映がまだという事実。
+  // ほかの矛盾がゼロであること、そして動かしたTaskだけが未反映であることを見る。
+  const other = issues.filter((i) => i.code !== "ACTIVE_WITHOUT_CALENDAR");
+  const summary = other.map((i) => `${i.code} ${i.taskTitle}: ${i.detail}`).join("\n");
+  assert.deepEqual(other, [], `reschedule broke plan consistency:\n${summary}`);
+
+  const calendarGaps = issues.filter((i) => i.code === "ACTIVE_WITHOUT_CALENDAR");
+  assert.equal(calendarGaps.length, 1, "動かしたTaskだけがCalendar未反映になる");
+  assert.equal(calendarGaps[0].taskId, target.taskId);
 
   // …and the moved task really is gone from today.
   const onToday = tasksEffectiveOnDate(TODAY, tasks, live, overlays.workDateOverrides);
