@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince } from "@/lib/date";
 import { useClock } from "@/lib/currentTime";
@@ -17,6 +18,7 @@ import ActualMinutesDialog from "@/components/ActualMinutesDialog";
 import { CONFIDENCE_LABEL, proposeEstimate } from "@/lib/pdca";
 import { buildCalendarDay, type DayEntry } from "@/lib/calendarDay";
 import { useCalendarDay } from "@/lib/useCalendarDay";
+import { calendarFreshnessLabel } from "@/lib/calendarProvider";
 import CompletionToast from "@/components/CompletionToast";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { useReschedule } from "@/lib/useReschedule";
@@ -414,12 +416,6 @@ export default function TodayPage() {
     [today, calendar.events, planBlocks, nowHmValue, startedTaskId]
   );
   const timeline = day.timed;
-  // ISO文字列から直接切り出す。new Date().getHours() を使うと、静的
-  // プリレンダリング時にUTCで焼かれてhydration mismatchになる。
-  const calendarStamp = useMemo(() => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(calendar.readAt);
-    return m ? `${Number(m[2])}/${Number(m[3])} ${m[4]}:${m[5]}` : calendar.readAt;
-  }, [calendar.readAt]);
 
   // A STARTED Task with no TimeBlock today (started from the 時間未定 list,
   // or from an overdue/upcoming Task) has nowhere to render inside the
@@ -704,19 +700,13 @@ export default function TodayPage() {
       <section className="px-5 pt-4 lg:col-start-1">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-bold text-stone-800">今日のTimeline</h2>
-          <button
-            type="button"
-            onClick={calendar.refresh}
-            className="shrink-0 text-[10px] font-bold text-stone-400"
-            title="Google Calendarを読み直す"
-          >
-            {calendar.loading
-              ? "Calendar取得中…"
-              : calendar.source === "LIVE"
-                ? `Calendar 最新・${calendarStamp}`
-                : `Calendar snapshot 最終取得 ${calendarStamp}`}
-            {" ⟳"}
-          </button>
+          <div className="text-right text-[10px] font-bold text-stone-500">
+            <p role="status" aria-live="polite">{calendar.loading ? "Calendar取得中…" : calendarFreshnessLabel(calendar)}</p>
+            {calendar.authRequired ? <Link href="/area/riala" className="underline">Calendarを読むためにログイン</Link> : (
+              <button type="button" onClick={calendar.refresh} disabled={calendar.loading} title={calendar.fallbackReason ?? "Google Calendarを読み直す"}
+                className="mt-0.5 underline disabled:opacity-50">Calendar更新 ⟳</button>
+            )}
+          </div>
         </div>
 
         {/* §9: 終日イベント（読了期限など）は時間の枠を持たないので、

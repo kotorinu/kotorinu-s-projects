@@ -1,4 +1,5 @@
 import { calendarSnapshot } from "./calendarSnapshot";
+import { calendarStamp, CALENDAR_FRESH_MS } from "./calendarTime";
 
 // WHENをどこから読むか、を1つのinterfaceにする (2026-09-09, §11).
 //
@@ -35,7 +36,7 @@ export type CalendarSource = "LIVE" | "SNAPSHOT";
 
 export const CALENDAR_SOURCE_LABEL: Record<CalendarSource, string> = {
   LIVE: "最新",
-  SNAPSHOT: "照合済み（Snapshot）",
+  SNAPSHOT: "Snapshot",
 };
 
 export interface CalendarFetchResult {
@@ -47,11 +48,15 @@ export interface CalendarFetchResult {
   coverageEnd: string;
   /** LIVEが使えなかった理由。使えた場合は null。 */
   fallbackReason: string | null;
+  stale: boolean;
+  liveBacked: boolean;
+  authRequired: boolean;
+  refreshing?: boolean;
 }
 
 export interface CalendarProvider {
   readonly name: string;
-  getEvents(startDate: string, endDate: string): Promise<CalendarFetchResult>;
+  getEvents(startDate: string, endDate: string, options?: { trigger: "CACHE" | "OPEN" | "MANUAL" }): Promise<CalendarFetchResult>;
 }
 
 // --- Snapshot Provider ---
@@ -87,6 +92,9 @@ export function snapshotEvents(
     coverageStart: calendarSnapshot.coverageStart,
     coverageEnd: calendarSnapshot.coverageEnd,
     fallbackReason,
+    stale: true,
+    liveBacked: false,
+    authRequired: false,
   };
 }
 
@@ -95,8 +103,9 @@ export function snapshotEvents(
 export interface CalendarApiResponse {
   configured: boolean;
   reason?: string;
-  events?: CalendarEventDTO[];
-  readAt?: string;
+  authRequired?: boolean;
+  status?: "REFRESHED" | "FRESH" | "BUSY" | "LIMITED" | "FAILED";
+  result?: CalendarFetchResult | null;
 }
 
 /**
@@ -109,30 +118,22 @@ export interface CalendarApiResponse {
  */
 export const googleCalendarProvider: CalendarProvider = {
   name: "google",
-  async getEvents(startDate, endDate) {
+  async getEvents(startDate, endDate, options = { trigger: "OPEN" }) {
     try {
       const res = await fetch(
         `/api/calendar?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`,
-        { cache: "no-store" }
+        options.trigger === "CACHE" ? { cache: "no-store" } : { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ trigger: options.trigger }), cache: "no-store" }
       );
       const body = (await res.json()) as CalendarApiResponse;
-      if (!res.ok || !body.configured || !body.events) {
-        return snapshotEvents(startDate, endDate, body.reason ?? `Calendar API 応答 ${res.status}`);
+      if (!body.result) {
+        return { ...snapshotEvents(startDate, endDate, body.reason ?? "Calendarの保存先・接続を確認してください"), authRequired: body.authRequired === true, refreshing: body.status === "BUSY" };
       }
-      return {
-        events: body.events,
-        source: "LIVE",
-        readAt: body.readAt ?? new Date().toISOString(),
-        coverageStart: startDate,
-        coverageEnd: endDate,
-        fallbackReason: null,
-      };
-    } catch (err) {
-      return snapshotEvents(
-        startDate,
-        endDate,
-        err instanceof Error ? `Calendarへ接続できません: ${err.message}` : "Calendarへ接続できません"
-      );
+      return { ...body.result, events: body.result.events.filter(e => e.date >= startDate && e.date <= endDate),
+        fallbackReason: body.reason ?? body.result.fallbackReason,
+        stale: !res.ok || body.result.stale || body.result.coverageStart > startDate || body.result.coverageEnd < endDate };
+    } catch {
+      return snapshotEvents(startDate, endDate, "Calendarへ接続できません。最後の取得データを表示します");
     }
   },
 };
@@ -142,3 +143,22 @@ export const googleCalendarProvider: CalendarProvider = {
  * どちらになったかは結果の source が持っているので、画面は嘘をつけない。
  */
 export const calendarProvider: CalendarProvider = googleCalendarProvider;
+
+/** A failed refresh may never replace newer live data with the bundled snapshot. */
+export function retainLastCalendar(previous: CalendarFetchResult, next: CalendarFetchResult, start: string, end: string): CalendarFetchResult {
+  if (previous.liveBacked && (!next.liveBacked || Date.parse(next.readAt) < Date.parse(previous.readAt))) {
+    return { ...previous, source: "SNAPSHOT", events: previous.events.filter(e => e.date >= start && e.date <= end), stale: true,
+      authRequired: next.authRequired, refreshing: next.refreshing, fallbackReason: next.fallbackReason ?? "Calendar更新結果を確認できません" };
+  }
+  return next;
+}
+export function ageCalendarResult(result: CalendarFetchResult, now: number): CalendarFetchResult {
+  return now - Date.parse(result.readAt) >= CALENDAR_FRESH_MS ? { ...result, source: "SNAPSHOT", stale: true } : result;
+}
+export function calendarFreshnessLabel(result: CalendarFetchResult): string {
+  const stamp = calendarStamp(result.readAt);
+  if (result.authRequired) return `Calendar snapshot・最終取得 ${stamp} JST`;
+  if (result.fallbackReason) return `Calendar取得に失敗・${result.liveBacked ? "" : "snapshot・"}最後の取得 ${stamp} JST`;
+  if (!result.liveBacked) return `Calendar snapshot・最終取得 ${stamp} JST`;
+  return result.stale ? `Calendarを更新・最後の取得 ${stamp} JST` : `Calendar ✓ ${stamp} JST 更新`;
+}

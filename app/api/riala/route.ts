@@ -5,6 +5,7 @@ import { approveAndSend, publicAction, reconcile, scan } from "../../../lib/rial
 import { authConfigured, authenticated, COOKIE, equalSecret, rateLimit, RateLimitError, sameOrigin, session } from "../../../lib/riala-planner/security";
 import { approvalHash } from "../../../lib/riala-planner/planner";
 import { configuration, observedReadiness } from "../../../lib/riala-planner/readiness";
+import { calendarCookie } from "../../../lib/server/calendarAuth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,12 +37,19 @@ export async function POST(request: Request) {
     if (body.command === "login") {
       await rateLimit(store, "login", 5);
       if (typeof body.secret !== "string" || !equalSecret(body.secret, process.env.RIALA_OPERATOR_SECRET!)) return response({ error: "認証できませんでした" }, 401);
-      return response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=${session(process.env.RIALA_OPERATOR_SECRET!)}; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=28800${new URL(request.url).protocol === "https:" ? "; Secure" : ""}` });
+      const login = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=${session(process.env.RIALA_OPERATOR_SECRET!)}; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=28800${new URL(request.url).protocol === "https:" ? "; Secure" : ""}` });
+      // The same operator login also authorizes this device to read Calendar (read-only, separate cookie/path).
+      login.headers.append("Set-Cookie", calendarCookie(request));
+      return login;
     }
     if (!authenticated(request)) return response({ error: "操作には認証が必要です" }, 401);
     await rateLimit(store, "operator", 30);
     const now = new Date().toISOString();
-    if (body.command === "logout") return response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0` });
+    if (body.command === "logout") {
+      const logout = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0` });
+      logout.headers.append("Set-Cookie", calendarCookie(request, true));
+      return logout;
+    }
     if (body.command === "scan") { await rateLimit(store, "scan", 3); return response({ run: await scan(store, configuredProviders(), now) }); }
     if (body.command === "approve") {
       if (!new GmailSender().enabled) return response({ error: "送信はOFFです。外部送信は行いません" }, 409);
