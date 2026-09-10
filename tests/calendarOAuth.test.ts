@@ -14,6 +14,8 @@ const KEY = randomBytes(32);
 const SECRET = "fixture-only-calendar-operator-secret";
 const ORIGIN = "https://fixture.example.test";
 const REFRESH = "fixture-refresh-token-value";
+/** The read window is anchored on the real JST day, so the fixture event must be too. */
+function jstToday() { return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10); }
 
 test("Calendar OAuth encryption round-trips, is non-deterministic, and rejects tampering or a wrong key", () => {
   const first = encryptSecret(REFRESH, KEY), second = encryptSecret(REFRESH, KEY);
@@ -345,5 +347,86 @@ test("Calendar source contains no write call and no Gmail scope", () => {
   const live = files.find(([p]) => p.endsWith("liveGoogleCalendar.ts"))![1];
   for (const match of live.match(/https:\/\/[a-z0-9.]+/g) ?? []) {
     assert.equal(["https://oauth2.googleapis.com", "https://www.googleapis.com"].includes(match), true, match);
+  }
+});
+
+test("Calendar API responses never carry the token, its ciphertext, the key, or the pending auth state", async () => {
+  const originalEnv = { ...process.env }, originalFetch = globalThis.fetch;
+  const { POST: connectPOST } = await import("../app/api/calendar/connect/route");
+  const { GET: callbackGET } = await import("../app/api/calendar/callback/route");
+  const { GET: calendarGET, POST: calendarPOST } = await import("../app/api/calendar/route");
+  const { GET: cronGET } = await import("../app/api/cron/calendar/route");
+  const { configuredCalendarStore } = await import("../lib/server/calendarRefresh");
+  Object.assign(process.env, {
+    VERCEL: "1", RIALA_APP_ORIGIN: ORIGIN, RIALA_OPERATOR_SECRET: SECRET, CALENDAR_TOKEN_KEY: KEY.toString("base64"),
+    CRON_SECRET: SECRET, GOOGLE_CALENDAR_CLIENT_ID: "fixture-id", GOOGLE_CALENDAR_CLIENT_SECRET: "fixture-client-secret",
+    RIALA_REDIS_REST_URL: "https://redis.fixture.test", RIALA_REDIS_REST_TOKEN: "fixture-redis-token",
+  });
+  delete process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
+  const raw = new Map<string, string>();
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.hostname === "redis.fixture.test") {
+      const args = JSON.parse(String(init!.body)); const command = String(args[0]).toUpperCase();
+      if (command === "GET") return Response.json({ result: raw.get(args[1]) ?? null });
+      if ((raw.get(args[3]) ?? "") !== args[4]) return Response.json({ result: 0 });
+      raw.set(args[3], args[5]); return Response.json({ result: 1 });
+    }
+    if (url.hostname === "oauth2.googleapis.com") return Response.json({ refresh_token: REFRESH, scope: CALENDAR_READ_SCOPE, access_token: "fixture-access-token" });
+    return Response.json({ items: [{ id: "e1", summary: "private fixture title", start: { dateTime: `${jstToday()}T09:00:00+09:00` }, end: { dateTime: `${jstToday()}T10:00:00+09:00` } }] });
+  };
+  const cookie = `${CALENDAR_COOKIE}=${calendarSession(SECRET)}`;
+  try {
+    // Connect for real, so a token actually exists to leak.
+    const started = await (await connectPOST(new Request(`${ORIGIN}/api/calendar/connect`, {
+      method: "POST", headers: { origin: ORIGIN, cookie, "Content-Type": "application/json" }, body: "{}" }))).json();
+    const state = new URL(started.authorizeUrl).searchParams.get("state")!;
+    await callbackGET(new Request(`${ORIGIN}${CALENDAR_CALLBACK_PATH}?code=c&state=${encodeURIComponent(state)}`, { headers: { cookie } }));
+    const stored = await configuredCalendarStore()!.read();
+    const cipher = stored.connection!.refreshTokenCipher;
+    assert.equal(cipher.length > 0, true, "a token really is stored");
+
+    const today = jstToday();
+    const url = `${ORIGIN}/api/calendar?start=${today}&end=${today}`;
+    const responses = await Promise.all([
+      calendarGET(new Request(url, { headers: { cookie } })),
+      calendarPOST(new Request(url, { method: "POST", headers: { origin: ORIGIN, cookie, "Content-Type": "application/json" }, body: JSON.stringify({ trigger: "MANUAL" }) })),
+      cronGET(new Request(`${ORIGIN}/api/cron/calendar`, { headers: { Authorization: `Bearer ${SECRET}` } })),
+      // The unauthenticated shapes must not leak configuration either.
+      calendarGET(new Request(url)),
+      connectPOST(new Request(`${ORIGIN}/api/calendar/connect`, { method: "POST", headers: { origin: ORIGIN, "Content-Type": "application/json" }, body: "{}" })),
+    ]);
+
+    const forbidden: [string, string][] = [
+      ["plaintext refresh token", REFRESH],
+      ["stored ciphertext", cipher],
+      ["encryption key", KEY.toString("base64")],
+      ["Google client secret", "fixture-client-secret"],
+      ["Redis token", "fixture-redis-token"],
+      ["access token", "fixture-access-token"],
+      ["operator secret", SECRET],
+      ["pending auth field", "pendingAuth"],
+      ["state hash field", "stateHash"],
+      ["verifier field", "verifierCipher"],
+    ];
+    for (const response of responses) {
+      const body = await response.text();
+      for (const [label, secret] of forbidden) {
+        assert.equal(body.includes(secret), false, `${label} appeared in a ${response.status} response body`);
+      }
+      // Headers must not carry them either (no Set-Cookie with a token, no debug header).
+      const headers = JSON.stringify([...response.headers.entries()]);
+      for (const [label, secret] of forbidden) {
+        assert.equal(headers.includes(secret), false, `${label} appeared in response headers`);
+      }
+    }
+
+    // The cron response is metadata only: no event titles.
+    const cron = await (await cronGET(new Request(`${ORIGIN}/api/cron/calendar`, { headers: { Authorization: `Bearer ${SECRET}` } }))).text();
+    assert.equal(cron.includes("private fixture title"), false, "the scheduler response never contains event names");
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
   }
 });

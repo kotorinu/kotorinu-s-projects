@@ -1,6 +1,8 @@
 # Calendar freshness — activation runbook
 
-Status on 2026-09-10: local implementation and tests complete; **production blocked**. Main at investigation: `565296d4c5170c9004810358ff731207fa3e5d96`. No activation write is authorized by this document.
+Status on 2026-09-11: **Google Calendar Read is live in production.** A real read-only grant was completed through the in-app OAuth flow and a live Google read succeeded at 2026-09-11 06:57 JST (`readAt` 2026-09-10T21:57Z). The refresh token is stored encrypted in Redis and was used by a subsequent live read, so the durable path is exercised end to end.
+
+**Morning freshness is still unverified.** The 04:00 JST cron has not yet run unattended since the connection was made. It is judged only by `scheduled.lastSucceededAt` after an actual unattended run — a manual invocation is not evidence. The Hobby scheduling window below still applies.
 
 ## Schedule and precision
 
