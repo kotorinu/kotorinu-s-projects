@@ -31,7 +31,8 @@ function reader(clock: () => number, events = [timed()]): CalendarReader {
 
 test("Calendar 04:00 JST = previous UTC day 19:00; midnight through 05:00 retains local day", () => {
   const config = JSON.parse(readFileSync("vercel.json", "utf8"));
-  assert.deepEqual(config.crons, [{ path: "/api/cron/calendar", schedule: "0 19 * * *" }]);
+  // Gmail has its own scheduled read; Calendar's must stay at 04:00 JST regardless.
+  assert.deepEqual(config.crons.find((c: { path: string }) => c.path === "/api/cron/calendar"), { path: "/api/cron/calendar", schedule: "0 19 * * *" });
   assert.equal(new Date(FOUR).toISOString(), "2026-09-08T19:00:00.000Z");
   for (const hour of ["00", "01", "02", "03", "04", "05"]) {
     const now = Date.parse(`${DAY}T${hour}:00:00+09:00`);

@@ -6,6 +6,7 @@ import { authConfigured, authenticated, COOKIE, equalSecret, rateLimit, RateLimi
 import { approvalHash } from "../../../lib/riala-planner/planner";
 import { configuration, observedReadiness } from "../../../lib/riala-planner/readiness";
 import { calendarCookie } from "../../../lib/server/calendarAuth";
+import { gmailCookie } from "../../../lib/server/gmailAuth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       const login = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=${session(process.env.RIALA_OPERATOR_SECRET!)}; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=28800${new URL(request.url).protocol === "https:" ? "; Secure" : ""}` });
       // The same operator login also authorizes this device to read Calendar (read-only, separate cookie/path).
       login.headers.append("Set-Cookie", calendarCookie(request));
+      login.headers.append("Set-Cookie", gmailCookie(request));
       return login;
     }
     if (!authenticated(request)) return response({ error: "操作には認証が必要です" }, 401);
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
     if (body.command === "logout") {
       const logout = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0` });
       logout.headers.append("Set-Cookie", calendarCookie(request, true));
+      logout.headers.append("Set-Cookie", gmailCookie(request, true));
       return logout;
     }
     if (body.command === "scan") { await rateLimit(store, "scan", 3); return response({ run: await scan(store, configuredProviders(), now) }); }

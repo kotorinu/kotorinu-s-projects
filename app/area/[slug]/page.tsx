@@ -1,6 +1,7 @@
 import { areaProfiles } from "@/lib/dummy-data";
 import AreaHomeView from "@/components/AreaHomeView";
 import RialaAiOps from "@/components/RialaAiOps";
+import RialaGmailPanel from "@/components/RialaGmailPanel";
 
 export function generateStaticParams() {
   return areaProfiles.map((p) => ({ slug: p.slug }));
@@ -10,7 +11,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   return (
     <>
-      {slug === "riala" && <div className="px-5 pt-4"><RialaAiOps /></div>}
+      {slug === "riala" && <div className="px-5 pt-4"><RialaAiOps /><RialaGmailPanel /></div>}
       <AreaHomeView slug={slug} />
     </>
   );

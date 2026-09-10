@@ -336,8 +336,10 @@ test("Calendar source contains no write call and no Gmail scope", () => {
     // 9. No Calendar write: no mutating endpoint and no mutating method against the Calendar API.
     assert.doesNotMatch(source, /events\.(insert|update|patch|delete)/i, path);
     assert.doesNotMatch(source, /method:\s*["'](PUT|PATCH|DELETE)["']/i, path);
-    // 10. No Gmail scope anywhere in the Calendar path.
-    assert.doesNotMatch(source, /gmail/i, path);
+    // 10. No Gmail scope or Gmail API reachable from the Calendar path. The bare
+    // word is not the test — Gmail exists in this codebase and may be named in
+    // a comment; what must not appear is a scope, host, or resource.
+    assert.doesNotMatch(source, /auth\/gmail|gmail\.googleapis\.com|users\.(messages|drafts|threads)/i, path);
     // Only the read scope is ever named.
     for (const scope of source.match(/auth\/[a-z.]+/g) ?? []) {
       assert.equal(["auth/calendar.events.readonly", "auth/calendar.readonly"].includes(scope), true, `${path}: ${scope}`);
