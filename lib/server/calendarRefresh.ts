@@ -4,6 +4,7 @@ import { calendarBounds, calendarWindow, CALENDAR_FRESH_MS, jstParts, validCalen
 import { RedisJsonStore, type JsonStore } from "./redisJsonStore";
 import { redisCredentials } from "./redisClient";
 import { LiveGoogleCalendarProvider, type CalendarReader, type CalendarSnapshotRecord } from "./liveGoogleCalendar";
+import { decryptSecret, tokenKey, type CalendarConnection, type PendingCalendarAuth } from "./calendarOAuth";
 
 export type CalendarTrigger = "OPEN" | "MANUAL" | "SCHEDULED";
 export interface CalendarState {
@@ -15,8 +16,12 @@ export interface CalendarState {
   lastFailure: string | null;
   lease: { id: string; until: number } | null;
   scheduled: { lastInvokedAt: string | null; lastSucceededAt: string | null };
+  /** Set only between starting a connection and Google calling back; single use. */
+  pendingAuth?: PendingCalendarAuth | null;
+  /** The encrypted refresh token. Absent until the Calendar is connected. */
+  connection?: CalendarConnection | null;
 }
-export const emptyCalendarState = (): CalendarState => ({ schemaVersion: 1, version: 0, snapshot: null, lastAttemptAt: null, lastFailure: null, lease: null, scheduled: { lastInvokedAt: null, lastSucceededAt: null } });
+export const emptyCalendarState = (): CalendarState => ({ schemaVersion: 1, version: 0, snapshot: null, lastAttemptAt: null, lastFailure: null, lease: null, scheduled: { lastInvokedAt: null, lastSucceededAt: null }, pendingAuth: null, connection: null });
 function validateSnapshot(s: CalendarSnapshotRecord) {
   calendarBounds(s.coverageStart, s.coverageEnd);
   if (s.sourceMode !== "LIVE" || !Number.isFinite(Date.parse(s.readAt)) || !Array.isArray(s.events) || s.events.length > 5000 ||
@@ -29,8 +34,35 @@ function decode(raw: string | null): CalendarState {
   const state = JSON.parse(raw) as CalendarState;
   if (state.schemaVersion !== 1 || !Number.isSafeInteger(state.version) || !state.scheduled ||
     state.lease && (!state.lease.id || !Number.isFinite(state.lease.until))) throw new Error("Calendar Storeが不正です");
+  if (state.pendingAuth && (!/^[a-f0-9]{64}$/.test(state.pendingAuth.stateHash) || !/^[a-f0-9]{64}$/.test(state.pendingAuth.sessionHash) ||
+    typeof state.pendingAuth.verifierCipher !== "string" || !Number.isFinite(state.pendingAuth.expiresAt))) throw new Error("Calendar Storeが不正です");
+  if (state.connection && (typeof state.connection.refreshTokenCipher !== "string" || !state.connection.refreshTokenCipher ||
+    typeof state.connection.scope !== "string")) throw new Error("Calendar Storeが不正です");
   if (state.snapshot) validateSnapshot(state.snapshot);
   return state;
+}
+
+/**
+ * The reader used in production: the refresh token comes from the encrypted
+ * connection when the Calendar has been connected, and otherwise from the
+ * environment, so a manually provisioned token keeps working.
+ */
+export function calendarReaderFor(store: JsonStore<CalendarState>): CalendarReader {
+  return new LiveGoogleCalendarProvider(process.env, fetch, Date.now, async () => {
+    const key = tokenKey();
+    if (key) {
+      const connection = (await store.read()).connection;
+      if (connection) return decryptSecret(connection.refreshTokenCipher, key);
+    }
+    return process.env.GOOGLE_CALENDAR_REFRESH_TOKEN ?? null;
+  });
+}
+
+/** What the UI may know: whether a Calendar is connected, never anything about the token. */
+export function calendarConnectionStatus(state: CalendarState) {
+  return { connected: !!state.connection, connectedAt: state.connection?.connectedAt ?? null,
+    envToken: !!process.env.GOOGLE_CALENDAR_REFRESH_TOKEN, keyConfigured: !!tokenKey(),
+    clientConfigured: !!process.env.GOOGLE_CALENDAR_CLIENT_ID && !!process.env.GOOGLE_CALENDAR_CLIENT_SECRET };
 }
 export function configuredCalendarStore(): JsonStore<CalendarState> | null {
   const e = process.env;

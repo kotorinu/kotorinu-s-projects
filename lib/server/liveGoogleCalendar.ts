@@ -1,7 +1,9 @@
 import type { CalendarEventDTO } from "../calendarProvider";
 import { addCalendarDays, calendarBounds, CALENDAR_TIME_ZONE, jstParts, validCalendarDate } from "../calendarTime";
 
-export const CALENDAR_READ_SCOPE = "https://www.googleapis.com/auth/calendar.events.readonly";
+// One definition of the scope, shared with the OAuth flow that requests it.
+export { CALENDAR_READ_SCOPE } from "./calendarOAuth";
+import { readOnlyScope } from "./calendarOAuth";
 export interface CalendarSnapshotRecord {
   sourceMode: "LIVE";
   readAt: string;
@@ -44,20 +46,22 @@ export function normalizeGoogleEvent(event: GoogleEvent, start: string, end: str
 }
 
 export class LiveGoogleCalendarProvider implements CalendarReader {
-  constructor(private env: NodeJS.ProcessEnv = process.env, private http: typeof fetch = fetch, private clock: () => number = Date.now) {}
+  constructor(private env: NodeJS.ProcessEnv = process.env, private http: typeof fetch = fetch, private clock: () => number = Date.now,
+    /** Where the refresh token comes from. Defaults to the environment; the connected flow supplies the decrypted one. */
+    private refreshTokenSource?: () => Promise<string | null>) {}
   async read(start: string, end: string): Promise<CalendarSnapshotRecord> {
     const bounds = calendarBounds(start, end);
     const e = this.env;
-    if (!e.GOOGLE_CALENDAR_CLIENT_ID || !e.GOOGLE_CALENDAR_CLIENT_SECRET || !e.GOOGLE_CALENDAR_REFRESH_TOKEN) throw fail();
+    const refreshToken = this.refreshTokenSource ? await this.refreshTokenSource() : e.GOOGLE_CALENDAR_REFRESH_TOKEN ?? null;
+    if (!e.GOOGLE_CALENDAR_CLIENT_ID || !e.GOOGLE_CALENDAR_CLIENT_SECRET || !refreshToken) throw fail();
     const signal = AbortSignal.timeout(30000); // One deadline across token + every page.
     const tokenResponse = await this.http("https://oauth2.googleapis.com/token", { method: "POST", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: e.GOOGLE_CALENDAR_CLIENT_ID,
-        client_secret: e.GOOGLE_CALENDAR_CLIENT_SECRET, refresh_token: e.GOOGLE_CALENDAR_REFRESH_TOKEN }) });
+        client_secret: e.GOOGLE_CALENDAR_CLIENT_SECRET, refresh_token: refreshToken }) });
     if (!tokenResponse.ok) throw fail();
     const token = await tokenResponse.json() as { access_token?: string; scope?: string };
     // An independent read credential; never reuse a Calendar write token or send credential.
-    const scopes = token.scope?.split(/\s+/).filter(Boolean) ?? [];
-    if (!token.access_token || !scopes.length || scopes.some(s => ![CALENDAR_READ_SCOPE, "https://www.googleapis.com/auth/calendar.readonly"].includes(s))) throw fail();
+    if (!token.access_token || !readOnlyScope(token.scope)) throw fail();
     const events: CalendarEventDTO[] = [], seenPages = new Set<string>(), ids = new Set<string>();
     let page: string | undefined;
     for (let count = 0; count < 20; count++) {

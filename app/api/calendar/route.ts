@@ -1,5 +1,5 @@
 import { calendarBounds } from "../../../lib/calendarTime";
-import { CalendarRefreshService, configuredCalendarStore } from "../../../lib/server/calendarRefresh";
+import { cachedCalendarResult, calendarConnectionStatus, calendarReaderFor, CalendarRefreshService, configuredCalendarStore } from "../../../lib/server/calendarRefresh";
 import { calendarAuthenticated } from "../../../lib/server/calendarAuth";
 import { sameOrigin } from "../../../lib/riala-planner/security";
 
@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   if (!validRange(request)) return response({ reason: "Calendar取得日付が不正です" }, 400);
   try {
     const store = configuredCalendarStore(); if (!store) return notReady();
-    return response({ configured: true, result: await new CalendarRefreshService(store).cached() });
+    const state = await store.read();
+    return response({ configured: true, connection: calendarConnectionStatus(state), result: cachedCalendarResult(state, Date.now()) });
   } catch { return response({ configured: false, reason: "Calendar保存データを取得できません" }, 503); }
 }
 export async function POST(request: Request) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   if (!body || !["OPEN", "MANUAL"].includes(String(body.trigger))) return response({ reason: "Calendar更新方法が不正です" }, 400);
   try {
     const store = configuredCalendarStore(); if (!store) return notReady();
-    const outcome = await new CalendarRefreshService(store).refresh(body.trigger as "OPEN" | "MANUAL");
+    const outcome = await new CalendarRefreshService(store, calendarReaderFor(store)).refresh(body.trigger as "OPEN" | "MANUAL");
     return response({ configured: true, ...outcome });
   } catch { return response({ configured: false, reason: "Calendar更新に失敗。最後の取得データを表示します" }, 503); }
 }

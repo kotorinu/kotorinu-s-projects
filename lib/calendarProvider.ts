@@ -52,6 +52,8 @@ export interface CalendarFetchResult {
   liveBacked: boolean;
   authRequired: boolean;
   refreshing?: boolean;
+  /** Present only on a cache read, which is the only response that asks the server about the connection. */
+  connection?: CalendarConnectionStatus;
 }
 
 export interface CalendarProvider {
@@ -100,12 +102,44 @@ export function snapshotEvents(
 
 // --- Google Provider ---
 
+export interface CalendarConnectionStatus {
+  connected: boolean;
+  connectedAt: string | null;
+  envToken: boolean;
+  keyConfigured: boolean;
+  clientConfigured: boolean;
+}
 export interface CalendarApiResponse {
   configured: boolean;
   reason?: string;
   authRequired?: boolean;
   status?: "REFRESHED" | "FRESH" | "BUSY" | "LIMITED" | "FAILED";
   result?: CalendarFetchResult | null;
+  connection?: CalendarConnectionStatus;
+}
+
+/** What the callback redirect means, in words. Each says what to do next rather than only naming a code. */
+export const CALENDAR_CONNECT_MESSAGE: Record<string, string> = {
+  connected: "Google Calendarを接続しました（読み取りのみ）",
+  denied: "Google側で許可されませんでした。接続していません",
+  "login-required": "端末のログインが切れています。ログインしてからもう一度接続してください",
+  "not-configured": "接続に必要な設定が足りません（OAuthクライアント・暗号鍵・保存先）",
+  state: "接続のやり直しが必要です（リンクの有効期限切れ、または別のブラウザ）",
+  scope: "読み取り以外の権限が含まれていたため、接続しませんでした",
+  "no-refresh-token": "Googleが再接続用のトークンを返しませんでした。もう一度お試しください",
+  exchange: "Googleとのやり取りに失敗しました。接続していません",
+  invalid: "接続リンクが不正でした。接続していません",
+  failed: "接続に失敗しました。接続していません",
+};
+
+/** Ask the server to start a Google connection. Returns the URL to send the browser to. */
+export async function startCalendarConnection(): Promise<{ authorizeUrl?: string; error?: string }> {
+  try {
+    const res = await fetch("/api/calendar/connect", { method: "POST", cache: "no-store",
+      headers: { "Content-Type": "application/json" }, body: "{}" });
+    const body = (await res.json()) as { authorizeUrl?: string; error?: string };
+    return body.authorizeUrl ? { authorizeUrl: body.authorizeUrl } : { error: body.error ?? "Calendar接続を開始できませんでした" };
+  } catch { return { error: "Calendar接続を開始できませんでした" }; }
 }
 
 /**
@@ -127,10 +161,11 @@ export const googleCalendarProvider: CalendarProvider = {
       );
       const body = (await res.json()) as CalendarApiResponse;
       if (!body.result) {
-        return { ...snapshotEvents(startDate, endDate, body.reason ?? "Calendarの保存先・接続を確認してください"), authRequired: body.authRequired === true, refreshing: body.status === "BUSY" };
+        return { ...snapshotEvents(startDate, endDate, body.reason ?? "Calendarの保存先・接続を確認してください"),
+          authRequired: body.authRequired === true, refreshing: body.status === "BUSY", connection: body.connection };
       }
       return { ...body.result, events: body.result.events.filter(e => e.date >= startDate && e.date <= endDate),
-        fallbackReason: body.reason ?? body.result.fallbackReason,
+        fallbackReason: body.reason ?? body.result.fallbackReason, connection: body.connection ?? body.result.connection,
         stale: !res.ok || body.result.stale || body.result.coverageStart > startDate || body.result.coverageEnd < endDate };
     } catch {
       return snapshotEvents(startDate, endDate, "Calendarへ接続できません。最後の取得データを表示します");
@@ -148,7 +183,8 @@ export const calendarProvider: CalendarProvider = googleCalendarProvider;
 export function retainLastCalendar(previous: CalendarFetchResult, next: CalendarFetchResult, start: string, end: string): CalendarFetchResult {
   if (previous.liveBacked && (!next.liveBacked || Date.parse(next.readAt) < Date.parse(previous.readAt))) {
     return { ...previous, source: "SNAPSHOT", events: previous.events.filter(e => e.date >= start && e.date <= end), stale: true,
-      authRequired: next.authRequired, refreshing: next.refreshing, fallbackReason: next.fallbackReason ?? "Calendar更新結果を確認できません" };
+      authRequired: next.authRequired, refreshing: next.refreshing, connection: next.connection ?? previous.connection,
+      fallbackReason: next.fallbackReason ?? "Calendar更新結果を確認できません" };
   }
   return next;
 }

@@ -18,7 +18,7 @@ import ActualMinutesDialog from "@/components/ActualMinutesDialog";
 import { CONFIDENCE_LABEL, proposeEstimate } from "@/lib/pdca";
 import { buildCalendarDay, type DayEntry } from "@/lib/calendarDay";
 import { useCalendarDay } from "@/lib/useCalendarDay";
-import { calendarFreshnessLabel } from "@/lib/calendarProvider";
+import { calendarFreshnessLabel, CALENDAR_CONNECT_MESSAGE, startCalendarConnection } from "@/lib/calendarProvider";
 import CompletionToast from "@/components/CompletionToast";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { useReschedule } from "@/lib/useReschedule";
@@ -403,6 +403,38 @@ export default function TodayPage() {
   // §1: 今日の時間割の第一SourceはGoogle Calendar。OSはその上に重ねる。
   // 最初の描画はSnapshotから同期的に作られるので、開いた瞬間に予定が出る。
   const calendar = useCalendarDay(today, today);
+  // Offer the connection only when the server says it can actually complete
+  // one: an OAuth client and an encryption key exist, and no Calendar is
+  // connected yet. A manually provisioned token counts as connected.
+  const connectionStatus = calendar.connection;
+  const needsCalendarConnection = !!connectionStatus && !connectionStatus.connected && !connectionStatus.envToken
+    && connectionStatus.clientConfigured && connectionStatus.keyConfigured;
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  // The callback redirects back here with its result; say what happened and
+  // drop the parameter so a reload does not repeat the message.
+  const [connectNotice, setConnectNotice] = useState<string | null>(null);
+  useEffect(() => {
+    const outcome = new URLSearchParams(window.location.search).get("calendar");
+    if (!outcome) return;
+    // Deferred: the prerendered HTML cannot know the query string, so setting
+    // this during the effect body would both cascade a render and mismatch.
+    // The parameter is cleared with the message, not before it — otherwise a
+    // cancelled first pass consumes the outcome and nothing is ever shown.
+    const timer = setTimeout(() => {
+      setConnectNotice(CALENDAR_CONNECT_MESSAGE[outcome] ?? "Calendar接続の結果を確認できませんでした");
+      window.history.replaceState(null, "", window.location.pathname);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+  const connectCalendar = async () => {
+    setConnecting(true);
+    setConnectError(null);
+    const started = await startCalendarConnection();
+    if (started.authorizeUrl) { window.location.href = started.authorizeUrl; return; }
+    setConnectError(started.error ?? "Calendar接続を開始できませんでした");
+    setConnecting(false);
+  };
   const day = useMemo(
     () =>
       buildCalendarDay({
@@ -703,9 +735,19 @@ export default function TodayPage() {
           <div className="text-right text-[10px] font-bold text-stone-500">
             <p role="status" aria-live="polite">{calendar.loading ? "Calendar取得中…" : calendarFreshnessLabel(calendar)}</p>
             {calendar.authRequired ? <Link href="/area/riala" className="underline">Calendarを読むためにログイン</Link> : (
-              <button type="button" onClick={calendar.refresh} disabled={calendar.loading} title={calendar.fallbackReason ?? "Google Calendarを読み直す"}
-                className="mt-0.5 underline disabled:opacity-50">Calendar更新 ⟳</button>
+              <div className="mt-0.5 flex items-center justify-end gap-2">
+                {needsCalendarConnection ? (
+                  <button type="button" onClick={connectCalendar} disabled={connecting}
+                    title="Google Calendarを読み取り専用で接続する" className="underline disabled:opacity-50">
+                    {connecting ? "接続中…" : "Google Calendarを接続"}
+                  </button>
+                ) : null}
+                <button type="button" onClick={calendar.refresh} disabled={calendar.loading} title={calendar.fallbackReason ?? "Google Calendarを読み直す"}
+                  className="underline disabled:opacity-50">Calendar更新 ⟳</button>
+              </div>
             )}
+            {connectError ? <p className="mt-0.5 font-normal text-rose-600">{connectError}</p> : null}
+            {connectNotice ? <p className="mt-0.5 font-normal text-stone-600">{connectNotice}</p> : null}
           </div>
         </div>
 

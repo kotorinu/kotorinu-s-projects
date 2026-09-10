@@ -33,3 +33,19 @@ The existing operator login also issues a 30-day Calendar reader cookie. It is l
 5. After the next scheduled 04:00, verify the scheduler log and lastInvokedAt/lastSucceededAt, then TODAY/reload. Only then mark Calendar REFRESH PASS. Check failures with local fixtures, never by editing a user's real event or revoking production credentials for a test.
 
 If Google/Redis fails, TODAY retains last-good in-memory data; a reachable Redis returns last successful data across reloads. If Redis is also unavailable during a new page load, only the bundled static snapshot is available. It stays explicitly labelled Snapshot; this is a known offline limit, not live freshness.
+
+## Connecting Google (authorization-code flow, added 2026-09-10)
+
+There are two ways to provide the read credential. Either is sufficient; the connected one wins when both exist.
+
+**A. Connect in the app (preferred).** `POST /api/calendar/connect` (operator-authenticated, same-origin) returns a Google consent URL; TODAY shows a 「Google Calendarを接続」 action when an OAuth client and encryption key are configured and nothing is connected yet. Google returns to `/api/calendar/callback`, which exchanges the code and stores the refresh token **encrypted** in the Calendar Redis record. The refresh token never reaches the browser and is never written to a file.
+
+- Redirect URI (register this exact string): `<RIALA_APP_ORIGIN>/api/calendar/callback`, e.g. `https://kotorinu-s-projects.vercel.app/api/calendar/callback`. It is built from `RIALA_APP_ORIGIN`, not from the request Host, so a spoofed Host cannot redirect a grant.
+- Scope requested: `https://www.googleapis.com/auth/calendar.events.readonly` only. `access_type=offline` and `prompt=consent` so a refresh token is actually issued. A response granting anything broader — including `calendar` (write) or any Gmail scope — is refused and **not** stored.
+- PKCE S256: the verifier is generated server-side, stored encrypted, and never sent to Google; only its challenge is.
+- `state` is random 32 bytes; only its SHA-256 is persisted, it expires in 10 minutes, it is bound to the browser's Calendar-reader session, and it is consumed inside the same compare-and-swap that reads it, so a replayed callback finds nothing to redeem.
+- Requires `CALENDAR_TOKEN_KEY`: 32 bytes, base64. There is no default and no fallback — without it, connecting is refused rather than storing a credential in the clear. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and set it in the provider UI only.
+
+**B. Environment refresh token.** Set `GOOGLE_CALENDAR_REFRESH_TOKEN` as before. Used when no connection is stored, so an existing manual provisioning keeps working.
+
+Rotation/revocation: clear the stored connection (or revoke the grant at https://myaccount.google.com/permissions) and reconnect. Changing `CALENDAR_TOKEN_KEY` invalidates the stored token, which then fails closed to the last good snapshot until reconnected — it does not silently read as empty.
