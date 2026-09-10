@@ -2,6 +2,7 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { emptyLedger, type Ledger, type Store } from "./model";
+import { compareAndSwap, createRedisClient, redisCredentials } from "../server/redisClient";
 
 export function decodeLedger(raw: string | null): Ledger {
   if (!raw) return emptyLedger();
@@ -41,30 +42,34 @@ export class FileStore implements Store {
 }
 /** Atomic CAS against a persistent Redis REST database. No expiring send locks. */
 export class RedisStore implements Store {
-  constructor(private url: string, private token: string, private key = "riala:planner:v1") {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("安全なPlanner Store URLが必要です");
+  private redis: ReturnType<typeof createRedisClient>;
+  constructor(url: string, token: string, private key = "riala:planner:v1") {
+    this.redis = createRedisClient(url, token);
   }
-  private async command(args: unknown[]) {
-    const response = await fetch(this.url, { method: "POST", headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" }, body: JSON.stringify(args), cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error("Planner Storeに接続できません");
-    const body = await response.json() as { result?: unknown; error?: unknown };
-    if (body.error) throw new Error("Planner Store処理に失敗しました"); return body.result;
+  private async raw() {
+    try {
+      const result = await this.redis.get<string>(this.key);
+      if (result !== null && typeof result !== "string") throw new Error();
+      return result;
+    } catch { throw new Error("Planner Storeに接続できません"); }
   }
-  private async raw() { const result = await this.command(["GET", this.key]); if (result !== null && typeof result !== "string") throw new Error("Planner Store応答が不正です"); return result as string | null; }
   async read() { return decodeLedger(await this.raw()); }
   async transact<T>(fn: (ledger: Ledger) => T): Promise<T> {
     for (let attempt = 0; attempt < 6; attempt++) {
       const old = await this.raw(); const ledger = decodeLedger(old); const result = fn(ledger); ledger.version++;
-      const script = "local v=redis.call('GET',KEYS[1]); if (v or '')~=ARGV[1] then return 0 end; redis.call('SET',KEYS[1],ARGV[2]); return 1";
-      if (await this.command(["EVAL", script, 1, this.key, old ?? "", encode(ledger)]) === 1) return result;
+      const next = encode(ledger);
+      let committed;
+      try { committed = await compareAndSwap(this.redis, this.key, old, next); }
+      catch { throw new Error("Planner Storeの更新結果を確認できません。再読み込みしてください"); }
+      if (committed) return result;
     }
     throw new Error("別の処理が実行中です。再読み込みしてください");
   }
 }
 export function configuredStore(): Store | null {
   const e = process.env;
-  if (e.RIALA_REDIS_REST_URL && e.RIALA_REDIS_REST_TOKEN) return new RedisStore(e.RIALA_REDIS_REST_URL, e.RIALA_REDIS_REST_TOKEN);
+  const credentials = redisCredentials(e);
+  if (credentials) return new RedisStore(credentials.url, credentials.token);
   if (!e.VERCEL && e.NODE_ENV !== "production" && e.RIALA_PLANNER_DATA_DIR) return new FileStore(e.RIALA_PLANNER_DATA_DIR);
   return null;
 }
