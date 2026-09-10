@@ -25,6 +25,8 @@ export interface GmailThreadSummary {
 export interface GmailSummary {
   status: string;
   reason: string | null;
+  /** Which step failed, its HTTP status, and the category. Never mail content. */
+  diagnostic: { stage: string; httpStatus: number | null; category: string } | null;
   stale: boolean;
   readAt: string | null;
   accountMasked: string | null;
@@ -63,6 +65,7 @@ const countBy = (threads: ClassifiedThread[], relevance: RialaRelevance) => thre
 export function summarizeGmail(result: {
   record: { readAt: string; accountMasked: string; window: { start: string; end: string; days: number }; messages: unknown[]; threads: ClassifiedThread[] } | null;
   status: string; reason: string | null; stale: boolean; readAt: string | null;
+  diagnostic?: { stage: string; httpStatus: number | null; category: string } | null;
 }): GmailSummary {
   const record = result.record;
   const threads = record?.threads ?? [];
@@ -72,6 +75,7 @@ export function summarizeGmail(result: {
   return {
     status: result.status,
     reason: result.reason,
+    diagnostic: result.diagnostic ?? null,
     stale: result.stale,
     readAt: result.readAt,
     accountMasked: record?.accountMasked ?? null,

@@ -12,7 +12,7 @@ import {
   normalizeMessage, parseAddresses, parseDisplayName, replyStateOf,
   type GmailApiMessage, type GmailMessageRecord,
 } from "../lib/server/gmailRead";
-import { GmailReadError, gmailQuery, gmailWindow, LiveGmailReader, maskAccount, DEFAULT_READ_DAYS } from "../lib/server/liveGmail";
+import { GmailReadError, gmailQuery, gmailWindow, LiveGmailReader, maskAccount, trimBodies, DEFAULT_READ_DAYS } from "../lib/server/liveGmail";
 import {
   cachedGmailResult, emptyGmailLastGood, GmailRefreshService,
   GMAIL_CONNECTION_KEY, GMAIL_LAST_GOOD_KEY, type GmailLastGoodState,
@@ -663,4 +663,118 @@ test("Gmail HTTP: connect -> callback -> live read -> durable last good; replay,
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
     Object.assign(process.env, originalEnv);
   }
+});
+
+test("Gmail failures name the stage, the HTTP status and the category", async () => {
+  const window = gmailWindow(Date.now());
+  const at = async (options: Parameters<typeof gmailHttp>[1], fixture: Fixture, stage: string, httpStatus: number | null, status: string) => {
+    const { http } = gmailHttp(fixture, options);
+    const reader = new LiveGmailReader(async () => REFRESH, CLIENT, http);
+    await assert.rejects(reader.read(window), (error: unknown) =>
+      error instanceof GmailReadError && error.stage === stage && error.httpStatus === httpStatus && error.status === status,
+      `${stage}/${httpStatus}/${status}`);
+  };
+  const one: Fixture = { pages: [{ messages: [{ id: "1" }] }] };
+  await at({ tokenStatus: 400, tokenError: "invalid_grant" }, one, "TOKEN_EXCHANGE", 400, "AUTH_REVOKED");
+  await at({ scope: "https://www.googleapis.com/auth/gmail.modify" }, one, "TOKEN_EXCHANGE", 200, "SCOPE_INVALID");
+  await at({ detailStatus: 500 }, one, "FETCH_MESSAGE", 500, "GMAIL_API_ERROR");
+  await at({ detailStatus: 429 }, one, "FETCH_MESSAGE", 429, "RATE_LIMITED");
+  // A message that cannot be normalized is a parse failure, not an API failure.
+  await at({}, { pages: [{ messages: [{ id: "1" }] }], detail: () => ({ id: "1", threadId: "t", internalDate: "bad" }) }, "PARSE_MESSAGE", null, "PARSE_ERROR");
+
+  // Not connected never reaches the network.
+  const { http } = gmailHttp(one);
+  await assert.rejects(new LiveGmailReader(async () => null, CLIENT, http).read(window),
+    (error: unknown) => error instanceof GmailReadError && error.stage === "TOKEN_EXCHANGE" && error.status === "NOT_CONNECTED");
+});
+
+test("Gmail tells a disabled Gmail API apart from a revoked grant", async () => {
+  const window = gmailWindow(Date.now());
+  const disabled = '{"error":{"code":403,"message":"Gmail API has not been used in project 123 before or it is disabled","status":"PERMISSION_DENIED","details":[{"reason":"SERVICE_DISABLED"}]}}';
+  const { http } = gmailHttp({ pages: [{ messages: [{ id: "1" }] }] }, { detailStatus: 403, detail403Body: disabled });
+  await assert.rejects(new LiveGmailReader(async () => REFRESH, CLIENT, http).read(window), (error: unknown) =>
+    error instanceof GmailReadError && error.status === "GMAIL_API_ERROR" && error.httpStatus === 403 &&
+    /Gmail APIが有効になっていません/.test(error.message));
+
+  // A plain 403 still means the grant is gone.
+  const { http: revoked } = gmailHttp({ pages: [{ messages: [{ id: "1" }] }] }, { detailStatus: 403, detail403Body: "forbidden" });
+  await assert.rejects(new LiveGmailReader(async () => REFRESH, CLIENT, revoked).read(window), (error: unknown) =>
+    error instanceof GmailReadError && error.status === "AUTH_REVOKED");
+});
+
+test("Gmail volume: a mailbox too busy to read completely says so instead of failing as an API error", async () => {
+  const window = gmailWindow(Date.now());
+  // 5 pages x 100 = 500 ids, past the 400 cap.
+  const pages = Array.from({ length: 5 }, (_, page) => ({
+    messages: Array.from({ length: 100 }, (_, i) => ({ id: `p${page}-m${i}` })),
+    ...(page < 4 ? { nextPageToken: `page-${page + 1}` } : {}),
+  }));
+  const { http } = gmailHttp({ pages });
+  await assert.rejects(new LiveGmailReader(async () => REFRESH, CLIENT, http).read(window), (error: unknown) =>
+    error instanceof GmailReadError && error.status === "VOLUME_EXCEEDED" && error.stage === "LIST_MESSAGES",
+    "too much mail is its own answer, not GMAIL_API_ERROR");
+
+  // 200 messages used to fail outright; that was the bug.
+  const twoHundred = [
+    { messages: Array.from({ length: 100 }, (_, i) => ({ id: `a${i}` })), nextPageToken: "p2" },
+    { messages: Array.from({ length: 100 }, (_, i) => ({ id: `b${i}` })) },
+  ];
+  const { http: ok } = gmailHttp({ pages: twoHundred });
+  const record = await new LiveGmailReader(async () => REFRESH, CLIENT, ok).read(window);
+  assert.equal(record.messages.length, 200);
+});
+
+test("Gmail trims stored bodies without dropping a message, and records the truncation", async () => {
+  const long = "あ".repeat(9000);
+  const trimmed = trimBodies([message({ messageId: "m1", bodyText: long }), message({ messageId: "m2", bodyText: "short" })], 2000);
+  assert.equal(trimmed.length, 2, "no message is dropped");
+  assert.equal(trimmed[0].bodyText.length, 2001, "2000 characters plus the ellipsis");
+  assert.equal(trimmed[0].bodyTruncated, true);
+  assert.equal(trimmed[1].bodyText, "short");
+  assert.equal(trimmed[1].bodyTruncated, false);
+
+  // A read of many long messages stays inside the durable store's budget.
+  const window = gmailWindow(Date.now());
+  const pages = [{ messages: Array.from({ length: 100 }, (_, i) => ({ id: `m${i}` })) }];
+  const { http } = gmailHttp({
+    pages,
+    detail: (id) => ({
+      id, threadId: `t${id}`, internalDate: "1789000000000", labelIds: ["INBOX"],
+      payload: {
+        mimeType: "text/plain",
+        headers: [{ name: "From", value: "a@example.test" }, { name: "Subject", value: "RIALA" }],
+        body: { data: Buffer.from("字".repeat(15000)).toString("base64url") },
+      },
+    }),
+  });
+  const record = await new LiveGmailReader(async () => REFRESH, CLIENT, http).read(window);
+  assert.equal(record.messages.length, 100);
+  const bytes = Buffer.byteLength(JSON.stringify(record));
+  assert.equal(bytes < 1_000_000, true, `stored payload must fit the budget, got ${bytes}`);
+  // Classification still saw the full text before trimming.
+  assert.equal(record.threads.length, 100);
+});
+
+test("Gmail records the failing stage durably and shows it to the operator", async () => {
+  let now = Date.parse("2026-09-11T09:00:00+09:00");
+  const store = memoryStore<GmailLastGoodState>(emptyGmailLastGood());
+  const reader = { read: async () => { throw new GmailReadError("VOLUME_EXCEEDED", "too much", "LIST_MESSAGES", null); } };
+  const outcome = await new GmailRefreshService(store, reader, () => now).refresh("MANUAL");
+  assert.equal(outcome.status, "VOLUME_EXCEEDED");
+  assert.deepEqual(outcome.diagnostic, { stage: "LIST_MESSAGES", httpStatus: null, category: "VOLUME_EXCEEDED" });
+  const saved = (await store.read()).lastFailure!;
+  assert.equal(saved.stage, "LIST_MESSAGES");
+  assert.equal(saved.status, "VOLUME_EXCEEDED");
+
+  // An unexpected throw — the durable write is the usual culprit — is attributed there
+  // rather than being reported as a Gmail API error with no stage.
+  now += 61000;
+  const store2 = memoryStore<GmailLastGoodState>(emptyGmailLastGood());
+  const exploding = { read: async () => { throw new Error("Store保存上限です"); } };
+  const second = await new GmailRefreshService(store2, exploding, () => now).refresh("MANUAL");
+  assert.equal(second.diagnostic!.stage, "STORE_LAST_GOOD");
+  assert.equal((await store2.read()).lastFailure!.stage, "STORE_LAST_GOOD");
+
+  // The diagnostic is a step name, a status and a category — nothing more.
+  assert.deepEqual(Object.keys(second.diagnostic!).sort(), ["category", "httpStatus", "stage"]);
 });

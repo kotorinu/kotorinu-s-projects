@@ -155,7 +155,18 @@ export default function RialaGmailPanel() {
             <Stat label="要返信" value={result.counts.awaitingOurReply} />
             <Stat label="判別材料なし" value={result.counts.unknown} />
           </div>
-          {result.reason ? <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">{result.reason}</p> : null}
+          {result.reason ? (
+            <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">
+              <p>{result.reason}</p>
+              {result.diagnostic ? (
+                <p className="mt-0.5 font-normal text-amber-700">
+                  失敗した段階: {result.diagnostic.stage}
+                  {result.diagnostic.httpStatus ? ` / HTTP ${result.diagnostic.httpStatus}` : ""}
+                  {` / ${result.diagnostic.category}`}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <button type="button" onClick={() => setOpen(v => !v)} className="mt-2 text-[10px] font-black text-violet-700">
             {open ? "内訳を閉じる" : `内訳を見る（${result.counts.threads}スレッド / ${result.counts.messages}通）`}
           </button>

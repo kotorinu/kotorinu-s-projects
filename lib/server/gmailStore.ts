@@ -5,7 +5,7 @@ import { redisCredentials } from "./redisClient";
 import { decryptGmailSecret, gmailOAuthClient, gmailTokenKey, type OAuthConnection, type PendingAuth } from "./gmailOAuth";
 import {
   DEFAULT_READ_DAYS, GMAIL_READ_REASON, GmailReadError, gmailWindow, LiveGmailReader,
-  type GmailReader, type GmailReadRecord, type GmailReadStatus,
+  type GmailReader, type GmailReadRecord, type GmailReadStage, type GmailReadStatus,
 } from "./liveGmail";
 
 /**
@@ -32,7 +32,8 @@ export interface GmailLastGoodState {
   version: number;
   record: GmailReadRecord | null;
   lastAttemptAt: string | null;
-  lastFailure: { status: Exclude<GmailReadStatus, "LIVE">; reason: string; at: string } | null;
+  /** Safe to persist and show: a step name, an HTTP status, a category. No mail content, no token. */
+  lastFailure: { status: Exclude<GmailReadStatus, "LIVE">; reason: string; at: string; stage: GmailReadStage; httpStatus: number | null } | null;
   lease: { id: string; until: number } | null;
   scheduled: { lastInvokedAt: string | null; lastSucceededAt: string | null };
 }
@@ -105,6 +106,7 @@ export interface GmailReadResult {
   reason: string | null;
   stale: boolean;
   readAt: string | null;
+  diagnostic?: { stage: GmailReadStage; httpStatus: number | null; category: string } | null;
 }
 
 export function cachedGmailResult(state: GmailLastGoodState, now: number): GmailReadResult | null {
@@ -118,6 +120,7 @@ export function cachedGmailResult(state: GmailLastGoodState, now: number): Gmail
     reason: failure,
     stale: !!failure || age < 0 || age >= GMAIL_FRESH_MS,
     readAt: state.record.readAt,
+    diagnostic: state.lastFailure ? { stage: state.lastFailure.stage, httpStatus: state.lastFailure.httpStatus, category: state.lastFailure.status } : null,
   };
 }
 
@@ -128,7 +131,7 @@ export class GmailRefreshService {
     private lastGood: JsonStore<GmailLastGoodState>,
     private reader: GmailReader,
     private clock: () => number = Date.now,
-    private days = DEFAULT_READ_DAYS,
+    private days = Number(process.env.GMAIL_READ_DAYS) || DEFAULT_READ_DAYS,
   ) {}
 
   async cached() { return cachedGmailResult(await this.lastGood.read(), this.clock()); }
@@ -172,18 +175,24 @@ export class GmailRefreshService {
       }
       return { record, status: "LIVE", reason: null, stale: false, readAt: record.readAt };
     } catch (error) {
-      const status = error instanceof GmailReadError ? error.status : "GMAIL_API_ERROR";
-      const reason = GMAIL_READ_REASON[status];
+      const known = error instanceof GmailReadError;
+      const status = known ? error.status : "GMAIL_API_ERROR";
+      // An unexpected throw is almost always the durable write; saying so beats
+      // reporting every unknown failure as a Gmail API error.
+      const stage: GmailReadStage = known ? error.stage : "STORE_LAST_GOOD";
+      const httpStatus = known ? error.httpStatus : null;
+      const reason = known && error.message ? error.message : GMAIL_READ_REASON[status];
       // The previous successful read is deliberately left in place.
       try {
         await this.lastGood.transact(state => {
-          if (state.lease?.id === id) { state.lastFailure = { status, reason, at: new Date(this.clock()).toISOString() }; state.lease = null; }
+          if (state.lease?.id === id) { state.lastFailure = { status, reason, at: new Date(this.clock()).toISOString(), stage, httpStatus }; state.lease = null; }
         });
       } catch { /* the failure record is best-effort; the last good read still stands */ }
       const current = await this.cached();
+      const diagnostic = { stage, httpStatus, category: status };
       return current
-        ? { ...current, status: "FALLBACK_LAST_GOOD", reason, stale: true }
-        : { record: null, status, reason, stale: true, readAt: null };
+        ? { ...current, status: "FALLBACK_LAST_GOOD", reason, stale: true, diagnostic }
+        : { record: null, status, reason, stale: true, readAt: null, diagnostic };
     }
   }
 }
