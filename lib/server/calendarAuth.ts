@@ -21,8 +21,26 @@ export function calendarAuthenticated(request: Request, secret = process.env.RIA
   return Number(expiry) > now && Number(expiry) <= now + CALENDAR_SESSION_MS &&
     equalSecret(signature, createHmac("sha256", secret).update(`calendar-reader:${expiry}`).digest("hex"));
 }
+/**
+ * SameSite=Lax, and only for this cookie.
+ *
+ * Google returns from consent as a cross-site top-level GET to
+ * /api/calendar/callback. Under Strict the browser withholds this cookie on
+ * that navigation, so the callback cannot tell which session started the
+ * connection and refuses it — the connection could never complete.
+ *
+ * Lax sends it on exactly that case (top-level navigation, safe method) and
+ * still withholds it from cross-site POSTs and sub-resource requests. None is
+ * not needed and is not used: it would attach the cookie to every cross-site
+ * request instead.
+ *
+ * Lax is not what protects the callback. The state does: random, stored only
+ * as a hash, valid ten minutes, bound to this session, and consumed inside
+ * the compare-and-swap that reads it. A forged callback has no usable state.
+ * The RIALA operator cookie stays Strict — nothing redirects into it.
+ */
 export function calendarCookie(request: Request, clear = false) {
-  return `${CALENDAR_COOKIE}=${clear ? "" : calendarSession(process.env.RIALA_OPERATOR_SECRET!)}; HttpOnly; SameSite=Strict; Path=/api/calendar; Max-Age=${clear ? 0 : CALENDAR_SESSION_MS / 1000}${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`;
+  return `${CALENDAR_COOKIE}=${clear ? "" : calendarSession(process.env.RIALA_OPERATOR_SECRET!)}; HttpOnly; SameSite=Lax; Path=/api/calendar; Max-Age=${clear ? 0 : CALENDAR_SESSION_MS / 1000}${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`;
 }
 export function cronAuthenticated(request: Request, secret = process.env.CRON_SECRET ?? "") {
   return secret.length >= 32 && equalSecret(request.headers.get("authorization") ?? "", `Bearer ${secret}`);

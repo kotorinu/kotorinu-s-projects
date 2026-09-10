@@ -49,3 +49,13 @@ There are two ways to provide the read credential. Either is sufficient; the con
 **B. Environment refresh token.** Set `GOOGLE_CALENDAR_REFRESH_TOKEN` as before. Used when no connection is stored, so an existing manual provisioning keeps working.
 
 Rotation/revocation: clear the stored connection (or revoke the grant at https://myaccount.google.com/permissions) and reconnect. Changing `CALENDAR_TOKEN_KEY` invalidates the stored token, which then fails closed to the last good snapshot until reconnected — it does not silently read as empty.
+
+### Cookie policy (fixed 2026-09-11)
+
+The Calendar reader cookie is `SameSite=Lax`; the RIALA operator cookie stays `SameSite=Strict`.
+
+Google returns from consent as a cross-site top-level GET to `/api/calendar/callback`. Under `Strict` the browser withholds the reader cookie on that navigation, so the callback cannot identify the session that started the connection and redirects to `?calendar=login-required` — the connection can never complete. This was observed in production before the fix.
+
+`Lax` sends the cookie on exactly that case (top-level navigation, safe method) and still withholds it from cross-site POSTs and sub-resource loads. `None` is not used: it would attach the cookie to every cross-site request. `HttpOnly`, `Secure`, `Path=/api/calendar` and the 30-day Max-Age are unchanged.
+
+Lax is not what protects the callback. The `state` is: random, stored only as a SHA-256 hash, valid ten minutes, bound to the session that began the connection, and consumed inside the compare-and-swap that reads it — so a forged or replayed callback has no usable state. PKCE is unchanged. The connect POST keeps its Origin/`sec-fetch-site` check and still returns 403 cross-site.

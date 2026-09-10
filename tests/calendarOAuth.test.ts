@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import {
   authorizeUrl, beginCalendarAuth, CALENDAR_CALLBACK_PATH, CALENDAR_READ_SCOPE, calendarRedirectUri,
   challengeFor, decryptSecret, encryptSecret, readOnlyScope, tokenKey, verifyAuthState, AUTH_STATE_TTL_MS,
@@ -207,5 +208,142 @@ test("Calendar OAuth HTTP: connect -> Google consent -> callback stores an encry
     globalThis.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
     Object.assign(process.env, originalEnv);
+  }
+});
+
+test("Calendar reader cookie is SameSite=Lax so the Google callback receives it; operator cookie stays Strict", async () => {
+  const originalEnv = { ...process.env };
+  Object.assign(process.env, { RIALA_OPERATOR_SECRET: SECRET });
+  try {
+    const { calendarCookie } = await import("../lib/server/calendarAuth");
+    const https = calendarCookie(new Request(`${ORIGIN}/api/riala`));
+
+    // 1. The reader cookie must be Lax: Strict is withheld on Google's cross-site top-level GET.
+    assert.match(https, /SameSite=Lax/);
+    assert.doesNotMatch(https, /SameSite=Strict/);
+    // None would attach it to every cross-site request; it is never used.
+    assert.doesNotMatch(https, /SameSite=None/);
+    // Everything else about the cookie is unchanged.
+    assert.match(https, /HttpOnly/);
+    assert.match(https, /Secure/);
+    assert.match(https, /Path=\/api\/calendar(;|$)/);
+    assert.match(https, new RegExp(`Max-Age=${30 * 86400}(;|$)`));
+    assert.equal(https.startsWith(`${CALENDAR_COOKIE}=`), true);
+    // Path must still cover the callback (prefix + "/" boundary).
+    assert.equal(CALENDAR_CALLBACK_PATH.startsWith("/api/calendar/"), true);
+
+    const cleared = calendarCookie(new Request(`${ORIGIN}/api/riala`), true);
+    assert.match(cleared, /SameSite=Lax/);
+    assert.match(cleared, /Max-Age=0/);
+    assert.equal(cleared.includes(SECRET), false, "the operator secret is never echoed into a cookie");
+
+    // 2. The RIALA operator cookie is a different cookie and stays Strict: nothing redirects into it.
+    const { COOKIE } = await import("../lib/riala-planner/security");
+    assert.equal(COOKIE, "riala_operator");
+    assert.notEqual(COOKIE, CALENDAR_COOKIE, "the two sessions are separate cookies");
+    const routeSource = readFileSync("app/api/riala/route.ts", "utf8");
+    // Every operator Set-Cookie is identified by its own path, and must stay Strict.
+    const operatorCookies = routeSource.match(/[^`]*Path=\/api\/riala[^`]*/g) ?? [];
+    assert.equal(operatorCookies.length, 2, "login and logout both set the operator cookie");
+    for (const line of operatorCookies) {
+      assert.match(line, /SameSite=Strict/);
+      assert.doesNotMatch(line, /SameSite=Lax|SameSite=None/);
+    }
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+  }
+});
+
+test("Calendar OAuth callback regression: cookie present completes, cookie absent/mismatched/replayed refuses, cross-site POST 403", async () => {
+  const originalEnv = { ...process.env }, originalFetch = globalThis.fetch;
+  const { POST: connectPOST } = await import("../app/api/calendar/connect/route");
+  const { GET: callbackGET } = await import("../app/api/calendar/callback/route");
+  const { configuredCalendarStore } = await import("../lib/server/calendarRefresh");
+  Object.assign(process.env, {
+    VERCEL: "1", RIALA_APP_ORIGIN: ORIGIN, RIALA_OPERATOR_SECRET: SECRET, CALENDAR_TOKEN_KEY: KEY.toString("base64"),
+    GOOGLE_CALENDAR_CLIENT_ID: "fixture-id", GOOGLE_CALENDAR_CLIENT_SECRET: "fixture-secret",
+    RIALA_REDIS_REST_URL: "https://redis.fixture.test", RIALA_REDIS_REST_TOKEN: "fixture-token",
+  });
+  delete process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
+  const raw = new Map<string, string>();
+  const requestedScopes: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.hostname === "redis.fixture.test") {
+      const args = JSON.parse(String(init!.body)); const command = String(args[0]).toUpperCase();
+      if (command === "GET") return Response.json({ result: raw.get(args[1]) ?? null });
+      if ((raw.get(args[3]) ?? "") !== args[4]) return Response.json({ result: 0 });
+      raw.set(args[3], args[5]); return Response.json({ result: 1 });
+    }
+    if (url.hostname === "oauth2.googleapis.com") {
+      return Response.json({ refresh_token: REFRESH, scope: CALENDAR_READ_SCOPE, access_token: "fixture-access" });
+    }
+    return Response.json({ items: [] });
+  };
+  const cookie = `${CALENDAR_COOKIE}=${calendarSession(SECRET)}`;
+  const connect = (headers: Record<string, string>) =>
+    new Request(`${ORIGIN}/api/calendar/connect`, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: "{}" });
+  const callback = (state: string, headers: Record<string, string> = {}) =>
+    new Request(`${ORIGIN}${CALENDAR_CALLBACK_PATH}?code=fixture-code&state=${encodeURIComponent(state)}`, { headers });
+  const outcome = (res: Response) => new URL(res.headers.get("location")!).searchParams.get("calendar");
+  const beginConnection = async () => {
+    const body = await (await connectPOST(connect({ origin: ORIGIN, cookie }))).json();
+    requestedScopes.push(new URL(body.authorizeUrl).searchParams.get("scope")!);
+    return new URL(body.authorizeUrl).searchParams.get("state")!;
+  };
+  try {
+    // 4. No cookie on the callback -> login-required (the exact production symptom).
+    assert.equal(outcome(await callbackGET(callback(await beginConnection()))), "login-required");
+
+    // 3. Cookie present -> the connection completes. This is what Lax restores.
+    const good = await beginConnection();
+    assert.equal(outcome(await callbackGET(callback(good, { cookie }))), "connected");
+    assert.equal(decryptSecret((await configuredCalendarStore()!.read()).connection!.refreshTokenCipher, KEY), REFRESH);
+
+    // 6. Replaying the same callback finds no state left.
+    assert.equal(outcome(await callbackGET(callback(good, { cookie }))), "state");
+
+    // 5. A state that does not match the stored hash is refused.
+    await beginConnection();
+    assert.equal(outcome(await callbackGET(callback("forged-state-value", { cookie }))), "state");
+
+    // 7. Same-origin is still enforced on connect after the Lax change.
+    assert.equal((await connectPOST(connect({ origin: "https://evil.example.test", cookie }))).status, 403);
+    assert.equal((await connectPOST(connect({ origin: ORIGIN, cookie, "sec-fetch-site": "cross-site" }))).status, 403);
+    assert.equal((await connectPOST(connect({ cookie }))).status, 403, "a POST with no Origin is refused too");
+
+    // 8. Scope never widened: every authorize URL asked for exactly the read scope.
+    assert.equal(requestedScopes.length > 0, true);
+    for (const scope of requestedScopes) assert.equal(scope, CALENDAR_READ_SCOPE);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+  }
+});
+
+test("Calendar source contains no write call and no Gmail scope", () => {
+  const files = [
+    "lib/server/calendarOAuth.ts", "lib/server/liveGoogleCalendar.ts", "lib/server/calendarRefresh.ts",
+    "lib/server/calendarAuth.ts", "app/api/calendar/route.ts", "app/api/calendar/connect/route.ts",
+    "app/api/calendar/callback/route.ts", "app/api/cron/calendar/route.ts",
+  ].map(path => [path, readFileSync(path, "utf8")] as const);
+
+  for (const [path, source] of files) {
+    // 9. No Calendar write: no mutating endpoint and no mutating method against the Calendar API.
+    assert.doesNotMatch(source, /events\.(insert|update|patch|delete)/i, path);
+    assert.doesNotMatch(source, /method:\s*["'](PUT|PATCH|DELETE)["']/i, path);
+    // 10. No Gmail scope anywhere in the Calendar path.
+    assert.doesNotMatch(source, /gmail/i, path);
+    // Only the read scope is ever named.
+    for (const scope of source.match(/auth\/[a-z.]+/g) ?? []) {
+      assert.equal(["auth/calendar.events.readonly", "auth/calendar.readonly"].includes(scope), true, `${path}: ${scope}`);
+    }
+  }
+  // The only hosts the Calendar path talks to are Google's token and API endpoints.
+  const live = files.find(([p]) => p.endsWith("liveGoogleCalendar.ts"))![1];
+  for (const match of live.match(/https:\/\/[a-z0-9.]+/g) ?? []) {
+    assert.equal(["https://oauth2.googleapis.com", "https://www.googleapis.com"].includes(match), true, match);
   }
 });
