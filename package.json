@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsc -p tsconfig.test.json && node --test \".test-build/tests/**/*.test.js\""
+    "test": "tsc -p tsconfig.test.json && node --conditions=react-server --test \".test-build/tests/**/*.test.js\""
   },
   "dependencies": {
+    "@upstash/redis": "1.38.4",
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

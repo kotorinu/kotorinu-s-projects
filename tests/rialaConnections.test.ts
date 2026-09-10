@@ -84,8 +84,8 @@ test("RIALA security: route auth, origin, JSON redaction, durable rate limit, an
     globalThis.fetch = async (input, init) => {
       if (String(input) !== "https://redis.example.test") { externalCalls++; throw new Error("Unexpected external effect"); }
       const args = JSON.parse(String(init?.body));
-      if (args[0] === "GET") return Response.json({ result: raw });
-      assert.equal(args[0], "EVAL");
+      if (args[0].toUpperCase() === "GET") return Response.json({ result: raw });
+      assert.equal(args[0].toUpperCase(), "EVAL");
       if ((raw ?? "") !== args[4]) return Response.json({ result: 0 });
       raw = args[5]; return Response.json({ result: 1 });
     };

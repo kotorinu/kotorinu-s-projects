@@ -1,13 +1,14 @@
 import type { Ledger } from "./model";
 import { sourceProblem } from "./planner";
 import { authConfigured } from "./security";
+import { redisCredentials } from "../server/redisClient";
 
 /** Configuration is not proof of a successful read. No credentials in either object. */
 export function configuration() {
   const e = process.env;
   const source = (name: string) => Boolean(e[`RIALA_${name}_SOURCE_URL`] && e[`RIALA_${name}_SOURCE_TOKEN`]);
   return { auth: authConfigured(), origin: Boolean(e.RIALA_APP_ORIGIN),
-    store: Boolean(e.RIALA_REDIS_REST_URL && e.RIALA_REDIS_REST_TOKEN),
+    store: Boolean(redisCredentials(e)),
     members: source("MEMBERS"), gmail: Boolean(e.RIALA_GMAIL_CLIENT_ID && e.RIALA_GMAIL_CLIENT_SECRET && e.RIALA_GMAIL_READ_REFRESH_TOKEN),
     events: source("EVENTS"), content: source("CONTENT") };
 }
