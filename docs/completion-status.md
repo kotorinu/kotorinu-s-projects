@@ -2,7 +2,8 @@
 
 The requested scope is the entire Work OS: daily task management, central durable
 data, Calendar, AI execution, and interchangeable external AI access. This is
-not a declaration of completion.
+The implemented application scope is deployed. Unconfigured external sources
+and an unattended AI provider remain explicit dependencies below.
 
 ## Verified this session
 
@@ -22,7 +23,7 @@ not a declaration of completion.
 | Requirement | Remaining work / evidence |
 | --- | --- |
 | Central Task and Goal CRUD | Implemented in work:core:v1 with version conflicts, requestId deduplication, Task/Goal UI registration/editing and archive/state transitions. Production saved 45 approved tasks and 13 goals; a separate authenticated request read them back. |
-| Calendar | Existing read/OAuth and refresh implementation is present; verify the current authenticated live read and unattended scheduled success. Writes/time-block synchronization remain separate work requiring an explicit write grant. |
+| Calendar | Authenticated production TODAY displayed the refreshed current Calendar and its events. Unattended scheduled success remains unverified. Direct writes require a write grant; confirmed saved time blocks can be exported as ICS. |
 | AI Worker | Durable queue, single claims, fifteen-minute leases, results/evidence, blockers, human review and retained retry history implemented. The current Codex task claimed existing t-sales-004, saved its actual feedback-mapping artifact and read it back as REVIEW at ledger version 3. A reusable automatic provider endpoint is not configured; scripts/work-worker.mjs provides the adapter without a default paid service. |
 | External AI | Separate scoped Bearer credentials configured as Sensitive server settings. Work API and OpenAPI description implemented; external AI cannot accept artifacts or send messages. Authenticated live central initialization/readback and Worker claim/result/readback verified. |
 | RIALA sources | Obtain owner-supported read endpoints/exports for members, events and content, with stable IDs, timestamps, completeness and source references. Credentials belong only in server environment settings. |
@@ -38,10 +39,10 @@ The execution provider now loads/saves work:execution:v1. Existing device state
 is imported when the central record is empty; a differing device copy is
 preserved before adopting central state. Version conflicts stop uploads rather
 than overwriting another device. Closed-day history is append-only. Actual
-first-device migration is not verified in production: the live central
-execution snapshot was still null during this session's readback, and the
-existing operator credential is not readable from Vercel Sensitive settings.
-Log in with the existing operator key through the application; it was not rotated.
+first-device migration was verified through the authenticated production UI:
+GOAL TREE confirmed the central save, and TASK MAP subsequently loaded the
+execution record from central storage. The existing saved operator credential
+was used through the browser login; it was not extracted or rotated.
 
 All Task/Goal consumers now read the shared WorkProvider. Task details use the
 shared reschedule flow (including ending the prior work session and work-date
@@ -53,9 +54,15 @@ Google writes remain unavailable under the existing read-only grant.
 Local tests: 200 passing, including core/API role separation, stale version
 conflicts, uncertain-create deduplication, run leases/evidence, six feedback
 links and ICS JST conversion/escaping. Local and remote production builds
-passed. Browser verification observed the task form, login-required state and
-the correct current week (9/13–9/19). Authenticated UI write/migration and real
-unattended provider execution are not covered by that browser verification.
+passed. Browser verification observed the task and goal forms, the correct
+current week (9/13–9/19), authenticated central data and execution migration,
+and the real t-sales-004 artifact with all six feedback mappings and evidence.
+No test task or invented goal was registered in production. Unattended
+provider execution is not covered by that verification.
+
+Runtime commit 3e03512 was pushed to main. Its production deployment
+dpl_CbmE94SLPrapRsXAE4YqAHzcdqVa is Ready; the canonical application at
+https://kotorinu-s-projects.vercel.app serves the verified application.
 
 The older production-connection notes describe earlier setup states. Read the
 later Redis/Calendar operational runbooks before concluding that those services
