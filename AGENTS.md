@@ -10,6 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Product map
 
+- When preparing RIALA posts or DMs, read `.agents/skills/riala-kotone-writing/SKILL.md` for Kotone's tone, relationship-sensitive wording, and NG checks. Daily browser test runs follow `docs/riala-browser-test-operations.md`, including `/admin/messages/new` and operating activity metrics. The current test period does not permit sending or publishing.
+
 - AI Work OS is a decision surface for daily execution. RIALA Planner exists to reduce operator explanation time, not to add another task dashboard.
 - RIALA North Star: read current member, Gmail, event, content, and operating-rule sources; prepare only evidence-backed work; return only human decisions.
 - Keep changes scoped to RIALA unless a shared primitive is required. Do not redesign TODAY, TASK MAP, GOAL TREE, PDCA, Sales, GENESIS, or Calendar UI.
