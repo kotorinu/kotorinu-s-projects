@@ -1,8 +1,9 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { fixedCalendarEvents, recurringRules, tasks, weeklyReadings } from "@/lib/dummy-data";
+import { fixedCalendarEvents, recurringRules, weeklyReadings } from "@/lib/dummy-data";
 import { confidenceLabel, planningConstraintLabel } from "@/lib/calendar";
 import { formatMd, todayStr } from "@/lib/date";
 import { countdownLabel, countdownToneClass, countdownTone } from "@/lib/countdown";
@@ -17,6 +18,7 @@ const statusLabel: Record<Outcome["status"], string> = {
 };
 
 export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outcome; onClose: () => void }) {
+  const { tasks } = useWork();
   useEffect(() => {
     const mainEl = document.querySelector("main");
     const prev = mainEl?.style.overflow;

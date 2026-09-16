@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Restoring persisted state has to happen before paint on the client, but
 // useLayoutEffect does not exist on the server — same pattern as the store.
@@ -260,16 +260,8 @@ export default function RialaTaskTracker() {
     setMeasurements((prev) => ({ ...prev, [id]: emptyMeasurement() }));
   };
 
-  const completedCount = useMemo(
-    () => tasks.filter((task) => getMeasurement(task.id).status === "完了").length,
-    [measurements],
-  );
-
-  const totalSeconds = useMemo(
-    () => tasks.reduce((sum, task) => sum + currentElapsed(getMeasurement(task.id)), 0),
-    // forceTick intentionally causes re-render while timers run.
-    [measurements],
-  );
+  const completedCount = tasks.filter((task) => getMeasurement(task.id).status === "完了").length;
+  const totalSeconds = tasks.reduce((sum, task) => sum + currentElapsed(getMeasurement(task.id)), 0);
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">

@@ -1,56 +1,18 @@
-# AI Work OS — Phase 1
+# AI Work OS
 
-目標を見失わない！タスク管理アプリ
+2026-09-17: Task/Goalの中央保存・編集、実績履歴同期、AI実行台帳、外部AI API、
+PWAを追加しました。
+現在の使い方・実装範囲は [docs/work-api.md](docs/work-api.md) と
+[docs/completion-status.md](docs/completion-status.md) を参照してください。
 
-自分専用の AI Work OS。人生の目標から今日の行動までをつなぎ、
-Human と AI が役割分担して実行できる状態を作るためのアプリ。
-詳細な要件は [PRD.md](./PRD.md) を参照。
+TASK MAP / GOAL TREEから既存の操作キーでログインし、中央データへ登録できます。
+期限・時間が未確定のタスクはBacklogに残します。実績は中央保存へ同期し、
+失敗・衝突時は上書きを止めて端末記録を保持します。
+AI成果物はTASK MAPの「AI実行・成果物」で確認します。
+中央保存済み変更予定のICS書出しとホーム画面インストールにも対応しています。
 
-Phase 1 はスマホUIプロトタイプ（DB接続なし）。
-GENESISの60日チャレンジのみ実データ。それ以外（営業代行/RIALA/Task一覧/GOAL TREE）は
-2026-09-05にPhase1用ダミーデータを全削除し、実データ投入前の空状態にしてある
-（詳細は [PRD.md](./PRD.md) の「22. Data Integrity Rule」を参照）。
+本番: https://kotorinu-s-projects.vercel.app
 
-## デプロイ
+検証: `npm.cmd test` / `npm.cmd run lint` / `npm.cmd run build`。
+開発プレビューはworkspaceの `ai-work-os` 構成（4620）を利用します。
 
-Production: https://kotorinu-s-projects.vercel.app
-
-GitHub (`kotorinu/kotorinu-s-projects`, `main`) への push で Vercel が自動デプロイする。
-
-## 起動方法
-
-```bash
-npm install
-npm run dev
-```
-
-ブラウザで [http://localhost:3000](http://localhost:3000) を開く（`/` は自動的に `/today` へリダイレクト）。
-
-スマホ実機で確認する場合は、同じWi-Fiに繋いだ端末から `http://<このPCのIPアドレス>:3000` を開く。
-
-このリポジトリを Claude Code のワークスペースから開いている場合、
-`.claude/launch.json` に `ai-work-os`（ポート4620）が登録済みなので、
-Preview から直接起動できる。
-
-## 画面構成（Phase 1）
-
-- `/today` — TODAY：今日やるタスクのみ表示。期限超過件数と「2日以内」の折りたたみ表示付き
-- `/tasks` — TASK MAP：月切り替え・集計（全タスク/完了/進行/未着手/AI担当/期限超過/7日以内）・フィルター・並び替え・月末の状態
-- `/goals` — GOAL TREE：人生の目的から具体タスクまでの階層を開閉式で表示
-
-下部ナビゲーションで3画面を行き来する。
-
-## データ
-
-`lib/dummy-data.ts` にタスク・ゴール・月末状態・Outcome・Recurring Ruleを定義。
-
-- `outcomes` / `recurringRules`：GENESISの60日チャレンジ。実データ
-- `tasks` / `goals` / `monthEndStates`：現在は空配列。実データが確定次第、追加する
-  （不明な期限・数値・目標をAIが勝手に補完することは禁止— PRD.md 22章）
-
-Task一覧・GOAL TREEが空に見えるのは意図した状態であり、バグではない。
-
-## 技術構成
-
-- Next.js (App Router) / TypeScript / Tailwind CSS v4
-- 状態はすべてクライアント側のダミーデータ・ローカルstateのみ（永続化なし）

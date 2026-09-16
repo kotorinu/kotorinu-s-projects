@@ -56,6 +56,8 @@ export function useReschedule() {
     raiseReplan,
     recordCarryover,
     endWork,
+    lifecycleOverrides,
+    setTaskLifecycle,
   } = store;
 
   /** The block this Task is currently scheduled in, today or next. */
@@ -95,6 +97,10 @@ export function useReschedule() {
 
     // The deadline only moves when the user explicitly said so.
     if (args.newDeadline) setDeadlineOverride(task.id, args.newDeadline);
+    if ((lifecycleOverrides[task.id]?.lifecycle ?? task.lifecycle) === "BACKLOG" && (args.newDeadline || taskDeadline)) {
+      setTaskLifecycle({ taskId: task.id, lifecycle: "ACTIVE", reason: "本人が期限と実行日時を確定",
+        decidedOnDate: today, decidedAt: nowIso(), replacedByTaskId: null }, task.id);
+    }
 
     let raisedReplan = false;
     if (args.acceptDeadlineMiss) {

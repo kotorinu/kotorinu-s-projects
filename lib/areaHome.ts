@@ -48,7 +48,8 @@ export function buildAreaHome(
   today: string,
   overlays: TaskStateOverlays,
   /** The live schedule (fixture minus superseded, plus rescheduled). §19 */
-  planBlocks: TimeBlock[]
+  planBlocks: TimeBlock[],
+  tasks: Task[] = allTasks
 ): AreaHomeData {
   const profile = areaProfiles.find((p) => p.area === area)!;
   const outcome = pickAreaOutcome(area, outcomes);
@@ -56,7 +57,7 @@ export function buildAreaHome(
     (o) => o.area === area && o.horizon === "STANDING" && o.id !== outcome?.id
   );
 
-  const areaTasks = allTasks.filter((t) => t.area === area);
+  const areaTasks = tasks.filter((t) => t.area === area);
   const open = areaTasks.filter((t) => isTaskOpen(t, overlays));
   const active = open.filter((t) => effectiveLifecycle(t, overlays) === "ACTIVE");
   const backlog = open.filter((t) => effectiveLifecycle(t, overlays) === "BACKLOG");

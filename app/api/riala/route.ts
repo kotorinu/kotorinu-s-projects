@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   try {
     const ready = observedReadiness();
     if (!authenticated(request)) return response({ authenticated: false, readiness: ready, configuration: configuration() });
-    const store = configuredStore(); if (!store) return response({ authenticated: true, readiness: ready, blocker: "永続Planner Store未接続" });
+    const store = configuredStore(); if (!store) return response({ authenticated: true, readiness: ready, configuration: configuration(), blocker: "永続Planner Store未接続" });
     const ledger = await store.read();
     return response({ authenticated: true, readiness: observedReadiness(ledger), configuration: configuration(), settings: ledger.settings, baselineAt: ledger.baselineAt,
       actions: ledger.actions.slice(-100).map(publicAction), runs: ledger.runs.slice(-10), totalActions: ledger.actions.length });
@@ -33,6 +33,14 @@ export async function POST(request: Request) {
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return response({ error: "JSONオブジェクトが必要です" }, 400);
       body = parsed as Record<string, unknown>;
     } catch { return response({ error: "JSONの形式を確認してください" }, 400); }
+    // Clearing device credentials must work even when storage is unavailable,
+    // the operator key was rotated, or the session has already expired.
+    if (body.command === "logout") {
+      const logout = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0${new URL(request.url).protocol === "https:" ? "; Secure" : ""}` });
+      logout.headers.append("Set-Cookie", calendarCookie(request, true));
+      logout.headers.append("Set-Cookie", gmailCookie(request, true));
+      return logout;
+    }
     const store = configuredStore();
     if (!store || !authConfigured()) return response({ error: "認証または永続Planner Storeが未設定です。Source取得・承認・送信は停止しています" }, 503);
     if (body.command === "login") {
@@ -47,12 +55,6 @@ export async function POST(request: Request) {
     if (!authenticated(request)) return response({ error: "操作には認証が必要です" }, 401);
     await rateLimit(store, "operator", 30);
     const now = new Date().toISOString();
-    if (body.command === "logout") {
-      const logout = response({ ok: true }, 200, { "Set-Cookie": `${COOKIE}=; HttpOnly; SameSite=Strict; Path=/api/riala; Max-Age=0` });
-      logout.headers.append("Set-Cookie", calendarCookie(request, true));
-      logout.headers.append("Set-Cookie", gmailCookie(request, true));
-      return logout;
-    }
     if (body.command === "scan") { await rateLimit(store, "scan", 3); return response({ run: await scan(store, configuredProviders(), now) }); }
     if (body.command === "approve") {
       if (!new GmailSender().enabled) return response({ error: "送信はOFFです。外部送信は行いません" }, 409);

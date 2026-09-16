@@ -2,6 +2,7 @@ import type { Ledger } from "./model";
 import { sourceProblem } from "./planner";
 import { authConfigured } from "./security";
 import { redisCredentials } from "../server/redisClient";
+import { gmailOAuthClient, gmailTokenKey } from "../server/gmailOAuth";
 
 /** Configuration is not proof of a successful read. No credentials in either object. */
 export function configuration() {
@@ -9,7 +10,8 @@ export function configuration() {
   const source = (name: string) => Boolean(e[`RIALA_${name}_SOURCE_URL`] && e[`RIALA_${name}_SOURCE_TOKEN`]);
   return { auth: authConfigured(), origin: Boolean(e.RIALA_APP_ORIGIN),
     store: Boolean(redisCredentials(e)),
-    members: source("MEMBERS"), gmail: Boolean(e.RIALA_GMAIL_CLIENT_ID && e.RIALA_GMAIL_CLIENT_SECRET && e.RIALA_GMAIL_READ_REFRESH_TOKEN),
+    members: source("MEMBERS"), gmail: Boolean((e.RIALA_GMAIL_CLIENT_ID && e.RIALA_GMAIL_CLIENT_SECRET && e.RIALA_GMAIL_READ_REFRESH_TOKEN) ||
+      (redisCredentials(e) && gmailOAuthClient(e) && gmailTokenKey(e))),
     events: source("EVENTS"), content: source("CONTENT") };
 }
 export function observedReadiness(ledger: Ledger | null = null, now = new Date().toISOString()) {

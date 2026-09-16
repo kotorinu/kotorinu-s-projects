@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import type { CatalogItem, Evidence, Mail, Member, Provider, Providers, Source, SourceName } from "./model";
 import { evidenceValid, validEmail } from "./planner";
+import { configuredGmailConnectionStore } from "../server/gmailStore";
+import { decryptGmailSecret, gmailOAuthClient, gmailReadOnlyScope, gmailTokenKey } from "../server/gmailOAuth";
 
 export const unavailable = <T>(name: SourceName, reason: string): Source<T> => ({ name, sourceId: name, mode: "UNCONNECTED", readAt: null, complete: false, items: [], failure: reason });
 const string = (x: unknown, limit = 500) => typeof x === "string" && x.length <= limit && x.trim().length > 0;
@@ -56,10 +58,22 @@ export class JsonSourceProvider<T> implements Provider<T> {
   }
 }
 export async function gmailToken(send = false): Promise<string> {
-  const e = process.env; const refresh = send ? e.RIALA_GMAIL_SEND_REFRESH_TOKEN : e.RIALA_GMAIL_READ_REFRESH_TOKEN;
-  if (!e.RIALA_GMAIL_CLIENT_ID || !e.RIALA_GMAIL_CLIENT_SECRET || !refresh) throw new Error("Gmail認証未設定");
+  const e = process.env;
+  let refresh = send ? e.RIALA_GMAIL_SEND_REFRESH_TOKEN : e.RIALA_GMAIL_READ_REFRESH_TOKEN;
+  let client = e.RIALA_GMAIL_CLIENT_ID && e.RIALA_GMAIL_CLIENT_SECRET
+    ? { id: e.RIALA_GMAIL_CLIENT_ID, secret: e.RIALA_GMAIL_CLIENT_SECRET } : null;
+  // Reuse the operator's encrypted read-only grant. Never use it for SEND,
+  // and never copy the credential into environment variables or browser state.
+  if (!send && !refresh) {
+    const store = configuredGmailConnectionStore(); const key = gmailTokenKey();
+    const connection = store && key ? (await store.read()).connection : null;
+    if (!connection || !key || !gmailReadOnlyScope(connection.scope)) throw new Error("Gmail認証未設定");
+    refresh = decryptGmailSecret(connection.refreshTokenCipher, key);
+    client = gmailOAuthClient();
+  }
+  if (!client || !refresh) throw new Error("Gmail認証未設定");
   const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: e.RIALA_GMAIL_CLIENT_ID, client_secret: e.RIALA_GMAIL_CLIENT_SECRET, refresh_token: refresh, grant_type: "refresh_token" }),
+    body: new URLSearchParams({ client_id: client.id, client_secret: client.secret, refresh_token: refresh, grant_type: "refresh_token" }),
     cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error("Gmail認証失敗"); const body = await response.json() as { access_token?: string; scope?: string };
   if (!send && body.scope?.split(/\s+/).filter(Boolean).join(" ") !== GMAIL_READ_SCOPE) throw new Error("Gmail READ専用Scopeを確認できません");
@@ -125,5 +139,6 @@ export function configuredProviders(): Providers {
     return { read: async () => unavailable(name, `${name} Source未接続`) };
   }
   return { members: source("members", validMember), events: source("events", validCatalog), content: source("content", validCatalog),
-    gmail: process.env.RIALA_GMAIL_READ_REFRESH_TOKEN ? new RealGmailProvider() : source("gmail", validMail) };
+    gmail: process.env.RIALA_GMAIL_READ_REFRESH_TOKEN || (configuredGmailConnectionStore() && gmailTokenKey() && gmailOAuthClient())
+      ? new RealGmailProvider() : source("gmail", validMail) };
 }

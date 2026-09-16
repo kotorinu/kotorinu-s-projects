@@ -1,14 +1,10 @@
 "use client";
+import { useWork } from "@/lib/work/client";
+import WorkControl from "@/components/WorkControl";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  areaProfiles,
-  fixedCalendarEvents,
-  monthEndStates,
-  outcomes,
-  tasks as allTasks,
-} from "@/lib/dummy-data";
+import { areaProfiles, fixedCalendarEvents, monthEndStates, outcomes } from "@/lib/dummy-data";
 import { areaHeadline, areaRisks, buildAreaHome, nextBlockForArea } from "@/lib/areaHome";
 import { allGapItems, blockers, outcomeMilestones } from "@/lib/dummy-data";
 import { mainGap, resolveGaps } from "@/lib/gapBoard";
@@ -112,6 +108,7 @@ const statusDot: Record<TaskStatus, string> = {
 };
 
 export default function TaskMapPage() {
+  const { tasks: allTasks } = useWork();
   // currentDate comes from the Day Rollover store, not a module-level
   // todayStr() — this page is statically prerendered, so a module const
   // would bake in the deploy-time date and never advance for any viewer
@@ -202,7 +199,7 @@ export default function TaskMapPage() {
       areaProfiles.map((prof) => [prof.area, resolveGaps(allGapItems, prof.area, allTasks, overlays, started)])
     ) as Record<HomeArea, ReturnType<typeof resolveGaps>>;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskStartedAt, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]);
+  }, [taskStartedAt, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides, allTasks]);
 
   const milestoneProgress = useMemo(() => {
     const ms = outcomeMilestones.filter((m) => m.outcomeId === "o-riala-migration");
@@ -214,7 +211,7 @@ export default function TaskMapPage() {
       Object.values(replanFlags)
         .map((flag) => ({ flag, task: allTasks.find((t) => t.id === flag.taskId) }))
         .filter((x): x is { flag: typeof x.flag; task: Task } => x.task !== undefined),
-    [replanFlags]
+    [replanFlags, allTasks]
   );
 
   const monthKey = monthKeyOf(monthOffset);
@@ -228,7 +225,7 @@ export default function TaskMapPage() {
         (t): t is Task & { deadline: string } =>
           t.deadline !== null && isSameMonth(t.deadline, monthKey) && isTaskLive(t, { lifecycleOverrides })
       ),
-    [monthKey, lifecycleOverrides]
+    [monthKey, lifecycleOverrides, allTasks]
   );
 
   const progress = useMemo(() => computeProgress(monthTasks), [monthTasks]);
@@ -236,7 +233,7 @@ export default function TaskMapPage() {
   const overdue = useMemo(
     () => computeOverdueTasks(allTasks, today, overlays),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [today, completions, dispositions, deadlineOverrides, workDateOverrides]
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides, allTasks]
   );
 
   // Stats now derive from real execution state rather than the immutable
@@ -293,7 +290,7 @@ export default function TaskMapPage() {
         fixedCalendarEvents,
         workDateOverrides
       ),
-    [weekDateList, workDateOverrides, lifecycleOverrides, planBlocks]
+    [weekDateList, workDateOverrides, lifecycleOverrides, planBlocks, allTasks]
   );
 
   // Area Home cards (2026-09-08, §20/§21). These are now the top of TASK MAP
@@ -302,9 +299,9 @@ export default function TaskMapPage() {
   // is derived from the real Task set; an Area with no Outcome says so
   // rather than being given an invented one.
   const areaCards = useMemo(
-    () => areaProfiles.map((p) => buildAreaHome(p.area, today, overlays, planBlocks)),
+    () => areaProfiles.map((p) => buildAreaHome(p.area, today, overlays, planBlocks, allTasks)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides, allTasks, planBlocks]
   );
 
   const activeRefineCount = [areaFilter, capFilter, importanceFilter, urgencyFilter].filter(
@@ -352,7 +349,7 @@ export default function TaskMapPage() {
         return allTasks.filter((t) => !isTaskLive(t, overlays));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, monthTasks, today, weekStart, weekDateList, overdue, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]);
+  }, [scope, monthTasks, today, weekStart, weekDateList, overdue, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides, allTasks]);
 
   function applyFilters(list: Task[]): Task[] {
     let out = list;
@@ -404,6 +401,7 @@ export default function TaskMapPage() {
 
   return (
     <div className="flex flex-col">
+      <WorkControl />
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <p className="text-xs font-bold tracking-widest text-accent-dark">AI WORK OS</p>
         <div className="mt-0.5 flex items-center justify-between">
@@ -1081,6 +1079,7 @@ function TaskListRow({
   onOpen: () => void;
 }) {
   const overdue = deadline !== null && !done && daysBetween(today, deadline) < 0;
+  const { tasks: allTasks } = useWork();
   const badge = capabilityBadge(task.aiCapability);
   // A Task split into a real Series (2026-09-06) — surface its step here so
   // the several rows a series produces read as one flow at a glance. Labeled

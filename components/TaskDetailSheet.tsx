@@ -1,8 +1,10 @@
 "use client";
+import { useWork } from "@/lib/work/client";
+import { useReschedule } from "@/lib/useReschedule";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { goals, monthEndStates, outcomes, tasks as allTasks, workPrinciples } from "@/lib/dummy-data";
+import { monthEndStates, outcomes, workPrinciples } from "@/lib/dummy-data";
 import { formatMd, monthKeyOf } from "@/lib/date";
 import { computeGoalProgress } from "@/lib/progress";
 import { capabilityAction, capabilityOwnerLabel, deliveryStatusLabel } from "@/lib/capability";
@@ -17,22 +19,10 @@ import ManualActualEntry from "@/components/ManualActualEntry";
 import RescheduleDialog from "@/components/RescheduleDialog";
 import { CALENDAR_SYNC_HINT, CALENDAR_SYNC_LABEL, calendarSyncState } from "@/lib/calendarSync";
 import { liveTimeBlocks, runbookFor } from "@/lib/livePlan";
-import { buildReplanFlag, isPostponement } from "@/lib/replan";
 import { effectiveDeadline } from "@/lib/taskState";
 import { suggestEstimate } from "@/lib/estimateCalibration";
 import { shouldAskVarianceReason } from "@/lib/estimateCalibration";
 import type { Task, VarianceReason } from "@/lib/types";
-
-// Module scope so the React Compiler purity rule sees these as calls into a
-// helper rather than impure work in the component body — they only ever run
-// from an event handler.
-function newBlockId(taskId: string): string {
-  return `tbo-${taskId}-${Date.now()}`;
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
 
 const outputTypeLabel: Record<NonNullable<Task["outputType"]>, string> = {
   MESSAGE_DRAFT: "メッセージ下書き",
@@ -67,6 +57,7 @@ export default function TaskDetailSheet({
   // correctly correlated to whichever Task is actually showing.
   onNavigateToTask?: (taskId: string) => void;
 }) {
+  const { goals, tasks: allTasks } = useWork();
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set());
   const [requested, setRequested] = useState(false);
   const [outcomeSheetOpen, setOutcomeSheetOpen] = useState(false);
@@ -91,13 +82,11 @@ export default function TaskDetailSheet({
     supersededBlockIds,
     deadlineOverrides,
     completions,
-    rescheduleTimeBlock,
-    setDeadlineOverride,
-    raiseReplan,
     replanFlags,
     clearReplan,
   } = useTodayExecution();
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const { reschedule } = useReschedule();
   // The timed value from the page, when there is one; otherwise whatever is
   // stored (including a hand-typed figure) so this sheet works from TASK MAP
   // and Area Home too, not only from TODAY.
@@ -121,38 +110,7 @@ export default function TaskDetailSheet({
     acceptDeadlineMiss: boolean;
     newDeadline: string | null;
   }) {
-    const replaced = nextBlock;
-    rescheduleTimeBlock(
-      {
-        id: newBlockId(task.id),
-        taskId: task.id,
-        label: task.title,
-        date: args.date,
-        startTime: args.startTime,
-        endTime: args.endTime,
-        createdOnDate: today,
-        createdAt: nowIso(),
-        replacesBlockId: replaced?.id ?? null,
-        reason: "本人が予定を変更",
-      },
-      replaced?.id ?? null
-    );
-    // The deadline only moves when the user explicitly says so (§11).
-    if (args.newDeadline) setDeadlineOverride(task.id, args.newDeadline);
-    if (args.acceptDeadlineMiss) {
-      raiseReplan(
-        buildReplanFlag(
-          task.id,
-          "DEADLINE_AT_RISK",
-          `${args.date} へ移動したため、期限 ${taskDeadline ?? "-"} に間に合わない見込み`,
-          today
-        )
-      );
-    } else if (isPostponement(replaced, args.date)) {
-      raiseReplan(
-        buildReplanFlag(task.id, "POSTPONED", `${replaced!.date} から ${args.date} へ移動`, today)
-      );
-    }
+    reschedule(task, { ...args, reason: "本人が予定を変更" });
     setRescheduleOpen(false);
   }
   const series = resolveSeries(task, allTasks);

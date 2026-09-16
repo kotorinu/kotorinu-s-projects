@@ -1,9 +1,11 @@
 "use client";
+import { useWork } from "@/lib/work/client";
+import WorkControl from "@/components/WorkControl";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { allGapItems, goals, tasks } from "@/lib/dummy-data";
+import { allGapItems } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
 import { GAP_STATUS_LABEL } from "@/lib/gapBoard";
 import {
@@ -28,12 +30,13 @@ import {
 export default function GoalTreePage() {
   return (
     <Suspense fallback={null}>
-      <GoalTreeContent />
+      <WorkControl kind="goal" /><GoalTreeContent />
     </Suspense>
   );
 }
 
 function GoalTreeContent() {
+  const { goals, tasks } = useWork();
   // currentDate comes from the Day Rollover store (lib/todayExecutionStore),
   // not a module-level todayStr() — this page is statically prerendered, so
   // a module-level const would bake in the deploy-time date forever.
@@ -41,14 +44,14 @@ function GoalTreeContent() {
   const searchParams = useSearchParams();
   const linkedFocusId = searchParams.get("focus");
 
-  const spine = useMemo(() => journeySpine(goals, today), [today]);
-  const areas = useMemo(() => areaGoals(goals), []);
-  const stars = useMemo(() => northStarGoals(goals), []);
-  const milestone = useMemo(() => nextMilestone(goals, today), [today]);
+  const spine = useMemo(() => journeySpine(goals, today), [today, goals]);
+  const areas = useMemo(() => areaGoals(goals), [goals]);
+  const stars = useMemo(() => northStarGoals(goals), [goals]);
+  const milestone = useMemo(() => nextMilestone(goals, today), [today, goals]);
 
   // 開いた瞬間に「一番近い未来」が選ばれている。何も選ばれていない状態を作らない。
   const [selectedId, setSelectedId] = useState<string | null>(linkedFocusId ?? milestone?.id ?? null);
-  const selected = useMemo(() => goals.find((g) => g.id === selectedId) ?? null, [selectedId]);
+  const selected = useMemo(() => goals.find((g) => g.id === selectedId) ?? null, [selectedId, goals]);
   // Mobileでは詳細をSheetで出す (§9)。Desktopは右カラムに常時。
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -59,7 +62,7 @@ function GoalTreeContent() {
       map.set(t.goalId, (map.get(t.goalId) ?? 0) + 1);
     }
     return map;
-  }, []);
+  }, [tasks]);
 
   useEffect(() => {
     if (!linkedFocusId) return;

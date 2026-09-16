@@ -22,3 +22,14 @@ The server-only client and credential names were absent from the local client bu
 
 Calendar/Gmail OAuth work is deferred. No source scan or external send was performed during Redis activation.
 
+## App Gmail connection reuse — 2026-09-17
+
+Planner sent-history reads now reuse `gmail:connection:v1` when a legacy
+`RIALA_GMAIL_READ_REFRESH_TOKEN` is absent. The encrypted credential is decrypted
+server-side using `GMAIL_TOKEN_KEY` and the app Gmail OAuth client; both the
+stored grant and token exchange must confirm exactly `gmail.readonly`. An
+unconnected, corrupt or broader-scope connection stops the read. SEND continues
+to require its separate credential and explicit approval. Configuration only
+indicates that this path can be attempted, not that consent or a live read
+succeeded. See `completion-status.md` for the remaining whole-OS work.
+

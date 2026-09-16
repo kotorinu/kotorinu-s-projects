@@ -1,7 +1,8 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useMemo, useState } from "react";
-import { tasks as allTasks } from "@/lib/dummy-data";
+
 import { addDaysToYmd, formatMd } from "@/lib/date";
 import { varianceReasonLabel } from "@/lib/execution";
 import {
@@ -27,6 +28,7 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 type Tab = "TODAY" | "WEEK";
 
 export default function PdcaPage() {
+  const { tasks: allTasks } = useWork();
   const { currentDate: today, completions, varianceReasonByTaskId, replanFlags, dispositions } =
     useTodayExecution();
   const [tab, setTab] = useState<Tab>("TODAY");
@@ -42,13 +44,13 @@ export default function PdcaPage() {
         replanFlags,
         dispositions,
       }),
-    [today, completions, varianceReasonByTaskId, replanFlags, dispositions]
+    [today, completions, varianceReasonByTaskId, replanFlags, dispositions, allTasks]
   );
 
   const weekFrom = useMemo(() => addDaysToYmd(today, -6), [today]);
   const weekly = useMemo(
     () => buildWeeklyReview(weekFrom, today, allTasks, completions, varianceReasonByTaskId, replanFlags),
-    [weekFrom, today, completions, varianceReasonByTaskId, replanFlags]
+    [weekFrom, today, completions, varianceReasonByTaskId, replanFlags, allTasks]
   );
 
   return (

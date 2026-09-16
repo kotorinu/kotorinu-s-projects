@@ -1,26 +1,17 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useState } from "react";
 import { useMemo } from "react";
 import Link from "next/link";
-import {
-  allGapItems,
-  blockers,
-  capabilities,
-  goals,
-  monthEndStates,
-  outcomeMilestones,
-  salesVideoLibrary,
-  salesPhases,
-  weeklyReadings,
-} from "@/lib/dummy-data";
+import { allGapItems, blockers, capabilities, monthEndStates, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
 import BlockerPanel from "@/components/BlockerPanel";
 import CapabilityMap from "@/components/CapabilityMap";
 import GapBoard from "@/components/GapBoard";
 import { resolveGaps } from "@/lib/gapBoard";
 import { liveTimeBlocks } from "@/lib/livePlan";
 import { AREA_THEME, ACTIVITY_THEME } from "@/lib/areaTheme";
-import { tasks as allTasks } from "@/lib/dummy-data";
+
 import MilestoneStepper from "@/components/MilestoneStepper";
 import PhaseProgressGrid from "@/components/PhaseProgressGrid";
 import SalesPhaseDetailSheet from "@/components/SalesPhaseDetailSheet";
@@ -45,6 +36,7 @@ const WEEKDAY = ["日", "月", "火", "水", "木", "金", "土"];
 // still here and unchanged, just not in front of the answer. Nothing was
 // deleted to make it fit.
 export default function AreaHomeView({ slug }: { slug: string }) {
+  const { goals, tasks: allTasks } = useWork();
   const {
     currentDate: today,
     completions,
@@ -65,9 +57,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
   const profile = areaProfileBySlug(slug);
   const data = useMemo(
-    () => (profile ? buildAreaHome(profile.area, today, overlays, planBlocks) : null),
+    () => (profile ? buildAreaHome(profile.area, today, overlays, planBlocks, allTasks) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [profile?.area, today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides]
+    [profile?.area, today, completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides, allTasks, planBlocks]
   );
 
   if (!profile || !data) {

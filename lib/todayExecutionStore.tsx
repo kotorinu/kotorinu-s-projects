@@ -6,10 +6,12 @@ import {
   useEffect,
   useLayoutEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { __setClockOverrideForTesting, todayStr } from "./date";
 import { bankedMinutesFor, endWorkOn, startWorkOn } from "./workSession";
+import { validSnapshot } from "./work/execution";
 import type {
   CarryoverDisposition,
   CarryoverRecord,
@@ -402,6 +404,62 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
   // through as many day boundaries as have actually elapsed since it was saved.
   const [state, setState] = useState<RolloverState>(emptyRolloverState);
   const [hydrated, setHydrated] = useState(false);
+  const cloud = useRef<{ version: number; saved: string; loading: boolean; stopped: boolean; saving: boolean }>({ version: -1, saved: "", loading: false, stopped: false, saving: false });
+  const latest = useRef(state);
+  useIsomorphicLayoutEffect(() => { latest.current = state; }, [state]);
+  const [cloudStatus, setCloudStatus] = useState("実績は端末に保存されています。中央接続を確認中");
+  const [cloudTick, setCloudTick] = useState(0);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    let alive = true;
+    const load = async () => {
+      if (cloud.current.loading || cloud.current.saving) return;
+      cloud.current.loading = true;
+      const before = JSON.stringify(toPersisted(latest.current));
+      try {
+        const response = await fetch("/api/riala/work/execution", { cache: "no-store" });
+        if (!response.ok) throw new Error("中央実績へのログイン・接続が必要です");
+        const result = await response.json(); if (!alive) return;
+        if (before !== JSON.stringify(toPersisted(latest.current))) throw new Error("読込中に実績が変わりました。端末の記録を保全しています");
+        if (result.snapshot && !validSnapshot(result.snapshot)) throw new Error("中央実績の形式を確認してください");
+        if (result.snapshot) {
+          // Preserve a separate recoverable device copy before first migration.
+          if (before !== JSON.stringify(result.snapshot)) window.localStorage.setItem(`${STORAGE_KEY}:backup:${Date.now()}`, before);
+          const restored = fromPersisted(result.snapshot as unknown as PersistedShape);
+          const next = restored.current.date === todayStr() ? restored : rollover(restored, todayStr());
+          cloud.current.saved = JSON.stringify(result.snapshot); setState(next);
+        } else cloud.current.saved = "";
+        cloud.current.version = result.version; cloud.current.stopped = false;
+        setCloudStatus(result.snapshot ? "実績を中央データから取得しました" : "端末の実績を中央保存へ移行します");
+        setCloudTick(t => t + 1);
+      } catch (e) { if (alive) { cloud.current.stopped = true; setCloudStatus((e as Error).message); } }
+      finally { cloud.current.loading = false; }
+    };
+    void load();
+    const auth = () => void load();
+    window.addEventListener("work-os-auth", auth);
+    return () => { alive = false; window.removeEventListener("work-os-auth", auth); };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || cloud.current.version < 0 || cloud.current.stopped) return;
+    const serialized = JSON.stringify(toPersisted(state));
+    if (serialized === cloud.current.saved) return;
+    const timeout = setTimeout(async () => {
+      if (cloud.current.saving || cloud.current.stopped) return;
+      cloud.current.saving = true; setCloudStatus("実績を中央保存中");
+      try {
+        const response = await fetch("/api/riala/work/execution", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: cloud.current.version, snapshot: JSON.parse(serialized) }) });
+        const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "中央保存に失敗しました");
+        cloud.current.version = result.version; cloud.current.saved = serialized;
+        setCloudStatus("実績の中央保存を確認しました");
+      } catch (e) { cloud.current.stopped = true; setCloudStatus(`${(e as Error).message}。端末の記録は保持しています`); }
+      finally { cloud.current.saving = false; setCloudTick(t => t + 1); }
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [state, hydrated, cloudTick]);
 
   // useLayoutEffect, not useEffect: this runs before the browser paints, so
   // the placeholder date is never visible. With useEffect the user would see
@@ -711,7 +769,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
   };
 
-  return <TodayExecutionContext.Provider value={api}>{children}</TodayExecutionContext.Provider>;
+  return <TodayExecutionContext.Provider value={api}><p role="status" className="pointer-events-none fixed inset-x-0 bottom-20 z-20 mx-auto max-w-[600px] rounded bg-white/95 px-5 py-1 text-[10px] text-stone-500 lg:bottom-2">{cloudStatus}</p>{children}</TodayExecutionContext.Provider>;
 }
 
 export function useTodayExecution(): TodayExecutionApi {

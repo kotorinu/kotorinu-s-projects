@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { salesPhases } from "../lib/dummy-data";
-import { phaseCoverage } from "../lib/sales";
+import { salesPhases, practitionerFeedback } from "../lib/dummy-data";
+import { phaseCoverage, feedbackForPhase } from "../lib/sales";
+
+test("実践者FB全6件が存在するフェーズに紐づき、詳細画面の選択で取得できる", () => {
+  assert.equal(practitionerFeedback.length, 6);
+  for (const fb of practitionerFeedback) {
+    assert.ok(fb.relatedPhaseIds.length > 0);
+    for (const id of fb.relatedPhaseIds) {
+      assert.ok(salesPhases.some(p => p.id === id));
+      assert.ok(feedbackForPhase(practitionerFeedback, id).some(item => item.id === fb.id));
+    }
+  }
+});
 
 // 営業Master ①基礎の回帰テスト (2026-09-09).
 //

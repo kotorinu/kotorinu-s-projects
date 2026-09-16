@@ -5423,7 +5423,7 @@ export const practitionerFeedback: PractitionerFeedback[] = [
     content:
       "固定された順番を守ることより、相手が前のめりになれる進め方を選ぶ。質問にしっかり答える→ヒアリングを深める。まず資料を見たい→先に資料を見る。",
     source: "実践者FB",
-    relatedPhaseIds: [],
+    relatedPhaseIds: ["sp-03"],
     lesson: "固定された順番を守ることより、相手が前のめりになれる進め方を選ぶ。",
     exampleTalk: [],
     addedAt: now,

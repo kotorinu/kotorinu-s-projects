@@ -1,4 +1,5 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useMemo } from "react";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { buildLabel } from "@/lib/buildInfo";
 import { AUTHORITY_NOTE, PLAN_READINESS_LABEL, tasksWaitingForPlan, timeDrifts } from "@/lib/calendarAuthority";
 import { calendarSnapshot } from "@/lib/calendarSnapshot";
 import { useClock } from "@/lib/currentTime";
-import { tasks as allTasks } from "@/lib/dummy-data";
+
 import { liveTimeBlocks, planLastChangedAt, supersededByReschedule } from "@/lib/livePlan";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 
@@ -21,6 +22,7 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 // 送る。
 
 export default function SystemStatusPage() {
+  const { tasks: allTasks } = useWork();
   const store = useTodayExecution();
   const { nowHmValue } = useClock();
   const {
@@ -50,7 +52,7 @@ export default function SystemStatusPage() {
 
   const waiting = useMemo(
     () => tasksWaitingForPlan(allTasks, planBlocks, overlays),
-    [planBlocks, overlays]
+    [planBlocks, overlays, allTasks]
   );
   const drifts = useMemo(() => timeDrifts(planBlocks), [planBlocks]);
 

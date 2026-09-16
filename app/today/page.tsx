@@ -1,8 +1,9 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { fixedCalendarEvents, goals, outcomes, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, outcomes, recurringRules } from "@/lib/dummy-data";
 import { addDaysToYmd, daysBetween, formatDurationHm, formatMd, minutesSince } from "@/lib/date";
 import { useClock } from "@/lib/currentTime";
 import { capabilityBadge } from "@/lib/capability";
@@ -74,6 +75,7 @@ type Celebration =
 // (isTaskOpen), because it has to account for the runtime completion /
 
 export default function TodayPage() {
+  const { goals, tasks: allTasks } = useWork();
   // Task status / started / completed / actualMinutes / varianceReason all
   // live in TodayExecutionProvider (mounted once in the root layout), not in
   // this page's own useState — this page unmounts on every SPA navigation
@@ -250,7 +252,7 @@ export default function TodayPage() {
         planBlocks,
         workDateOverrides
       ),
-    [today, workDateOverrides, lifecycleOverrides, planBlocks]
+    [today, workDateOverrides, lifecycleOverrides, planBlocks, allTasks]
   );
 
   /**
@@ -310,7 +312,7 @@ export default function TodayPage() {
   const overdue = useMemo(
     () => computeOverdueTasks(allTasks, today, overlays),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [today, completions, dispositions, deadlineOverrides, workDateOverrides]
+    [today, completions, dispositions, deadlineOverrides, workDateOverrides, allTasks]
   );
 
   const upcomingTasks = useMemo(() => {
@@ -323,7 +325,7 @@ export default function TodayPage() {
       return diff >= 1 && diff <= 2;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todayTasks, today, completions, dispositions, deadlineOverrides]);
+  }, [todayTasks, today, completions, dispositions, deadlineOverrides, allTasks]);
 
   // --- Day Rollover: Yesterday Summary / Carryover (2026-09-06) ---
   // Not useMemo'd: these are cheap array scans over a small fixed fixture,
@@ -445,7 +447,7 @@ export default function TodayPage() {
         nowHm: nowHmValue,
         startedTaskId,
       }),
-    [today, calendar.events, planBlocks, nowHmValue, startedTaskId]
+    [today, calendar.events, planBlocks, nowHmValue, startedTaskId, allTasks]
   );
   const timeline = day.timed;
 
@@ -518,7 +520,7 @@ export default function TodayPage() {
       map.set(t.preparationForTaskId, (map.get(t.preparationForTaskId) ?? 0) + 1);
     }
     return map;
-  }, []);
+  }, [allTasks]);
 
   const doneCount = todayTasks.filter((t) => isDone(t)).length;
   const totalCount = todayTasks.length;

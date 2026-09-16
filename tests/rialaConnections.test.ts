@@ -5,7 +5,8 @@ import { emptyLedger, type Facts, type Member, type Store, type Ledger } from ".
 import { plan } from "../lib/riala-planner/planner";
 import { observedReadiness } from "../lib/riala-planner/readiness";
 import { authenticated, COOKIE, session } from "../lib/riala-planner/security";
-import { RealGmailProvider, GMAIL_READ_SCOPE, validMember, validCatalog } from "../lib/riala-planner/providers";
+import { RealGmailProvider, GMAIL_READ_SCOPE, validMember, validCatalog, gmailToken, configuredProviders } from "../lib/riala-planner/providers";
+import { encryptGmailSecret } from "../lib/server/gmailOAuth";
 import { configuredStore, RedisStore } from "../lib/riala-planner/store";
 import { approveAndSend } from "../lib/riala-planner/service";
 
@@ -114,12 +115,65 @@ test("RIALA security: route auth, origin, JSON redaction, durable rate limit, an
     } finally { globalThis.fetch = originalFetch; }
   });
 });
+test("RIALA security: logout clears all device sessions without store or valid credentials", async () => {
+  await environment({ VERCEL: "1", RIALA_APP_ORIGIN: ORIGIN }, async () => {
+    const original = globalThis.fetch; let calls = 0;
+    globalThis.fetch = async () => { calls++; throw new Error("Store must not be needed for logout"); };
+    try {
+      const result = await POST(request({ command: "logout" }, `${COOKIE}=expired`));
+      assert.equal(result.status, 200);
+      const cookies = result.headers.getSetCookie();
+      assert.equal(cookies.length, 3);
+      for (const name of [COOKIE, "calendar_reader", "gmail_reader"]) {
+        const cookie = cookies.find(value => value.startsWith(`${name}=`));
+        assert.ok(cookie);
+        for (const flag of ["Max-Age=0", "HttpOnly", "Secure"]) assert.ok(cookie.includes(flag));
+        assert.ok(cookie.includes(name === COOKIE ? "SameSite=Strict" : "SameSite=Lax"));
+      }
+      assert.equal((await POST(request({ command: "logout" }, undefined, "https://other.example.test"))).status, 403);
+      assert.equal(calls, 0);
+    } finally { globalThis.fetch = original; }
+  });
+});
+
 test("RIALA safety: disabled sender stops before sources, mutations, and send calls", async () => {
   const store = memoryStore(); let calls = 0;
   const fail = async (): Promise<never> => { calls++; throw new Error("must not call"); };
   await assert.rejects(approveAndSend(store, { members: { read: fail }, gmail: { read: fail }, events: { read: fail }, content: { read: fail } }, { enabled: false, send: fail, readBack: fail }, []));
   assert.equal(calls, 0); assert.deepEqual(await store.read(), emptyLedger());
 });
+test("RIALA Gmail READ: encrypted app grant supports Planner reads but never SEND", async () => {
+  const key = Buffer.alloc(32, 7);
+  await environment({ VERCEL: "1", RIALA_REDIS_REST_URL: "https://redis.example.test", RIALA_REDIS_REST_TOKEN: "fixture",
+    GMAIL_TOKEN_KEY: key.toString("base64"), GMAIL_CLIENT_ID: "app-client", GMAIL_CLIENT_SECRET: "app-secret" }, async () => {
+    const original = globalThis.fetch; let exchanges = 0; let scope = GMAIL_READ_SCOPE;
+    globalThis.fetch = async (input, init) => {
+      if (String(input) === "https://redis.example.test") {
+        const args = JSON.parse(String(init?.body));
+        assert.deepEqual(args, ["get", "gmail:connection:v1"]);
+        return Response.json({ result: JSON.stringify({ schemaVersion: 1, version: 1, pendingAuth: null,
+          connection: { scope, refreshTokenCipher: encryptGmailSecret("encrypted-app-refresh", key) } }) });
+      }
+      assert.equal(String(input), "https://oauth2.googleapis.com/token");
+      const params = init?.body as URLSearchParams;
+      assert.equal(params.get("client_id"), "app-client");
+      assert.equal(params.get("refresh_token"), "encrypted-app-refresh");
+      exchanges++;
+      return Response.json({ access_token: "fixture-read-access", scope: GMAIL_READ_SCOPE });
+    };
+    try {
+      assert.ok(configuredProviders().gmail instanceof RealGmailProvider);
+      assert.equal(await gmailToken(), "fixture-read-access");
+      assert.equal(exchanges, 1);
+      await assert.rejects(gmailToken(true));
+      assert.equal(exchanges, 1);
+      scope += " https://www.googleapis.com/auth/gmail.send";
+      await assert.rejects(gmailToken());
+      assert.equal(exchanges, 1);
+    } finally { globalThis.fetch = original; }
+  });
+});
+
 test("RIALA Gmail READ: real adapter requests only sent metadata and records masked diagnostics", async () => {
   await environment({ RIALA_GMAIL_CLIENT_ID: "fixture-id", RIALA_GMAIL_CLIENT_SECRET: "fixture-secret", RIALA_GMAIL_READ_REFRESH_TOKEN: "fixture-refresh" }, async () => {
     const original = globalThis.fetch; const calls: URL[] = [];

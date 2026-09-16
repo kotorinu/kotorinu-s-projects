@@ -1,0 +1,7 @@
+.git
+.next
+.test-build
+tmp
+.env*
+.claude
+tests

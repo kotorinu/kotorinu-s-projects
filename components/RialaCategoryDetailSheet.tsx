@@ -1,7 +1,8 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useEffect, useState } from "react";
-import { operationalAudits, tasks, workflows } from "@/lib/dummy-data";
+import { operationalAudits, workflows } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
 import { auditStatusLabel } from "@/lib/riala";
 import { capabilityOwnerLabel } from "@/lib/capability";
@@ -23,6 +24,7 @@ export default function RialaCategoryDetailSheet({
   category: OperationCategory;
   onClose: () => void;
 }) {
+  const { tasks } = useWork();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   useEffect(() => {

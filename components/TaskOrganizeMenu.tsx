@@ -1,7 +1,8 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useState } from "react";
-import { tasks as allTasks } from "@/lib/dummy-data";
+
 import { effectiveLifecycle, hasExecutionHistory } from "@/lib/taskState";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 import type { Task, TaskLifecycle } from "@/lib/types";
@@ -28,6 +29,7 @@ const LIFECYCLE_LABEL: Record<TaskLifecycle, string> = {
 };
 
 export default function TaskOrganizeMenu({ task, onDone }: { task: Task; onDone: () => void }) {
+  const { tasks: allTasks } = useWork();
   const { completions, lifecycleOverrides, taskStartedAt, currentDate, setTaskLifecycle } = useTodayExecution();
   const [open, setOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);

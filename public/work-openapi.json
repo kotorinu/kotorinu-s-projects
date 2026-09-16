@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "AI Work OS", "version": "1.0.0", "description": "Canonical task and goal data. Read before writes, use the returned version, preserve unknown dates and quantities as null. Never invent user goals or completion evidence." },
+  "servers": [{ "url": "https://kotorinu-s-projects.vercel.app" }],
+  "security": [{ "workBearer": [] }],
+  "components": { "securitySchemes": { "workBearer": { "type": "http", "scheme": "bearer" } } },
+  "paths": {
+    "/api/riala/work": {
+      "get": {
+        "operationId": "readWorkOS",
+        "summary": "Read canonical tasks, goals, execution history and AI runs",
+        "responses": {
+          "200": { "description": "Canonical ledger", "content": { "application/json": { "schema": { "type": "object", "properties": { "version": { "type": "integer" }, "tasks": { "type": "array", "items": { "type": "object" } }, "goals": { "type": "array", "items": { "type": "object" } }, "runs": { "type": "array", "items": { "type": "object" } }, "execution": { "type": "object" } } } } } },
+          "401": { "description": "Authentication required" }, "503": { "description": "Store unavailable; stop dependent work" }
+        }
+      },
+      "post": {
+        "operationId": "updateWorkOS",
+        "summary": "Register or edit evidence-backed tasks and goals; cannot approve AI outputs or send messages",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["command", "version"],
+          "properties": {
+            "command": { "type": "string", "enum": ["createTask", "updateTask", "createGoal", "updateGoal"] },
+            "version": { "type": "integer", "description": "Latest read version. On 409 re-read and decide; do not blindly retry." },
+            "requestId": { "type": "string", "description": "Reuse this identifier only for an identical uncertain write, to avoid duplicate creation." },
+            "id": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" },
+            "area": { "type": "string", "enum": ["営業代行", "RIALA", "GENESIS", "Skill Plus", "その他"] },
+            "deadline": { "type": "string", "format": "date", "nullable": true },
+            "estimateMinutes": { "type": "integer", "nullable": true, "minimum": 1, "maximum": 1440 },
+            "goalId": { "type": "string", "nullable": true }, "definitionOfDone": { "type": "array", "items": { "type": "string" } },
+            "aiCapability": { "type": "string", "enum": ["HUMAN", "AI_EXECUTE", "AI_DRAFT", "HYBRID", "DECISION", "BLOCKED"] },
+            "status": { "type": "string" }, "desiredState": { "type": "string" }, "achievementCriteria": { "type": "string" },
+            "parentId": { "type": "string", "nullable": true }, "targetDate": { "type": "string", "format": "date", "nullable": true },
+            "horizon": { "type": "string", "enum": ["1M", "3M", "6M", "1Y", "3Y", "5Y", "PHILOSOPHY", "AREA"] }
+          }
+        } } } },
+        "responses": { "200": { "description": "Committed result and read-back ledger" }, "400": { "description": "Invalid input" }, "401": { "description": "Authentication required" }, "403": { "description": "Credential lacks permission" }, "409": { "description": "Concurrent update; re-read" }, "503": { "description": "Store unavailable or uncertain write; inspect before repeating" } }
+      }
+    }
+  }
+}

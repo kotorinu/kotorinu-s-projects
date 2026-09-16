@@ -1,8 +1,9 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { aiOperationMatrix, operationCategories, operationalAudits, tasks, workflows } from "@/lib/dummy-data";
+import { aiOperationMatrix, operationCategories, operationalAudits, workflows } from "@/lib/dummy-data";
 import { auditStatusLabel, computeRialaStats, countAuditsByCategory } from "@/lib/riala";
 import { capabilityOwnerLabel } from "@/lib/capability";
 import RialaCategoryDetailSheet from "@/components/RialaCategoryDetailSheet";
@@ -16,6 +17,7 @@ const schedulingCapabilityLabel: Record<SchedulingCapability, { label: string; t
 };
 
 export default function RialaMasterPage() {
+  const { tasks } = useWork();
   const [selected, setSelected] = useState<OperationCategory | null>(null);
   const stats = computeRialaStats(operationalAudits, workflows, tasks.filter((t) => t.area === "RIALA"));
   const dailyLearning = workflows.find((w) => w.id === "wf-08-daily-learning");

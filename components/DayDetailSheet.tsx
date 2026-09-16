@@ -1,7 +1,8 @@
 "use client";
+import { useWork } from "@/lib/work/client";
 
 import { useEffect } from "react";
-import { fixedCalendarEvents, recurringRules, tasks as allTasks } from "@/lib/dummy-data";
+import { fixedCalendarEvents, recurringRules } from "@/lib/dummy-data";
 import { liveTimeBlocks } from "@/lib/livePlan";
 import { formatMd } from "@/lib/date";
 import { findOverlaps } from "@/lib/overlap";
@@ -25,6 +26,7 @@ export default function DayDetailSheet({
   onClose: () => void;
   onOpenTask: (task: Task) => void;
 }) {
+  const { tasks: allTasks } = useWork();
   const {
     completions,
     dispositions,
