@@ -14,7 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - AI Work OS is a decision surface for daily execution. RIALA Planner exists to reduce operator explanation time, not to add another task dashboard.
 - RIALA North Star: read current member, Gmail, event, content, and operating-rule sources; prepare only evidence-backed work; return only human decisions.
-- Keep changes scoped to RIALA unless a shared primitive is required. Do not redesign TODAY, TASK MAP, GOAL TREE, PDCA, Sales, GENESIS, or Calendar UI.
+- 2026-09-18 user expands scope to the entire Work OS: Sales, management, life goals, execution and UI/UX. The former RIALA-only restriction is superseded. Preserve evidence and records; do not invent achievements or external permissions.
 
 ## Source of truth
 

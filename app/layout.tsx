@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
@@ -8,12 +7,6 @@ import { ClockProvider } from "@/lib/currentTime";
 import { BUILT_AT, COMMIT_SHA } from "@/lib/buildInfo";
 import { WorkProvider } from "@/lib/work/client";
 import PwaRegistration from "@/components/PwaRegistration";
-
-const notoSansJp = Noto_Sans_JP({
-  variable: "--font-noto-sans-jp",
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-});
 
 export const metadata: Metadata = {
   title: "AI Work OS",
@@ -29,25 +22,22 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ja" className={`${notoSansJp.variable} h-full`}>
+    <html lang="ja" className="h-full">
       {/* Which build this is, readable without opening the UI (§P5). */}
       <head>
         <meta name="x-commit-sha" content={COMMIT_SHA} />
         <meta name="x-built-at" content={BUILT_AT} />
       </head>
-      <body className="h-full min-h-screen bg-stone-200 font-[var(--font-noto-sans-jp)] text-foreground">
+      <body className="h-full min-h-screen font-[var(--font-noto-sans-jp)] text-foreground">
+        <a href="#workspace-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-4">本文へ移動</a>
         <PwaRegistration />
-        {/* Responsive Root Shell (2026-09-06): mobile keeps the original
-            phone-card presentation (max-w-[430px], centered, shadowed).
-            From lg (1024px) up, the shell widens to a real desktop layout
-            (sidebar + up to 1280px content) instead of staying a narrow
-            column floating in grey — "Desktop本対応" DoD item 1. */}
-        <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-background shadow-[0_0_50px_rgba(0,0,0,0.12)] md:max-w-[600px] lg:max-w-[1280px] lg:flex-row lg:shadow-none">
+        {/* A single responsive workspace, without a simulated phone frame. */}
+        <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col bg-background lg:flex-row">
           <WorkProvider><TodayExecutionProvider>
             <ClockProvider>
             <DesktopSidebar />
             <div className="flex min-w-0 flex-1 flex-col">
-              <main className="flex-1 overflow-y-auto pb-24 lg:pb-10">{children}</main>
+              <main id="workspace-main" tabIndex={-1} className="min-w-0 flex-1 pb-6 lg:pb-10">{children}</main>
               <BottomNav />
             </div>
             </ClockProvider>
