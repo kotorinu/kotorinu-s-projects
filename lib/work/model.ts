@@ -89,6 +89,10 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
   } else if (command === "updateTask" && task) {
     if (body.title !== undefined) task.title = text(body.title, 200);
     if (body.deadline !== undefined) task.deadline = ymd(body.deadline);
+    if (body.goalId !== undefined) {
+      if (body.goalId !== null && (typeof body.goalId !== "string" || !l.goals.some(g => g.id === body.goalId))) throw new WorkInputError("Goalがありません");
+      task.goalId = body.goalId as string | null;
+    }
     if (body.description !== undefined) task.description = text(body.description, 6000);
     if (body.definitionOfDone !== undefined) {
       if (!Array.isArray(body.definitionOfDone) || body.definitionOfDone.length > 20) throw new WorkInputError("完了条件を確認してください");
@@ -115,6 +119,8 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
   } else if (command === "updateGoal") {
     const goal = l.goals.find(g => g.id === body.id); if (!goal) throw new WorkInputError("Goalがありません");
     if (body.title !== undefined) goal.title = text(body.title, 200);
+    if (body.desiredState !== undefined) goal.desiredState = text(body.desiredState, 3000);
+    if (body.targetDate !== undefined) goal.targetDate = ymd(body.targetDate);
     if (body.achievementCriteria !== undefined) goal.achievementCriteria = text(body.achievementCriteria, 3000);
     if (body.status !== undefined) {
       if (!["進行中", "達成", "一時停止", "未達成"].includes(String(body.status))) throw new WorkInputError("Goal状態を確認してください");

@@ -5,8 +5,8 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 import { workCoverage } from "@/lib/work/coverage";
 export default function OverviewPage() {
   const work = useWork();
-  const { currentDate } = useTodayExecution();
-  const c = workCoverage(work.tasks, work.goals, work.runs, currentDate);
+  const store = useTodayExecution();
+  const c = workCoverage(work.tasks, work.goals, work.runs, store.currentDate, store);
   const rows = [
     { title: "成果物を確認する", items: c.review, detail: "AIが作った成果物を確認して、次の作業へ。", href: "/tasks" },
     { title: "期限を過ぎた作業を見直す", items: c.overdue, detail: "完了・再計画・中止を判断します。", href: "/tasks" },

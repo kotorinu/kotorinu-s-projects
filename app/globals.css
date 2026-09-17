@@ -3,14 +3,14 @@
 :root {
   --font-noto-sans-jp: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
   /* Cool neutral ground — crisp, not cosy. */
-  --background: #f4f6fa;
+  --background: #f6f5fa;
   /* Deep navy ink for high contrast without pure black. */
   --foreground: #111827;
   /* Generic focus accent. Deliberately the same blue as 営業 / Calendar id 9,
      so "the thing to act on" and "sales work" never fight each other. */
-  --accent: #2f6fe4;
-  --accent-dark: #1d4ed8;
-  --accent-soft: #e8effc;
+  --accent: #6c58c9;
+  --accent-dark: #5541a8;
+  --accent-soft: #eee9fb;
   --surface: #ffffff;
   --surface-ink: #111827;
   /* Red only for a genuine deadline problem (P1-3). */
@@ -18,6 +18,50 @@
   --danger-soft: #fdecec;
   --hairline: #e6e9f0;
 }
+
+.studio { max-width: 1180px; margin: 0 auto; padding: 32px clamp(20px, 4vw, 48px) 48px; }
+.studio-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 190px; margin-bottom: 24px; }
+.studio-eyebrow { color: #756c8d; font-size: 12px; font-weight: 600; letter-spacing: .13em; margin-bottom: 10px; }
+.studio-header h1 { font-size: clamp(28px, 3vw, 38px); font-weight: 700; letter-spacing: -.04em; color: #302944; }
+.studio-subtitle { margin-top: 10px; color: #756e84; font-size: 14px; line-height: 1.8; max-width: 440px; }
+.studio-primary, .studio-secondary, .studio-icon-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 14px; padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 160ms, box-shadow 160ms, background 160ms; }
+.studio-primary { background: #6c58c9; color: white; border: 1px solid #6c58c9; box-shadow: 0 3px 0 #5342a2, 0 8px 18px #6c58c923; }
+.studio-secondary, .studio-icon-button { background: #fff; color: #514766; border: 1px solid #e5e0ed; box-shadow: 0 2px 0 #e8e4ef; }
+.studio-icon-button { width: 44px; padding: 0; flex-shrink: 0; }
+.studio-primary:hover, .studio-secondary:hover { transform: translateY(-1px); }
+.studio-primary:active, .studio-secondary:active { transform: translateY(2px); box-shadow: none; }
+.studio-primary:disabled { opacity: .5; cursor: wait; transform: none; }
+.studio-card { border-radius: 22px; background: #fff; border: 1px solid #ebe7f0; box-shadow: 0 4px 0 #eeebf4, 0 10px 28px #44346506; }
+.studio-connection { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #786f85; font-size: 12px; line-height: 1.8; margin: 0 0 22px; }
+.studio-connection button { margin-left: auto; color: #5541a8; min-height: 44px; cursor: pointer; }
+.connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa2b7; }
+.connection-dot.connected { background: #4e9b83; }
+.studio-search { width: 100%; min-height: 48px; border: 1px solid #e4dfed; border-radius: 14px; background: #fff; padding: 12px 16px; color: #302944; font-size: 14px; box-shadow: 0 2px 0 #eeebf4; }
+.studio-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+.studio-toolbar select { min-height: 44px; padding: 8px 14px; border: 1px solid #e4dfed; border-radius: 12px; background: white; font-size: 13px; max-width: 100%; }
+.studio-tabs { display: flex; gap: 4px; padding: 5px; border-radius: 16px; background: #eae6f2; flex-wrap: wrap; }
+.studio-tabs button { min-height: 40px; border-radius: 12px; padding: 8px 14px; font-size: 13px; color: #756c85; cursor: pointer; }
+.studio-tabs button[aria-pressed=true] { background: #fff; color: #493962; box-shadow: 0 2px 5px #4c3b5b10; font-weight: 600; }
+.studio-tag { display: inline-flex; align-items: center; gap: 5px; border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 500; background: #f1eef7; color: #6a5e7d; }
+.studio-empty { display: flex; min-height: 240px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; color: #756c85; font-size: 14px; line-height: 1.8; }
+.studio-dialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); border: 1px solid #e5dfed; border-radius: 26px; background: #fff; margin: auto; padding: 0; color: #302944; box-shadow: 0 24px 90px #24183930; }
+.studio-dialog::backdrop { background: #32294766; backdrop-filter: blur(5px); }
+.studio-dialog-body { padding: 28px; }
+.studio-form { display: grid; gap: 20px; }
+.studio-form label { display: grid; gap: 8px; font-size: 13px; font-weight: 600; }
+.studio-form input, .studio-form textarea, .studio-form select { width: 100%; min-width: 0; border: 1px solid #ded8e8; border-radius: 12px; padding: 12px; background: #fcfbfe; font-size: 14px; font-weight: 400; }
+.desk-object { position: relative; width: 190px; height: 160px; flex-shrink: 0; perspective: 600px; }
+.object-shadow { position: absolute; width: 120px; height: 20px; border-radius: 50%; bottom: 5px; left: 25px; background: #a596c947; filter: blur(12px); }
+.object-back { position: absolute; width: 95px; height: 115px; border-radius: 25px; left: 49px; top: 10px; transform: rotate(-18deg) rotateY(-18deg); background: linear-gradient(130deg,#eddbfb,#bd9ee4); box-shadow: 6px 6px 0 #a583cd; }
+.object-front { position: absolute; width: 98px; height: 118px; border-radius: 25px; left: 30px; top: 26px; transform: rotate(9deg) rotateY(-18deg); background: linear-gradient(140deg,#fdfbff,#dbcef6); border: 2px solid #fff9; box-shadow: 7px 6px 0 #b7a2d9, 14px 12px 24px #8e79b935, inset 0 0 20px #fff8; display: grid; place-items: center; }
+.object-front span { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; color: #fff; background: linear-gradient(140deg,#a695ed,#7260ba); box-shadow: 3px 3px 0 #6952a4, inset 1px 1px 3px #fff7; font-size: 34px; font-weight: 600; }
+.object-pebble { position: absolute; width: 36px; height: 36px; border-radius: 50%; right: 21px; bottom: 15px; background: radial-gradient(circle at 30% 25%,#fff0db,#f1c698 60%,#d6a374); box-shadow: 4px 6px 8px #a18b6220; }
+.desk-object-goals .object-front { border-radius: 50%; width: 116px; height: 116px; }
+.desk-object-goals .object-front span { border-radius: 50%; }
+.desk-object-review .object-back { background: linear-gradient(130deg,#d9f0e9,#a0cfc0); box-shadow: 6px 6px 0 #91b7ad; }
+.desk-object-review .object-front { background: linear-gradient(140deg,#f7fffc,#cce6dc); box-shadow: 7px 6px 0 #a1c8ba,14px 12px 24px #79b9a535; }
+.desk-object-review .object-front span { background: linear-gradient(140deg,#91cbbb,#599b87); box-shadow: 3px 3px 0 #528c7b; }
+@media (max-width: 640px) { .studio { padding-top: 24px; } .studio-header { min-height: 170px; gap: 0; } .desk-object { width: 100px; transform: scale(.7); transform-origin: right center; margin-left: -50px; margin-right: 24px; } .studio-subtitle { max-width: 245px; } .studio-dialog-body { padding: 22px; } }
 
 @theme inline {
   --color-background: var(--background);
