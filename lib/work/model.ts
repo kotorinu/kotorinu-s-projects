@@ -127,6 +127,14 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
       goal.status = body.status as Goal["status"];
     }
     goal.updatedAt = now;
+  } else if (command === "enqueue" && task) {
+    if (!["AI_EXECUTE", "AI_DRAFT", "HYBRID", "DECISION"].includes(task.aiCapability)) throw new WorkInputError("AI受付の対象ではありません");
+    if (finishedTaskIds.includes(task.id) || ["完了", "Archive"].includes(task.status) || !["ACTIVE", "BACKLOG"].includes(task.lifecycle)) throw new WorkInputError("終了または整理済みの作業は実行できません");
+    const existing = l.runs.filter(r => r.taskId === task.id).at(-1);
+    if (existing) return { run: existing, reused: true };
+    if (!task.description.trim() || !task.definitionOfDone.length || task.blockedOnInfo) throw new WorkInputError(task.blockedOnInfo ?? "作業の説明と完了条件が必要です");
+    l.runs.push({ id, taskId: task.id, status: "QUEUED", claim: null, leaseUntil: null, provider: null, output: null, evidence: [], blocker: null, createdAt: now, updatedAt: now });
+    task.aiStatus = "未着手"; task.updatedAt = now;
   } else if (command === "claim") {
     const next = l.runs.find(r => r.status === "QUEUED" && (body.taskId === undefined || r.taskId === body.taskId));
     if (!next) return { run: null };

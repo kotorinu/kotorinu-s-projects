@@ -110,3 +110,5 @@ html { scroll-padding-top: 5rem; }
     transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 60px))) rotate(var(--cr, 180deg));
   }
 }
+
+.studio-disclosure summary { cursor: pointer; padding: 14px 0; font-size: 14px; line-height: 1.8; color: #756b85; }

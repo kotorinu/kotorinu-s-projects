@@ -1,4 +1,16 @@
 export interface ExecutionRecord { version: number; snapshot: Record<string, unknown> | null; updatedAt: string | null }
+export interface ExecutionAcknowledgement { version: number; serialized: string }
+export function executionReadDecision(local: string, acknowledged: ExecutionAcknowledgement | null, remoteVersion: number): "CENTRAL"|"DEVICE"|"CONFLICT" {
+  if(!acknowledged || acknowledged.serialized===local)return "CENTRAL";
+  return acknowledged.version===remoteVersion?"DEVICE":"CONFLICT";
+}
+export function closedExecutionTaskIds(snapshot: Record<string, unknown> | null): string[] {
+  const records = (key:string):[string,unknown][] => {
+    const value=snapshot?.[key];return value && typeof value==="object" && !Array.isArray(value)?Object.entries(value):[];
+  };
+  const field=(value:unknown,key:string)=>value && typeof value==="object"?(value as Record<string,unknown>)[key]:null;
+  return [...new Set([...records("completions").map(([id])=>id),...records("dispositions").filter(([,v])=>field(v,"disposition")==="DROPPED").map(([id])=>id),...records("lifecycleOverrides").filter(([,v])=>["ARCHIVED","DELETED","SUPERSEDED","MERGED"].includes(String(field(v,"lifecycle")))).map(([id])=>id)])];
+}
 export const emptyExecution = (): ExecutionRecord => ({ version: 0, snapshot: null, updatedAt: null });
 export function validSnapshot(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;

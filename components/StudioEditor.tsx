@@ -12,7 +12,8 @@ export default function StudioEditor({ kind, task, goal, onClose }: { kind: "tas
       if (kind === "login") {
         const response = await fetch("/api/riala", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({command:"login", secret:data.get("secret")})});
         if (!response.ok) throw new Error("接続できません。操作キーと保存先の設定を確認してください。");
-        window.dispatchEvent(new Event("work-os-auth")); await work.refresh();
+        window.dispatchEvent(new Event("work-os-auth"));
+        if(!await work.refresh())throw new Error("ログイン後の保存先を確認できません。接続設定を確認してください。");
       } else {
         const body: Record<string, unknown> = { command: kind === "task" ? task ? "updateTask" : "createTask" : goal ? "updateGoal" : "createGoal", title:data.get("title") };
         if (kind === "task") Object.assign(body, {id:task?.id, description:data.get("description") || undefined, deadline:data.get("date") || null, goalId:data.get("parent") || null, definitionOfDone:String(data.get("criteria") ?? "").split("\n").filter(x=>x.trim())}, task ? {status:data.get("status")} : {area:data.get("area"), aiCapability:data.get("owner")});

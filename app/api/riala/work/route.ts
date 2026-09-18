@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { authenticated, equalSecret, sameOrigin } from "../../../../lib/riala-planner/security";
 import { mutateWork, WorkConflict, WorkInputError } from "../../../../lib/work/model";
 import { workStore, executionStore } from "../../../../lib/work/store";
+import { closedExecutionTaskIds } from "../../../../lib/work/execution";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
@@ -37,8 +38,8 @@ export async function POST(request: Request) {
     if (!isWorker && ["claim", "result"].includes(String(body.command))) return json({ error: "Worker認証が必要です" }, 403);
     const store = workStore(); if (!store) return json({ error: "中央保存先が未設定です" }, 503);
     const now = new Date().toISOString(), id = randomUUID();
-    const execution = body.command === "claim" ? await executionStore()?.read() : null;
-    const completed = Object.keys(execution?.snapshot?.completions ?? {});
+    const execution = ["claim", "enqueue"].includes(String(body.command)) ? await executionStore()?.read() : null;
+    const completed = closedExecutionTaskIds(execution?.snapshot ?? null);
     const result = await store.transact(l => mutateWork(l, body, now, id, completed));
     return json({ result, ledger: await store.read() });
   } catch (error) { return json({ error: error instanceof WorkConflict || error instanceof WorkInputError ? error.message : "更新結果を確認できません。再読み込みしてから判断してください" }, error instanceof WorkConflict ? 409 : error instanceof WorkInputError ? 400 : 503); }

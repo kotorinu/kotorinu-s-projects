@@ -11,7 +11,7 @@ import {
 } from "react";
 import { __setClockOverrideForTesting, todayStr } from "./date";
 import { bankedMinutesFor, endWorkOn, startWorkOn } from "./workSession";
-import { validSnapshot } from "./work/execution";
+import { validSnapshot, executionReadDecision, type ExecutionAcknowledgement } from "./work/execution";
 import type {
   CarryoverDisposition,
   CarryoverRecord,
@@ -214,6 +214,8 @@ function rollover(state: RolloverState, newDate: string): RolloverState {
 }
 
 interface TodayExecutionApi {
+  executionReady: boolean;
+  executionStatus: string;
   currentDate: string;
   done: Set<string>;
   recurringDone: Set<string>;
@@ -406,8 +408,14 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const cloud = useRef<{ version: number; saved: string; loading: boolean; stopped: boolean; saving: boolean }>({ version: -1, saved: "", loading: false, stopped: false, saving: false });
   const latest = useRef(state);
+  const acknowledgement = useRef<ExecutionAcknowledgement|null>(null);
+  function acknowledge(version:number,serialized:string) {
+    acknowledgement.current={version,serialized};
+    try { window.localStorage.setItem(`${STORAGE_KEY}:cloud-ack`,JSON.stringify(acknowledgement.current)); } catch { /* The in-memory version still protects this visit. */ }
+  }
   useIsomorphicLayoutEffect(() => { latest.current = state; }, [state]);
   const [cloudStatus, setCloudStatus] = useState("実績は端末に保存されています。中央接続を確認中");
+  const [executionReady, setExecutionReady] = useState(false);
   const [cloudTick, setCloudTick] = useState(0);
 
   useEffect(() => {
@@ -416,6 +424,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     const load = async () => {
       if (cloud.current.loading || cloud.current.saving) return;
       cloud.current.loading = true;
+      setExecutionReady(false);
       const before = JSON.stringify(toPersisted(latest.current));
       try {
         const response = await fetch("/api/riala/work/execution", { cache: "no-store" });
@@ -423,17 +432,21 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
         const result = await response.json(); if (!alive) return;
         if (before !== JSON.stringify(toPersisted(latest.current))) throw new Error("読込中に実績が変わりました。端末の記録を保全しています");
         if (result.snapshot && !validSnapshot(result.snapshot)) throw new Error("中央実績の形式を確認してください");
-        if (result.snapshot) {
+        const decision=executionReadDecision(before,acknowledgement.current,result.version);
+        if(decision==="CONFLICT")throw new Error("端末の未保存実績と中央データの両方が変わっています。端末の記録を保持し、同期を停止しています");
+        if (result.snapshot && decision==="CENTRAL") {
           // Preserve a separate recoverable device copy before first migration.
           if (before !== JSON.stringify(result.snapshot)) window.localStorage.setItem(`${STORAGE_KEY}:backup:${Date.now()}`, before);
           const restored = fromPersisted(result.snapshot as unknown as PersistedShape);
           const next = restored.current.date === todayStr() ? restored : rollover(restored, todayStr());
           cloud.current.saved = JSON.stringify(result.snapshot); setState(next);
-        } else cloud.current.saved = "";
+        } else cloud.current.saved = result.snapshot?JSON.stringify(result.snapshot):"";
+        acknowledge(result.version,result.snapshot?JSON.stringify(result.snapshot):"");
         cloud.current.version = result.version; cloud.current.stopped = false;
-        setCloudStatus(result.snapshot ? "実績を中央データから取得しました" : "端末の実績を中央保存へ移行します");
+        setExecutionReady(true);
+        setCloudStatus(decision==="DEVICE"?"端末の未保存実績を保持し、中央保存へ送ります":result.snapshot ? "実績を中央データから取得しました" : "端末の実績を中央保存へ移行します");
         setCloudTick(t => t + 1);
-      } catch (e) { if (alive) { cloud.current.stopped = true; setCloudStatus((e as Error).message); } }
+      } catch (e) { if (alive) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus((e as Error).message); } }
       finally { cloud.current.loading = false; }
     };
     void load();
@@ -454,8 +467,9 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ version: cloud.current.version, snapshot: JSON.parse(serialized) }) });
         const result = await response.json(); if (!response.ok) throw new Error(result.error ?? "中央保存に失敗しました");
         cloud.current.version = result.version; cloud.current.saved = serialized;
+        acknowledge(result.version,serialized);
         setCloudStatus("実績の中央保存を確認しました");
-      } catch (e) { cloud.current.stopped = true; setCloudStatus(`${(e as Error).message}。端末の記録は保持しています`); }
+      } catch (e) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus(`${(e as Error).message}。端末の記録は保持しています`); }
       finally { cloud.current.saving = false; setCloudTick(t => t + 1); }
     }, 800);
     return () => clearTimeout(timeout);
@@ -465,6 +479,11 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
   // the placeholder date is never visible. With useEffect the user would see
   // one frame of 1970-01-01 with an empty plan on every load.
   useIsomorphicLayoutEffect(() => {
+    try {
+      const rawAck=window.localStorage.getItem(`${STORAGE_KEY}:cloud-ack`);
+      const ack=rawAck?JSON.parse(rawAck):null;
+      if(ack && Number.isSafeInteger(ack.version) && ack.version>=0 && typeof ack.serialized==="string")acknowledgement.current=ack;
+    } catch { acknowledgement.current=null; }
     // Resolved synchronously, before paint — deferring this (setTimeout /
     // useEffect) shows the placeholder date for a frame.
     setState((prev) => {
@@ -533,6 +552,8 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
   // coarse `[state]` array). Context consumers re-render on every state
   // change regardless, so a plain object is simpler and equally cheap.
   const api: TodayExecutionApi = {
+    executionReady,
+    executionStatus: cloudStatus,
     currentDate: state.current.date,
     done: state.current.done,
     recurringDone: state.current.recurringDone,

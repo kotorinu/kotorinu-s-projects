@@ -1,0 +1,21 @@
+// Isolated browser integration fixture. Never connects to the production Redis.
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { spawn } from "node:child_process";
+const require=createRequire(import.meta.url);
+const port=Number(process.argv[2]??"4621");
+if(!Number.isInteger(port) || port<1024 || port>65535)throw Error("Invalid test port");
+const {createTask,mutateWork}=require("../.test-build/lib/work/model.js");
+const now=new Date().toISOString();
+const date=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+const ledger={schemaVersion:1,version:1,tasks:[],goals:[],runs:[],audit:[]};
+mutateWork(ledger,{command:"createGoal",version:1,title:"UI検証用の目標",desiredState:"記録と振り返りがつながる",achievementCriteria:"開始、中断、完了、読み戻しを確認",targetDate:null},now,"ui-goal");
+const task=createTask({title:"UI検証：開始・中断・完了",description:"これは隔離したテストデータです。本番の実績には入りません。",deadline:date,estimateMinutes:10,goalId:"ui-goal",definitionOfDone:["操作後の記録を読み戻す"]},"ui-task",now);
+task.workDate=date;task.lifecycle="ACTIVE";ledger.tasks.push(task);
+mutateWork(ledger,{command:"createTask",version:1,title:"UI検証：AI成果物の確認",description:"隔離した成果物と根拠を読み戻す",aiCapability:"AI_DRAFT",definitionOfDone:["確認した成果物を受け入れる"],goalId:"ui-goal"},now,"ui-ai");
+const secret="work-os-isolated-ui-test-key-000001";
+const preload=fileURLToPath(new URL("./ui-test-redis.cjs",import.meta.url));
+const child=spawn(process.execPath,["--require",preload,"node_modules/next/dist/bin/next","start","--hostname","127.0.0.1","--port",String(port)],{stdio:"inherit",env:{...process.env,WORK_OS_UI_TEST_FIXTURE:"1",WORK_OS_UI_TEST_LEDGER:JSON.stringify(ledger),RIALA_APP_ORIGIN:`http://127.0.0.1:${port}`,RIALA_OPERATOR_SECRET:secret,RIALA_REDIS_REST_URL:"https://redis-fixture.invalid",RIALA_REDIS_REST_TOKEN:"isolated-fixture",KV_REST_API_URL:"https://redis-fixture.invalid",KV_REST_API_TOKEN:"isolated-fixture",UPSTASH_REDIS_REST_URL:"https://redis-fixture.invalid",UPSTASH_REDIS_REST_TOKEN:"isolated-fixture",WORK_OS_WORKER_SECRET:"isolated-worker-key-000001-000001-000001",WORK_OS_API_SECRET:"isolated-api-key-000001-000001-000001",RIALA_ENABLE_SEND:"false",RIALA_AUTO_SEND:"false"}});
+const close=()=>child.kill();
+process.on("SIGINT",close);process.on("SIGTERM",close);
+console.log(`Isolated UI test: http://127.0.0.1:${port} (no production storage)`);

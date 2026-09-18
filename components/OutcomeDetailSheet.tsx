@@ -1,7 +1,7 @@
 "use client";
 import { useWork } from "@/lib/work/client";
 
-import { useEffect } from "react";
+import StudioDialog from "./StudioDialog";
 import Link from "next/link";
 import { fixedCalendarEvents, recurringRules, weeklyReadings } from "@/lib/dummy-data";
 import { confidenceLabel, planningConstraintLabel } from "@/lib/calendar";
@@ -19,14 +19,7 @@ const statusLabel: Record<Outcome["status"], string> = {
 
 export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outcome; onClose: () => void }) {
   const { tasks } = useWork();
-  useEffect(() => {
-    const mainEl = document.querySelector("main");
-    const prev = mainEl?.style.overflow;
-    if (mainEl) mainEl.style.overflow = "hidden";
-    return () => {
-      if (mainEl) mainEl.style.overflow = prev ?? "";
-    };
-  }, []);
+
 
   const linkedRules = recurringRules.filter((r) => r.outcomeId === outcome.id);
   const linkedTasks = tasks.filter((t) => t.outcomeId === outcome.id);
@@ -35,10 +28,8 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
   const taskProgress = computeProgress(linkedTasks);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-stretch lg:justify-end">
-      <button type="button" aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-stone-900/45" />
-
-      <div className="relative flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white shadow-2xl lg:max-h-none lg:h-full lg:w-[480px] lg:max-w-[480px] lg:rounded-none lg:rounded-l-3xl">
+    <StudioDialog title={outcome.title} onClose={onClose}>
+      <div className="flex w-full flex-col bg-white">
         <div className="flex shrink-0 justify-center pt-2.5 lg:hidden">
           <span className="h-1 w-9 rounded-full bg-stone-200" />
         </div>
@@ -202,7 +193,7 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
           )}
         </div>
       </div>
-    </div>
+    </StudioDialog>
   );
 }
 
