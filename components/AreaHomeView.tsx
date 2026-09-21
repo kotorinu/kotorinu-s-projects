@@ -138,7 +138,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
         <h1 className="mt-1 text-[24px] font-black tracking-tight">{profile.area}</h1>
         {profile.area === "RIALA" && (
           <p className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-[13px] font-bold leading-relaxed text-stone-500">
-            旧FANTSの移行記録は <span className="text-stone-700">過去の記録</span>です。新しい判断と準備は、上のAIの受付で行います。
+            旧FANTSの移行記録は <span className="text-stone-700">過去の記録</span>です。新しい判断と準備は、このページ下のAIの受付で行います。
           </p>
         )}
       </header>

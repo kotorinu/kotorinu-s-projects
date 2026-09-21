@@ -9,10 +9,11 @@ import { isTaskLive, isTaskDone } from "@/lib/taskState";
 import { GOAL_HORIZON_LABEL } from "@/lib/types";
 import type { Goal } from "@/lib/types";
 import StudioHeader from "@/components/StudioHeader";
+import StudioSkeleton from "@/components/StudioSkeleton";
 import StudioConnection from "@/components/StudioConnection";
 import StudioEditor from "@/components/StudioEditor";
 import StudioDialog from "@/components/StudioDialog";
-export default function GoalsPage() { return <Suspense fallback={<div className="studio">目標を読み込んでいます…</div>}><GoalsContent /></Suspense>; }
+export default function GoalsPage() { return <Suspense fallback={<StudioSkeleton rows={3} />}><GoalsContent /></Suspense>; }
 function GoalsContent() {
   const work=useWork(); const store=useTodayExecution(); const params=useSearchParams();
   const [period,setPeriod]=useState("すべて"); const [query,setQuery]=useState(""); const [adding,setAdding]=useState(false); const [editing,setEditing]=useState<Goal|undefined>();

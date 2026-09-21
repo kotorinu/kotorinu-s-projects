@@ -8,12 +8,13 @@ import { effectiveDeadline, effectiveLifecycle, isTaskDone, isTaskBlocked } from
 import { formatMd } from "@/lib/date";
 import { AREA_THEME } from "@/lib/areaTheme";
 import StudioHeader from "@/components/StudioHeader";
+import StudioSkeleton from "@/components/StudioSkeleton";
 import StudioConnection from "@/components/StudioConnection";
 import StudioEditor from "@/components/StudioEditor";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import type { Task } from "@/lib/types";
 const tabs = ["未完了", "進行中", "AI担当", "終了", "すべて"];
-export default function TasksPage() { return <Suspense fallback={<div className="studio">タスクを読み込んでいます…</div>}><TasksContent /></Suspense>; }
+export default function TasksPage() { return <Suspense fallback={<StudioSkeleton rows={4} />}><TasksContent /></Suspense>; }
 function TasksContent() {
   const params = useSearchParams();
   const work = useWork(); const store = useTodayExecution();
