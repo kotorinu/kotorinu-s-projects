@@ -136,7 +136,7 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
     l.runs.push({ id, taskId: task.id, status: "QUEUED", claim: null, leaseUntil: null, provider: null, output: null, evidence: [], blocker: null, createdAt: now, updatedAt: now });
     task.aiStatus = "未着手"; task.updatedAt = now;
   } else if (command === "claim") {
-    const next = l.runs.find(r => r.status === "QUEUED" && (body.taskId === undefined || r.taskId === body.taskId));
+    const next = l.runs.find(r => { const t=l.tasks.find(t=>t.id===r.taskId); return r.status === "QUEUED" && !!t && !["完了","Archive"].includes(t.status) && ["ACTIVE","BACKLOG"].includes(t.lifecycle) && (body.taskId === undefined || r.taskId === body.taskId); });
     if (!next) return { run: null };
     const task = l.tasks.find(t => t.id === next.taskId)!;
     if (finishedTaskIds.includes(task.id)) {

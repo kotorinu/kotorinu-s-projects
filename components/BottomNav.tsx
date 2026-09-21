@@ -6,6 +6,8 @@ import NavIcon from "./NavIcon";
 import { useState } from "react";
 import StudioDialog from "./StudioDialog";
 const menuLinks = [
+  { href: "/ai", label: "AIの作業", note: "依頼・確認待ちの成果物" },
+  { href: "/notes", label: "noteを書く", note: "材料・下書き・保存" },
   { href: "/sales-script", label: "営業スクリプト", note: "読む・覚える・編集する" },
   { href: "/overview", label: "全体を見る", note: "仕事と学びの状況" },
   { href: "/pdca", label: "振り返り", note: "実績を確認して次につなげる" },

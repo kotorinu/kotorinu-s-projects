@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { deviceAuthenticated } from '../../../../lib/server/deviceSession';
 import { authenticated, equalSecret, sameOrigin } from "../../../../lib/riala-planner/security";
 import { mutateWork, WorkConflict, WorkInputError } from "../../../../lib/work/model";
 import { workStore, executionStore } from "../../../../lib/work/store";
@@ -15,7 +16,7 @@ function externalAI(request: Request) {
   return key.length >= 32 && equalSecret(request.headers.get("authorization") ?? "", `Bearer ${key}`);
 }
 export async function GET(request: Request) {
-  if (!authenticated(request) && !worker(request) && !externalAI(request)) return json({ error: "認証が必要です" }, 401);
+  if (!authenticated(request) && !deviceAuthenticated(request) && !worker(request) && !externalAI(request)) return json({ error: "認証が必要です" }, 401);
   try { const store = workStore(); if (!store) return json({ error: "中央保存先が未設定です" }, 503);
     const ledger = await store.read();
     const execution = await executionStore()?.read();
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   const isWorker = worker(request);
   const isExternal = externalAI(request);
   if (!isWorker && !isExternal && !sameOrigin(request)) return json({ error: "Origin確認に失敗しました" }, 403);
-  if (!isWorker && !isExternal && !authenticated(request)) return json({ error: "認証が必要です" }, 401);
+  if (!isWorker && !isExternal && !authenticated(request) && !deviceAuthenticated(request)) return json({ error: "認証が必要です" }, 401);
   if (!request.headers.get("content-type")?.startsWith("application/json")) return json({ error: "JSONが必要です" }, 415);
   try {
     const raw = await request.text(); if (raw.length > 100000) return json({ error: "入力が大きすぎます" }, 413);
