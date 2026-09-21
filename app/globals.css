@@ -173,8 +173,24 @@ html { scroll-padding-top: 5rem; }
 
 /* Default to a readable light workspace, independent of system appearance. */
 :root { color-scheme: light; }
+:root { --space-unit:8px; --space-sm:16px; --space-md:24px; --space-lg:32px; }
+.studio { padding:24px; font-size:16px; line-height:24px; }
+.studio-header h1 { font-size:32px; line-height:40px; }
+.studio-card { border-radius:16px; }
+.studio-primary,.studio-secondary { min-height:48px; padding:8px 16px; font-size:16px; line-height:24px; border-radius:16px; }
+.studio-dialog-body { padding:24px; }
+.studio-actions,.studio-form { gap:16px; }
+.studio-form label { gap:8px; }
+.work-shortcuts { gap:16px; }
+.work-shortcuts a { gap:8px; padding:16px; font-size:16px; line-height:24px; }
+.note-next-step { padding:16px; margin-bottom:24px; }
+.note-next-step summary { cursor:pointer; min-height:48px; padding-block:8px; font-size:16px; line-height:32px; }
+.note-next-step-body { display:grid; gap:16px; padding-top:16px; }
+.note-next-step-body p { font-size:16px; line-height:24px; color:#4f605d; }
+@media(max-width:640px) { .studio { padding:24px 16px; } }
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 .studio-subtitle,.studio-eyebrow,.studio-disclosure summary { color:#4f605d; }
 .studio-header h1 { font-size:clamp(30px,4vw,42px); line-height:1.35; }
 .studio-header { margin-bottom:24px; }
-@media(max-width:640px){.studio{padding-top:26px}.studio-subtitle{font-size:16px}.studio-card{border-color:#d8e2df}.studio-header h1{font-size:30px}}
+.studio-header h1 { font-size:32px; line-height:40px; }
+@media(max-width:640px){.studio{padding-top:24px}.studio-subtitle{font-size:16px;line-height:24px}.studio-card{border-color:#d8e2df}.studio-header h1{font-size:32px;line-height:40px}}

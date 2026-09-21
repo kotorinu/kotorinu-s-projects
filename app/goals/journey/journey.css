@@ -9,7 +9,13 @@
 .goal-journey .items-baseline { flex-wrap: wrap; row-gap: 8px; }
 .goal-journey section.bg-accent { background: #245f53; padding: 24px; margin-bottom: 24px; }
 .goal-journey section.bg-accent p { color: white; }
-.goal-journey section.bg-accent .line-clamp-2 { display: block; -webkit-line-clamp: unset; }
+.journey-hero-detail { margin-top: 16px; }
+.journey-hero-detail summary { min-height: 48px; cursor: pointer; padding-block: 8px; }
+.journey-hero-detail p { margin-top: 16px; font-size: 16px; line-height: 32px; }
+.journey-areas { margin: 0 0 24px 24px; }
+.journey-areas summary { min-height: 48px; padding: 8px 16px; cursor: pointer; font-size: 16px; line-height: 32px; font-weight: 600; }
+.journey-areas summary span { font-weight: 400; color: #60736e; }
+.journey-areas[open] > div { margin-top: 16px; gap: 16px; }
 .goal-journey section.bg-white { padding: 24px; border-color: #d8e4df; }
 .goal-journey section.bg-white > .mt-3 { margin-top: 24px; }
 .goal-journey section.bg-white > .mt-3 > p:first-child { margin-bottom: 8px; }
@@ -18,7 +24,18 @@
 .goal-detail-dialog { position: fixed; inset: auto 0 0; width: 100%; max-width: 640px; max-height: 88dvh; margin: auto auto 0; padding: 0; border: 0; border-radius: 24px 24px 0 0; overflow-y: auto; overscroll-behavior: contain; color: #243b38; background: white; }
 .goal-detail-dialog::backdrop { background: rgb(19 39 34 / 45%); }
 @media (max-width: 639px) {
-  .goal-journey button.rounded-2xl { padding: 20px; }
-  .goal-journey section.bg-white { padding: 20px; }
+  .goal-journey button.rounded-2xl { padding: 16px; }
+  .goal-journey section.bg-white { padding: 16px; }
   .goal-journey .ml-6 { margin-left: 16px; }
 }
+.goal-journey .px-5 { padding-inline: 24px; }
+.goal-journey .mx-5 { margin-inline: 24px; }
+.goal-journey .gap-3 { gap: 16px; }
+.goal-journey .mt-3 { margin-top: 16px; }
+.goal-journey .mt-1\.5 { margin-top: 8px; }
+.goal-journey .py-3 { padding-block: 16px; }
+.goal-journey h1 { font-size: 32px; line-height: 40px; }
+.goal-journey :is(.text-\[13px\],.text-\[14px\]) { font-size: 16px; line-height: 24px; }
+.goal-journey button.rounded-xl { padding: 16px; margin-block: 0; }
+.goal-journey .lg\:gap-5 { gap: 24px; }
+@media(max-width:639px) { .goal-journey .px-5 { padding-inline:16px; } .goal-journey .mx-5 { margin-inline:16px; } }

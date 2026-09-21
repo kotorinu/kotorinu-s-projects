@@ -110,8 +110,8 @@ function GoalTreeContent() {
                 onSelect={() => select(node.goal.id)}
               />
               {node.goal.horizon === "1M" && areas.length > 0 && (
-                <div className="mb-2 ml-6 border-l border-dashed border-stone-200 pl-3">
-                  <p className="mb-1.5 text-[13px] font-bold text-stone-400">この1か月を作っているもの</p>
+                <details className="journey-areas">
+                  <summary>この1か月の取り組み <span> {areas.length}件を開く</span></summary>
                   <div className="flex flex-col gap-1.5">
                     {areas.map((g) => (
                       <div key={g.id} id={`goal-${g.id}`} className="scroll-mt-28">
@@ -124,7 +124,7 @@ function GoalTreeContent() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
             </div>
           ))}
@@ -249,9 +249,8 @@ function NextMilestoneCard({ goal, today }: { goal: Goal; today: string }) {
         )}
       </div>
       {/* §9: ここも2行まで。全文は下のCardをTapして読む。 */}
-      <p className="mt-1.5 line-clamp-2 text-[14px] font-medium leading-relaxed text-white/95">
-        {goal.desiredState.replace(/\n/g, " ")}
-      </p>
+      <p className="mt-1.5 text-[14px] font-medium leading-relaxed text-white/95">{goal.nextEvidence || goal.title}</p>
+      <details className="journey-hero-detail"><summary>目指す状態を読む</summary><p className="whitespace-pre-line">{goal.desiredState}</p></details>
     </section>
   );
 }
