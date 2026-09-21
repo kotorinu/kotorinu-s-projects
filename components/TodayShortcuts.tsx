@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- The script reader requires a full document navigation, not an RSC transition. */
 import Link from "next/link";
 
 export default function TodayShortcuts() {
