@@ -1,4 +1,3 @@
-import { deviceAuthenticated } from '../../../../../lib/server/deviceSession';
 import { authenticated, sameOrigin } from '../../../../../lib/riala-planner/security';
 import { initialScript, scriptStore, updateScript } from '../../../../../lib/sales-script/store';
 export const dynamic = 'force-dynamic';
@@ -9,16 +8,16 @@ export async function GET(request: Request) {
   try {
     const store = scriptStore();
     const state = store ? await store.read() : initialScript();
-    if (action === 'document') return json({ content: state.content, revision: state.version, canEdit: !!store && (authenticated(request) || deviceAuthenticated(request)), persistent: !!store });
+    if (action === 'document') return json({ content: state.content, revision: state.version, canEdit: !!store && authenticated(request), persistent: !!store });
     if (action === 'versions') {
-      if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: '履歴を見るには編集ログインが必要です' }, 401);
+      if (!authenticated(request)) return json({ error: '履歴を見るには編集ログインが必要です' }, 401);
       return json({ versions: state.versions.map(({ id, note, created_at }) => ({ id, note, created_at })).reverse() });
     }
     return json({ error: 'not found' }, 404);
   } catch { return json({ error: 'クラウドに接続できません' }, 503); }
 }
 async function mutate(request: Request) {
-  if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: '編集ログインが必要です' }, 401);
+  if (!authenticated(request)) return json({ error: '編集ログインが必要です' }, 401);
   if (!sameOrigin(request)) return json({ error: 'Origin mismatch' }, 403);
   if (!request.headers.get('content-type')?.startsWith('application/json')) return json({ error: 'JSON required' }, 415);
   const store = scriptStore();

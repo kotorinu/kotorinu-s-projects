@@ -1,11 +1,10 @@
-import { deviceAuthenticated } from '../../../../../lib/server/deviceSession';
 import { authenticated } from "../../../../../lib/riala-planner/security";
 import { workStore, executionStore } from "../../../../../lib/work/store";
 import { calendarFile } from "../../../../../lib/work/ical";
 import type { TimeBlockOverride } from "../../../../../lib/types";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
-  if (!authenticated(request) && !deviceAuthenticated(request)) return Response.json({ error: "認証が必要です" }, { status: 401 });
+  if (!authenticated(request)) return Response.json({ error: "認証が必要です" }, { status: 401 });
   try {
     const core = workStore(), execution = executionStore(); if (!core || !execution) throw new Error();
     const [ledger, record] = await Promise.all([core.read(), execution.read()]);
