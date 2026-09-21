@@ -91,88 +91,12 @@ body, .studio-card, .studio-empty, .studio-subtitle, h1, h2, h3 { word-break: au
   .studio-empty { min-height: 0; padding: 24px 8px; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root { --background:#0d1518; --foreground:#edf6f4; --surface:#142023; --surface-ink:#edf6f4; --hairline:#29383b; --accent:#42d2b4; --accent-dark:#7ee4d0; --accent-soft:#173934; }
-  body,.studio-card,.studio-secondary,.studio-icon-button,.studio-search,.studio-toolbar select{background-color:var(--surface);color:var(--foreground)}
-  .studio-header h1{color:var(--foreground)}
-  .studio-card{box-shadow:none}
-}
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-accent-dark: var(--accent-dark);
-  --color-accent-soft: var(--accent-soft);
-  --color-surface: var(--surface);
-  --color-danger: var(--danger);
-  --color-danger-soft: var(--danger-soft);
-  --color-hairline: var(--hairline);
-  --font-sans: var(--font-noto-sans-jp);
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-html { scroll-padding-top: 5rem; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-}
-
-@keyframes burst-fade {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes confetti-fall {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 60px))) rotate(var(--cr, 180deg));
-  }
-}
-
-.studio-disclosure summary { cursor: pointer; padding: 14px 0; font-size: 14px; line-height: 1.8; color: #756b85; }
-
-/* Calm, readable controls shared across the everyday workspace. */
-.mobile-work-nav { background: color-mix(in srgb, var(--surface) 96%, transparent); }
-.work-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-bottom: 24px; }
-.work-shortcuts a { display: flex; min-height: 56px; align-items: center; gap: 10px; padding: 14px 16px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--surface); color: var(--foreground); font-size: 14px; }
-.work-shortcuts a > span:last-child { margin-left: auto; color: var(--accent-dark); }
-.work-shortcuts strong { font-weight: 500; }
-.work-menu-links { display: grid; gap: 8px; }
-.work-menu-links a { display: flex; flex-direction: column; gap: 4px; min-height: 64px; border-radius: 12px; padding: 12px 16px; background: var(--background); color: var(--foreground); }
-.work-menu-links a:hover, .work-menu-links a[aria-current=page] { background: var(--accent-soft); }
-.work-menu-links strong { font-size: 16px; font-weight: 600; }
-.work-menu-links span { font-size: 14px; color: #63736f; }
-.studio-primary,.studio-secondary,.studio-card { box-shadow: none; }
-.studio-header .desk-object { display: none; }
-.studio-header h1 { font-weight: 700; letter-spacing: -.03em; }
-.studio-form input,.studio-form textarea,.studio-form select,.studio-search { font-size: 16px; }
-@media(max-width:640px) {
-  .studio { padding-bottom: 24px; }
-  .studio-tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
-  .studio-tabs button { flex-shrink: 0; }
-  .work-shortcuts { gap: 8px; }
-  .work-shortcuts a { gap: 6px; padding: 12px 10px; }
-  .work-shortcuts a > span:first-child { display: none; }
-  .studio-card { border-radius: 20px; }
-}
-@media(prefers-color-scheme:dark) {
-  .studio-dialog { background:var(--surface); color:var(--foreground); }
-  .work-menu-links span { color:#a5bab4; }
-}
+/* Keep the workspace readable regardless of the phone's system appearance. */
+:root { color-scheme: light; }
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+.studio-subtitle,.studio-eyebrow,.studio-disclosure summary { color:#4f605d; }
+.studio-header h1 { font-size:clamp(30px,4vw,42px); line-height:1.35; }
+.studio-header { margin-bottom:24px; }
+@media(max-width:640px){.studio{padding-top:26px}.studio-subtitle{font-size:16px}.studio-card{border-color:#d8e2df}.studio-header h1{font-size:30px}}
