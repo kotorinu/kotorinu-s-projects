@@ -415,6 +415,10 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
   }
   useIsomorphicLayoutEffect(() => { latest.current = state; }, [state]);
   const [cloudStatus, setCloudStatus] = useState("実績は端末に保存されています。中央接続を確認中");
+  // Whether the last sync actually needs the reader's attention. Saving
+  // normally is not news, and a permanent status line reads as a permanent
+  // warning.
+  const [cloudProblem, setCloudProblem] = useState(false);
   const [executionReady, setExecutionReady] = useState(false);
   const [cloudTick, setCloudTick] = useState(0);
 
@@ -445,8 +449,9 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
         cloud.current.version = result.version; cloud.current.stopped = false;
         setExecutionReady(true);
         setCloudStatus(decision==="DEVICE"?"端末の未保存実績を保持し、中央保存へ送ります":result.snapshot ? "実績を中央データから取得しました" : "端末の実績を中央保存へ移行します");
+        setCloudProblem(false);
         setCloudTick(t => t + 1);
-      } catch (e) { if (alive) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus((e as Error).message); } }
+      } catch (e) { if (alive) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus((e as Error).message); setCloudProblem(true); } }
       finally { cloud.current.loading = false; }
     };
     void load();
@@ -469,7 +474,8 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
         cloud.current.version = result.version; cloud.current.saved = serialized;
         acknowledge(result.version,serialized);
         setCloudStatus("実績の中央保存を確認しました");
-      } catch (e) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus(`${(e as Error).message}。端末の記録は保持しています`); }
+        setCloudProblem(false);
+      } catch (e) { cloud.current.stopped = true; setExecutionReady(false); setCloudStatus(`${(e as Error).message}。端末の記録は保持しています`); setCloudProblem(true); }
       finally { cloud.current.saving = false; setCloudTick(t => t + 1); }
     }, 800);
     return () => clearTimeout(timeout);
@@ -790,7 +796,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
       }),
   };
 
-  return <TodayExecutionContext.Provider value={api}><p role="status" className="pointer-events-none fixed inset-x-0 bottom-20 z-20 mx-auto max-w-[600px] rounded bg-white/95 px-5 py-1 text-[10px] text-stone-500 lg:bottom-2">{cloudStatus}</p>{children}</TodayExecutionContext.Provider>;
+  return <TodayExecutionContext.Provider value={api}><p role="status" className={cloudProblem ? "fixed inset-x-0 bottom-20 z-20 mx-auto max-w-[600px] rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-[13px] leading-6 text-amber-900 shadow-sm lg:bottom-3" : "sr-only"}>{cloudStatus}</p>{children}</TodayExecutionContext.Provider>;
 }
 
 export function useTodayExecution(): TodayExecutionApi {

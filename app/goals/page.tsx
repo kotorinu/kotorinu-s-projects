@@ -19,7 +19,7 @@ function GoalsContent() {
   const [selectedId,setSelectedId]=useState<string|null>(params.get("focus"));
   const selected=work.goals.find(g=>g.id===selectedId);
   const visible=work.goals.filter(g=>(period==="すべて" || (period==="人生の軸" ? g.horizon==="PHILOSOPHY" || g.isNorthStar!==null : period==="仕事" ? g.horizon==="AREA" : period==="近い目標" ? ["1M","3M","6M"].includes(g.horizon) : ["1Y","3Y","5Y"].includes(g.horizon))) && (g.title+" "+g.desiredState).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).sort((a,b)=>(a.targetDate??"9999").localeCompare(b.targetDate??"9999"));
-  return <div className="studio"><StudioHeader eyebrow="MY GOALS" title="なりたい自分" subtitle="遠くの目標と、いまの一歩。自分のペースでつなげていこう。" kind="goals" action={<><button className="studio-primary" onClick={()=>setAdding(true)}>＋ 目標を追加</button><Link href="/goals/journey" className="studio-secondary">道筋を詳しく見る</Link></>} /><StudioConnection />
+  return <div className="studio"><StudioHeader title="なりたい自分" subtitle="遠くの目標と、いまの一歩。" kind="goals" action={<button className="studio-secondary" onClick={()=>setAdding(true)}>＋ 目標を追加</button>} />
     <input type="search" aria-label="目標を検索" className="studio-search mb-4" value={query} onChange={e=>setQuery(e.target.value)} placeholder="目標や、なりたい状態で検索" />
     <div className="studio-toolbar"><div className="studio-tabs" aria-label="目標の期間">{["すべて","人生の軸","近い目標","長期","仕事"].map(x=><button key={x} aria-pressed={period===x} onClick={()=>setPeriod(x)}>{x}</button>)}</div></div>
     {visible.length===0 ? <div className="studio-card studio-empty"><span className="text-4xl text-violet-300" aria-hidden="true">◎</span><h2 className="font-semibold text-slate-700">まだ、ここに目標はありません</h2><p>目標を追加するか、表示の条件を変えてみてください。</p><button className="studio-secondary" onClick={()=>{setQuery("");setPeriod("すべて");}}>すべての目標を見る</button></div> : <div className="grid gap-5 md:grid-cols-2">{visible.map(g=>{
@@ -32,6 +32,7 @@ function GoalsContent() {
       <div><h3 className="mb-3 text-sm font-semibold">関連タスク</h3>{work.tasks.filter(t=>t.goalId===selected.id && isTaskLive(t,store)).map(t=><Link key={t.id} className="mb-2 block rounded-xl bg-[#f8f6fc] p-3 text-sm leading-7" href={"/tasks?focus="+encodeURIComponent(t.id)}>{isTaskDone(t,store) && store.completions[t.id]?.metDefinitionOfDone!==false?"✓ ":"○ "}{t.title}</Link>)}</div>
       <div className="flex flex-wrap gap-3">{work.connected && <button className="studio-primary" onClick={()=>{setEditing(selected);setSelectedId(null);}}>この目標を編集</button>}{selected.linkedUrl && <Link href={selected.linkedUrl} className="studio-secondary">関連する仕事を見る</Link>}</div>
     </div></StudioDialog>}
+    <div className="mt-8 space-y-4 border-t border-[#eeeaf3] pt-6"><Link href="/goals/journey" className="studio-secondary">道筋を詳しく見る</Link><StudioConnection /></div>
     {(adding || editing) && <StudioEditor kind="goal" goal={editing} onClose={()=>{setAdding(false);setEditing(undefined);}} />}
   </div>;
 }

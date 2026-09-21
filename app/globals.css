@@ -61,7 +61,30 @@
 .desk-object-review .object-back { background: linear-gradient(130deg,#d9f0e9,#a0cfc0); box-shadow: 6px 6px 0 #91b7ad; }
 .desk-object-review .object-front { background: linear-gradient(140deg,#f7fffc,#cce6dc); box-shadow: 7px 6px 0 #a1c8ba,14px 12px 24px #79b9a535; }
 .desk-object-review .object-front span { background: linear-gradient(140deg,#91cbbb,#599b87); box-shadow: 3px 3px 0 #528c7b; }
-@media (max-width: 640px) { .studio { padding: 18px 14px 104px; } .studio-header { min-height: 0; display:block; margin-bottom:18px; } .studio-header>div:last-child { margin-top:16px; display:flex; gap:8px; overflow:auto; padding-bottom:2px; } .studio-header>div:last-child>* { white-space:nowrap; flex:0 0 auto; } .desk-object { display:none; } .studio-subtitle { max-width:none; font-size:13px; line-height:1.65; } .studio-card { border-radius:16px; } .studio-dialog-body { padding:22px; } .studio-primary,.studio-secondary{min-height:48px} }
+/* Action row. Named, rather than reached through `div:last-child` — that
+   selector matched the decorative object instead and beat `display:none`. */
+.studio-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Japanese breaks anywhere by default, which splits words across lines
+   ("決まっていませ / ん"). Phrase-aware breaking fixes it where supported and
+   costs nothing where it is not. */
+body, .studio-card, .studio-empty, .studio-subtitle, h1, h2, h3 { word-break: auto-phrase; line-break: strict; }
+
+@media (max-width: 640px) {
+  .studio { padding: 18px 14px 104px; }
+  .studio-header { min-height: 0; display: block; margin-bottom: 16px; }
+  .studio-header h1 { font-size: 26px; letter-spacing: -.04em; }
+  .studio-actions { margin-top: 14px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  .studio-actions > * { white-space: nowrap; flex: 0 0 auto; }
+  /* Decoration never takes the first screen on a phone. */
+  .studio-header .desk-object { display: none; }
+  /* 14px is the floor for anything meant to be read. */
+  .studio-subtitle { max-width: none; font-size: 14px; line-height: 1.75; }
+  .studio-card { border-radius: 16px; }
+  .studio-dialog-body { padding: 22px; }
+  .studio-primary, .studio-secondary { min-height: 48px; }
+  .studio-empty { min-height: 0; padding: 24px 8px; }
+}
 
 @media (prefers-color-scheme: dark) {
   :root { --background:#0d1518; --foreground:#edf6f4; --surface:#142023; --surface-ink:#edf6f4; --hairline:#29383b; --accent:#42d2b4; --accent-dark:#7ee4d0; --accent-soft:#173934; }
