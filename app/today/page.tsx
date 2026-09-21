@@ -17,6 +17,7 @@ import StudioDialog from "@/components/StudioDialog";
 import TaskWorkActions from "@/components/TaskWorkActions";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import StudioEditor from "@/components/StudioEditor";
+import TodayShortcuts from "@/components/TodayShortcuts";
 import type { Task } from "@/lib/types";
 
 export default function TodayPage() {
@@ -36,6 +37,7 @@ export default function TodayPage() {
   // are context, and repeating "not connected" three times before the first
   // task is what made the page feel like a warning screen.
   return <div className="studio"><StudioHeader title={title} subtitle="いまの一歩を、ひとつずつ。" kind="tasks" action={<button className="studio-secondary" onClick={()=>setAdding(true)}>＋ やることを追加</button>} />
+    <TodayShortcuts />
     <div className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
       <div className="space-y-6"><section className="studio-card p-6 sm:p-8"><p className="studio-eyebrow">{day.active?"いま作業していること":"まずは、これから"}</p>{day.focus?<><button className="mb-4 w-full text-left text-xl font-semibold leading-9 text-[#3b334b]" onClick={()=>setSelectedId(day.focus!.id)}>{day.focus.title}</button><div className="mb-5 flex flex-wrap gap-2"><span className="studio-tag">{day.focus.area}</span>{day.focus.estimateMinutes!==null && <span className="studio-tag">見積り {day.focus.estimateMinutes}分</span>}{day.active && <span className="studio-tag">記録中{measured!==null?" · 累計 約"+measured+"分":""}</span>}</div>{day.active && store.startedTaskDate!==date && <p className="mb-4 rounded-xl bg-amber-50 p-3 text-sm leading-7 text-amber-800">前の日から作業が続いています。実際に続けているか、記録を確認してください。</p>}{day.focus.definitionOfDone[0] && <p className="mb-6 rounded-xl bg-[#f5f1fb] p-4 text-sm leading-7 text-[#756b85]">完了の目安：{day.focus.definitionOfDone[0]}</p>}<TaskWorkActions key={day.focus.id} task={day.focus} /></>:<div className="studio-empty"><p className="font-semibold">今日の作業は、まだ決まっていません</p><p>タスクを選んで、取りかかる日時を決めましょう。</p><Link className="studio-secondary" href="/tasks">やることから選ぶ</Link></div>}{store.startedTaskId && !day.active && <p role="alert" className="mt-4 text-sm leading-7 text-amber-800">実行中の記録とタスクの状態が一致していません。計画・持ち越し画面で記録を確認してください。</p>}</section>
       <section className="studio-card p-6"><div className="mb-2 flex items-center justify-between"><h2 className="text-base font-semibold">今日やること</h2><span className="studio-tag">{work.connected?day.scheduled.length+"件":"参考"}</span></div>{day.scheduled.length?day.scheduled.map(taskRow):<p className="py-5 text-sm leading-7 text-[#877e94]">日時を決めたタスクはありません。</p>}{day.due.length>0 && <div className="mt-4 border-t border-[#eeeaf3] pt-4"><h3 className="text-sm font-semibold text-[#877e94]">今日が期限・作業日時は未定</h3>{day.due.map(taskRow)}</div>}</section>

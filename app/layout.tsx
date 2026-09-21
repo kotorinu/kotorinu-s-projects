@@ -37,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <ClockProvider>
             <DesktopSidebar />
             <div className="flex min-w-0 flex-1 flex-col">
-              <main id="workspace-main" tabIndex={-1} className="min-w-0 flex-1 pb-6 lg:pb-10">{children}</main>
+              <main id="workspace-main" tabIndex={-1} className="min-w-0 flex-1 pb-28 lg:pb-10">{children}</main>
               <BottomNav />
             </div>
             </ClockProvider>
