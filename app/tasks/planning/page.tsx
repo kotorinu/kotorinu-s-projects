@@ -107,7 +107,11 @@ const statusDot: Record<TaskStatus, string> = {
   Archive: "bg-stone-200",
 };
 
-export default function TaskMapPage() {
+export default function PlanningHome() {
+  const [advanced,setAdvanced]=useState(false);
+  return <><div className="studio"><h1 className="text-3xl font-bold">計画を整える</h1><p className="mt-4 text-base leading-8 text-slate-600">予定の時刻はカレンダー。ここでは、次に取りかかる作業を決めます。</p><nav className="mt-6 grid gap-4"><Link className="studio-card p-6" href="/tasks">やることを選ぶ →</Link><Link className="studio-card p-6" href="/today/planning">今日の予定・毎日のチェック →</Link><Link className="studio-card p-6" href="/goals">目標から次の一歩を選ぶ →</Link></nav><button className="studio-secondary mt-8" aria-expanded={advanced} onClick={()=>setAdvanced(!advanced)}>{advanced?'詳しい工程を閉じる':'詳しい工程・全タスクを開く'}</button></div>{advanced && <TaskMapPage />}</>;
+}
+function TaskMapPage() {
   const { tasks: allTasks } = useWork();
   // currentDate comes from the Day Rollover store, not a module-level
   // todayStr() — this page is statically prerendered, so a module const

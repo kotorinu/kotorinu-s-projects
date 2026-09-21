@@ -683,8 +683,9 @@ export default function TodayPage() {
                   <button
                     type="button"
                     onClick={() => toggleRecurring(r.id)}
-                    aria-label="完了にする"
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[13px] transition-colors ${
+                    aria-label={r.title + (checked ? "を未完了に戻す" : "を完了にする")}
+                    aria-pressed={checked}
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 text-base transition-colors ${
                       checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent"
                     }`}
                   >
@@ -693,7 +694,7 @@ export default function TodayPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedRecurring(r)}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    className="flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     <span className={`truncate text-[13px] font-medium ${checked ? "text-stone-300 line-through" : "text-stone-600"}`}>
                       {r.title}

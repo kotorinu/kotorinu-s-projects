@@ -21,7 +21,7 @@ export default function BottomNav() {
   const primary = navigation.filter(item => ["/today", "/tasks", "/goals"].includes(item.href));
   const menuActive = !primary.some(item => path.startsWith(item.href));
   return <>
-    <nav aria-label="メインナビゲーション" className="mobile-work-nav fixed inset-x-0 bottom-0 z-30 border-t border-hairline px-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl lg:hidden">
+    <nav onContextMenu={e => e.preventDefault()} aria-label="メインナビゲーション" className="mobile-work-nav fixed inset-x-0 bottom-0 z-30 border-t border-hairline px-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl lg:hidden">
       <div className="mx-auto flex max-w-lg">{primary.map(item => <Link key={item.href} href={item.href} aria-current={path.startsWith(item.href) ? "page" : undefined} className={"flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-semibold " + (path.startsWith(item.href) ? "bg-accent-soft text-accent-dark" : "text-slate-500")}><NavIcon kind={item.kind} />{item.href === "/tasks" ? "やること" : item.label}</Link>)}
         <button type="button" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)} className={"flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-semibold " + (menuActive ? "bg-accent-soft text-accent-dark" : "text-slate-500")}><span className="text-xl leading-6" aria-hidden="true">☰</span>メニュー</button>
       </div>

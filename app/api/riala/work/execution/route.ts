@@ -1,3 +1,4 @@
+import { deviceAuthenticated } from '../../../../../lib/server/deviceSession';
 import { authenticated, sameOrigin } from "../../../../../lib/riala-planner/security";
 import { redisCredentials } from "../../../../../lib/server/redisClient";
 import { RedisJsonStore } from "../../../../../lib/server/redisJsonStore";
@@ -7,13 +8,13 @@ export const dynamic = "force-dynamic";
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
 function store() { const c = redisCredentials(); return c ? new RedisJsonStore(c.url, c.token, "work:execution:v1", decodeExecution) : null; }
 export async function GET(request: Request) {
-  if (!authenticated(request)) return json({ error: "認証が必要です" }, 401);
+  if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: "認証が必要です" }, 401);
   try { const s = store(); return s ? json(await s.read()) : json({ error: "中央保存先が未設定です" }, 503); }
   catch { return json({ error: "実績を取得できません" }, 503); }
 }
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return json({ error: "Origin確認に失敗しました" }, 403);
-  if (!authenticated(request)) return json({ error: "認証が必要です" }, 401);
+  if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: "認証が必要です" }, 401);
   if (!request.headers.get("content-type")?.startsWith("application/json")) return json({ error: "JSONが必要です" }, 415);
   try {
     const raw = await request.text(); if (raw.length > 1000000) return json({ error: "実績が大きすぎます。履歴を保全して容量を確認してください" }, 413);

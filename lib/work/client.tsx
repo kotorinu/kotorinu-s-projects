@@ -1,6 +1,8 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState, useRef, type ReactNode } from "react";
-import { tasks, goals } from "../dummy-data";
+import { tasks as initialTasks, goals } from "../dummy-data";
+// Mirror the user's 2026-09-21 cleanup in the unauthenticated reference only.
+const tasks = initialTasks.map(t => t.deadline && t.deadline < '2026-09-21' && t.activityType !== 'READING' && !t.id.startsWith('t-reading-') && t.status !== '完了' ? { ...t, status: 'Archive' as const, lifecycle: 'ARCHIVED' as const } : t);
 import type { WorkLedger } from "./model";
 type WorkContextValue = { tasks: WorkLedger["tasks"]; goals: WorkLedger["goals"]; runs: WorkLedger["runs"];
   status: string; connected: boolean; refresh: () => Promise<boolean>; mutate: (body: Record<string, unknown>) => Promise<void> };
