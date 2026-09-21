@@ -1,8 +1,9 @@
 "use client";
+import "./journey.css";
 import { useWork } from "@/lib/work/client";
 import WorkControl from "@/components/WorkControl";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { allGapItems } from "@/lib/dummy-data";
@@ -54,11 +55,21 @@ function GoalTreeContent() {
   const selected = useMemo(() => goals.find((g) => g.id === selectedId) ?? null, [selectedId, goals]);
   // Mobileでは詳細をSheetで出す (§9)。Desktopは右カラムに常時。
   const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = sheetRef.current;
+    if (sheetOpen && dialog && !dialog.open) dialog.showModal();
+    if (!sheetOpen && dialog?.open) dialog.close();
+    if (!sheetOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [sheetOpen]);
 
   const tasksOf = useMemo(() => {
     const map = new Map<string, number>();
     for (const t of tasks) {
-      if (!t.goalId) continue;
+      if (!t.goalId || t.status === "Archive" || ["ARCHIVED", "DELETED", "SUPERSEDED", "MERGED"].includes(t.lifecycle)) continue;
       map.set(t.goalId, (map.get(t.goalId) ?? 0) + 1);
     }
     return map;
@@ -71,14 +82,15 @@ function GoalTreeContent() {
 
   function select(id: string) {
     setSelectedId(id);
-    setSheetOpen(true);
+    setSheetOpen(window.innerWidth < 1024);
   }
 
   return (
-    <div className="flex flex-col pb-8">
+    <div className="goal-journey flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
+        <Link href="/goals" className="mb-4 inline-flex min-h-12 items-center font-semibold text-accent-dark">← 目標一覧へ戻る</Link>
         <h1 className="text-[26px] font-black tracking-tight">目標の道筋</h1>
-        <p className="mt-0.5 text-[14px] font-medium text-stone-400">いまはどこへ向かっているか</p>
+        <p className="mt-3 text-base leading-7 text-stone-600">近い目標から、目指す未来へ。カードを押すと、達成条件と次の一歩を確認できます。</p>
       </header>
 
       {/* §8/P2: 開いた瞬間に「あと何日で、何になっていればいいか」。 */}
@@ -132,25 +144,19 @@ function GoalTreeContent() {
 
       {/* Mobile: Tap → Sheet (§9)。 */}
       {selected && sheetOpen && (
-        <div className="fixed inset-0 z-40 flex items-end lg:hidden">
-          <button
-            type="button"
-            aria-label="閉じる"
-            onClick={() => setSheetOpen(false)}
-            className="absolute inset-0 bg-stone-900/45"
-          />
-          <div className="relative max-h-[82dvh] w-full overflow-y-auto rounded-t-3xl bg-white px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-2.5">
-            <div className="mb-2 flex justify-center">
-              <span className="h-1 w-9 rounded-full bg-stone-200" />
+        <dialog ref={sheetRef} aria-label="目標の詳細" onCancel={() => setSheetOpen(false)} onClose={() => setSheetOpen(false)} className="goal-detail-dialog">
+          <div className="relative w-full bg-white px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+            <div className="sticky top-0 z-10 flex justify-between items-center bg-white py-3 border-b border-stone-200">
+              <span className="font-semibold">目標の詳細</span>
+              <button type="button" autoFocus className="studio-secondary min-h-12" onClick={() => setSheetOpen(false)}>閉じる ×</button>
             </div>
             <GoalDetail
               goal={selected}
               today={today}
               linkedTasks={tasksOf.get(selected.id) ?? 0}
-              onClose={() => setSheetOpen(false)}
             />
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );
@@ -169,11 +175,11 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
     <section className="mt-4 px-5">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full bg-stone-800" />
-        <p className="text-[13px] font-black tracking-widest text-stone-800">NORTH STAR</p>
+        <p className="text-[13px] font-black tracking-widest text-stone-800">大切にしたい未来</p>
         <span className="h-px flex-1 bg-stone-200" />
       </div>
       <p className="mb-2 mt-1 pl-[18px] text-[13px] text-stone-400">
-        期限を持たないもの。ここへ向かって、上の期間Goalが並んでいます。
+        日々の目標の先にある、変わらない軸。
       </p>
 
       <div className="flex flex-col gap-2">
@@ -217,7 +223,7 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
                 onClick={() => onOpen(g.id)}
                 className="mt-2 text-[13px] font-bold text-accent-dark"
               >
-                このNorth Starの詳細 ＞
+                達成条件・詳細を見る →
               </button>
             </div>
           );
@@ -232,7 +238,7 @@ function NextMilestoneCard({ goal, today }: { goal: Goal; today: string }) {
   const label = GOAL_HORIZON_LABEL[goal.horizon];
   return (
     <section className="mx-5 mt-2 rounded-2xl bg-accent px-4 py-3 text-white">
-      <p className="text-[13px] font-black tracking-widest text-white/70">次の区切り</p>
+      <p className="text-[13px] font-black tracking-widest text-white/70">まず目指すこと</p>
       <div className="mt-0.5 flex items-baseline gap-2">
         <span className="text-[26px] font-black leading-none tabular-nums">{headline}</span>
         <span className="text-[13px] font-bold text-white/80">
@@ -446,7 +452,7 @@ function GoalDetail({
         <p className="whitespace-pre-line text-[14px] leading-relaxed text-stone-600">{goal.achievementCriteria}</p>
       </Block>
 
-      <Block label="現在のGap">
+      <Block label="いま足りないこと">
         {goal.currentGap ? (
           <p className="whitespace-pre-line text-[14px] leading-relaxed text-stone-700">{goal.currentGap}</p>
         ) : (
@@ -455,7 +461,7 @@ function GoalDetail({
         )}
       </Block>
 
-      <Block label="次に積むEvidence">
+      <Block label="次の一歩・残す成果">
         {goal.nextEvidence ? (
           <p className="rounded-xl bg-accent-soft px-3 py-2 text-[14px] font-bold leading-relaxed text-accent-dark">
             {goal.nextEvidence}
