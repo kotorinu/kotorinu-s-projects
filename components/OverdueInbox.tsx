@@ -112,7 +112,7 @@ export default function OverdueInbox({
 
   return (
     <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-      <p className="text-xs font-bold text-danger">
+      <p className="text-[14px] font-bold text-danger">
         ⚠ 期限超過 <span className="text-stone-800">{tasks.length}件</span>・行き先を決める
       </p>
       <ul className="mt-2 flex flex-col gap-2">
@@ -126,13 +126,13 @@ export default function OverdueInbox({
             <li key={t.id} className="rounded-xl bg-danger-soft/50 px-3 py-2.5">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="truncate text-[13px] font-bold text-stone-700">{t.title}</p>
-                <span className="shrink-0 text-[10px] font-bold text-danger">
+                <span className="shrink-0 text-[13px] font-bold text-danger">
                   期限 {formatMd(deadline)}
                   {daysLate !== null && daysLate > 0 ? `・${daysLate}日超過` : ""}
                 </span>
               </div>
               {blocked && (
-                <p className="mt-1 inline-block rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-bold text-white">
+                <p className="mt-1 inline-block rounded-full bg-stone-800 px-2 py-0.5 text-[13px] font-bold text-white">
                   Blocked（進められない）として記録済み
                 </p>
               )}
@@ -140,14 +140,14 @@ export default function OverdueInbox({
                 <button
                   type="button"
                   onClick={() => setCompletingTask(t)}
-                  className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
+                  className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
                 >
                   完了
                 </button>
                 <button
                   type="button"
                   onClick={() => moveWorkDate(t, today)}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-600"
+                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
                 >
                   今日やる
                 </button>
@@ -157,14 +157,14 @@ export default function OverdueInbox({
                     setDateOpenTaskId(dateOpenTaskId === t.id ? null : t.id);
                     setDateValue("");
                   }}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-600"
+                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
                 >
                   日付を指定
                 </button>
                 <button
                   type="button"
                   onClick={() => (blocked ? setTaskDisposition(null, t.id) : block(t))}
-                  className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                  className={`rounded-full px-3 py-1 text-[13px] font-bold ${
                     blocked ? "bg-stone-800 text-white" : "bg-stone-100 text-stone-500"
                   }`}
                 >
@@ -173,7 +173,7 @@ export default function OverdueInbox({
                 <button
                   type="button"
                   onClick={() => drop(t)}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-400"
+                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-400"
                 >
                   やめる
                 </button>
@@ -185,13 +185,13 @@ export default function OverdueInbox({
                     type="date"
                     value={dateValue}
                     onChange={(e) => setDateValue(e.target.value)}
-                    className="rounded-lg border border-stone-200 px-2 py-1 text-[12px] text-stone-700"
+                    className="rounded-lg border border-stone-200 px-2 py-1 text-[14px] text-stone-700"
                   />
                   <button
                     type="button"
                     disabled={!dateValue}
                     onClick={() => moveWorkDate(t, dateValue)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                    className={`rounded-full px-3 py-1 text-[13px] font-bold ${
                       dateValue ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
                     }`}
                   >
@@ -204,7 +204,7 @@ export default function OverdueInbox({
                       setDeadlineOverride(t.id, dateValue);
                       closeDatePicker();
                     }}
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                    className={`rounded-full px-3 py-1 text-[13px] font-bold ${
                       dateValue ? "bg-stone-800 text-white" : "bg-stone-100 text-stone-300"
                     }`}
                   >
@@ -216,7 +216,7 @@ export default function OverdueInbox({
           );
         })}
       </ul>
-      <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+      <p className="mt-2 text-[13px] leading-relaxed text-stone-400">
         期限超過は状態ではなく「期限 &lt; 今日 かつ 未完了」という計算結果です。完了すればこの一覧から消えますが、元の期限と遅延日数は実績として残ります。
       </p>
 

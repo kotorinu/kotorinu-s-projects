@@ -57,12 +57,12 @@ export default function AreaControlCard({
     >
       {/* Header strip — the Area's colour, kept light (§8) */}
       <div className="flex items-baseline justify-between gap-2 px-3.5 py-2" style={{ backgroundColor: theme.soft }}>
-        <span className="text-[12px] font-black tracking-wide" style={{ color: theme.text }}>
+        <span className="text-[14px] font-black tracking-wide" style={{ color: theme.text }}>
           {theme.label}
         </span>
         {data.outcome?.deadline && (
           <span
-            className={`shrink-0 text-[11px] font-bold ${overdue ? "text-danger" : ""}`}
+            className={`shrink-0 text-[13px] font-bold ${overdue ? "text-danger" : ""}`}
             style={overdue ? undefined : { color: theme.text }}
           >
             {formatMd(data.outcome.deadline)}
@@ -79,7 +79,7 @@ export default function AreaControlCard({
 
         {/* Headline metric */}
         <div className="flex items-baseline gap-2 border-y border-stone-100 py-2">
-          <span className="text-[11px] text-stone-400">{headline.label}</span>
+          <span className="text-[13px] text-stone-400">{headline.label}</span>
           <span className="ml-auto tabular-nums text-[20px] font-black leading-none" style={{ color: theme.text }}>
             {headline.value}
           </span>
@@ -87,7 +87,7 @@ export default function AreaControlCard({
 
         {/* Main Gap */}
         {mainGap && (
-          <p className="line-clamp-1 text-[11px] text-stone-500">
+          <p className="line-clamp-1 text-[13px] text-stone-500">
             <span className="font-bold text-stone-400">足りない　</span>
             {mainGap.title}
             <span className="ml-1 text-stone-300">{GAP_OWNER_LABEL[mainGap.owner]}</span>
@@ -97,21 +97,21 @@ export default function AreaControlCard({
         {/* NEXT — max 2 (§15) */}
         <ul className="flex flex-col gap-1">
           {data.next.slice(0, 2).map(({ task, block }) => (
-            <li key={task.id} className="flex items-baseline gap-1.5 text-[11px] leading-snug">
+            <li key={task.id} className="flex items-baseline gap-1.5 text-[13px] leading-snug">
               <span className="shrink-0 tabular-nums font-bold" style={{ color: theme.primary }}>
                 {block ? `${formatMd(block.date)} ${block.startTime}` : "時間未設定"}
               </span>
               <span className="min-w-0 flex-1 truncate text-stone-600">{task.title}</span>
             </li>
           ))}
-          {data.next.length === 0 && <li className="text-[11px] text-stone-300">実行中の予定はありません</li>}
+          {data.next.length === 0 && <li className="text-[13px] text-stone-300">実行中の予定はありません</li>}
         </ul>
 
         {/* 次のTimeBlock — pinned to the bottom so all three cards align */}
         <div className="mt-auto pt-1">
           {nextBlock ? (
             <p
-              className="truncate rounded-lg px-2 py-1.5 text-[10px] font-bold"
+              className="truncate rounded-lg px-2 py-1.5 text-[13px] font-bold"
               style={{ backgroundColor: theme.soft, color: theme.text }}
             >
               次の枠 {formatMd(nextBlock.block.date)}（
@@ -119,12 +119,12 @@ export default function AreaControlCard({
               {nextBlock.block.endTime}
             </p>
           ) : (
-            <p className="rounded-lg bg-stone-50 px-2 py-1.5 text-[10px] font-bold text-stone-300">
+            <p className="rounded-lg bg-stone-50 px-2 py-1.5 text-[13px] font-bold text-stone-300">
               次の枠は未設定
             </p>
           )}
           {riskCount > 0 && (
-            <p className="mt-1 text-[10px] font-bold text-stone-400">気になっていること {riskCount}件</p>
+            <p className="mt-1 text-[13px] font-bold text-stone-400">気になっていること {riskCount}件</p>
           )}
         </div>
       </div>

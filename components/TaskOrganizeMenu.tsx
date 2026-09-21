@@ -72,20 +72,20 @@ export default function TaskOrganizeMenu({ task, onDone }: { task: Task; onDone:
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-[11px] font-black tracking-wide text-stone-400">Taskを整理</span>
-        <span className="text-[11px] font-bold text-stone-400">{open ? "▾" : "▸"}</span>
+        <span className="text-[13px] font-black tracking-wide text-stone-400">Taskを整理</span>
+        <span className="text-[13px] font-bold text-stone-400">{open ? "▾" : "▸"}</span>
       </button>
 
       {current !== "ACTIVE" && (
-        <p className="mt-1.5 inline-block rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-bold text-white">
+        <p className="mt-1.5 inline-block rounded-full bg-stone-800 px-2 py-0.5 text-[13px] font-bold text-white">
           {LIFECYCLE_LABEL[current]}
         </p>
       )}
       {task.lifecycleReason && !overridden && (
-        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{task.lifecycleReason}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-stone-400">{task.lifecycleReason}</p>
       )}
       {overridden && (
-        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+        <p className="mt-1 text-[13px] leading-relaxed text-stone-400">
           {lifecycleOverrides[task.id].reason}
         </p>
       )}
@@ -122,11 +122,11 @@ export default function TaskOrganizeMenu({ task, onDone }: { task: Task; onDone:
 
           {mergeOpen && (
             <div className="rounded-xl bg-stone-50 px-3 py-2.5">
-              <p className="text-[11px] font-bold text-stone-500">統合先のTask</p>
+              <p className="text-[13px] font-bold text-stone-500">統合先のTask</p>
               <select
                 value={mergeTargetId}
                 onChange={(e) => setMergeTargetId(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[12px] text-stone-700"
+                className="mt-1.5 w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[14px] text-stone-700"
               >
                 <option value="">選択してください</option>
                 {mergeCandidates.map((t) => (
@@ -145,7 +145,7 @@ export default function TaskOrganizeMenu({ task, onDone }: { task: Task; onDone:
                     mergeTargetId
                   )
                 }
-                className={`mt-2 w-full rounded-full px-3 py-1.5 text-[11px] font-bold ${
+                className={`mt-2 w-full rounded-full px-3 py-1.5 text-[13px] font-bold ${
                   mergeTargetId ? "bg-stone-800 text-white" : "bg-stone-100 text-stone-300"
                 }`}
               >
@@ -155,7 +155,7 @@ export default function TaskOrganizeMenu({ task, onDone }: { task: Task; onDone:
           )}
 
           {hasHistory ? (
-            <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[10px] leading-relaxed text-stone-500">
+            <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[13px] leading-relaxed text-stone-500">
               このTaskには実行履歴（開始・完了・実績時間）があるため、削除はできません。Archiveまたは統合を使ってください——履歴を消すと、見積りと実績の差分が追えなくなります。
             </p>
           ) : (
@@ -189,8 +189,8 @@ function OrganizeButton({
       onClick={onClick}
       className={`rounded-xl px-3 py-2.5 text-left ${tone === "danger" ? "bg-danger-soft" : "bg-stone-50"}`}
     >
-      <p className={`text-[12px] font-bold ${tone === "danger" ? "text-danger" : "text-stone-700"}`}>{label}</p>
-      <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{hint}</p>
+      <p className={`text-[14px] font-bold ${tone === "danger" ? "text-danger" : "text-stone-700"}`}>{label}</p>
+      <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">{hint}</p>
     </button>
   );
 }

@@ -59,11 +59,11 @@ export default function SystemStatusPage() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <Link href="/tasks" className="text-xs font-bold text-stone-400">
+        <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
           ＜ TASK MAP
         </Link>
         <h1 className="mt-1 text-[24px] font-black tracking-tight">System Status</h1>
-        <p className="mt-0.5 text-xs font-medium text-stone-400">
+        <p className="mt-0.5 text-[14px] font-medium text-stone-400">
           問題があるときだけ見る画面です。毎日は見なくて構いません。
         </p>
       </header>
@@ -78,17 +78,17 @@ export default function SystemStatusPage() {
       />
 
       <section className="mx-5 mt-3 rounded-xl border border-stone-150 bg-white px-3 py-2.5">
-        <h2 className="text-[11px] font-black tracking-wide text-stone-500">Calendarに枠が無いTask</h2>
+        <h2 className="text-[13px] font-black tracking-wide text-stone-500">Calendarに枠が無いTask</h2>
         {waiting.length === 0 ? (
-          <p className="mt-1 text-[11px] text-stone-500">
+          <p className="mt-1 text-[13px] text-stone-500">
             ✓ ありません。実行すると決めたTaskはすべてCalendarに枠を持っています。
           </p>
         ) : (
           <ul className="mt-1.5 flex flex-col gap-1">
             {waiting.map((t) => (
               <li key={t.id} className="rounded-lg bg-amber-50 px-2.5 py-1.5">
-                <p className="text-[11px] font-bold text-amber-900">{t.title}</p>
-                <p className="mt-0.5 text-[10px] text-amber-800">
+                <p className="text-[13px] font-bold text-amber-900">{t.title}</p>
+                <p className="mt-0.5 text-[13px] text-amber-800">
                   {PLAN_READINESS_LABEL.WAITING_FOR_PLAN}
                 </p>
               </li>
@@ -98,13 +98,13 @@ export default function SystemStatusPage() {
       </section>
 
       <section className="mx-5 mt-3 rounded-xl border border-stone-150 bg-white px-3 py-2.5">
-        <h2 className="text-[11px] font-black tracking-wide text-stone-500">時刻のズレ</h2>
+        <h2 className="text-[13px] font-black tracking-wide text-stone-500">時刻のズレ</h2>
         {drifts.length === 0 ? (
-          <p className="mt-1 text-[11px] text-stone-500">✓ OSとCalendarの時刻は一致しています。</p>
+          <p className="mt-1 text-[13px] text-stone-500">✓ OSとCalendarの時刻は一致しています。</p>
         ) : (
           <ul className="mt-1.5 flex flex-col gap-1">
             {drifts.map((d) => (
-              <li key={d.blockId} className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px]">
+              <li key={d.blockId} className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-[13px]">
                 <p className="font-bold text-amber-900">{d.label}</p>
                 <p className="mt-0.5 tabular-nums text-amber-800">
                   OS {d.os.startTime}〜{d.os.endTime} → Calendar {d.calendar.startTime}〜{d.calendar.endTime}
@@ -113,12 +113,12 @@ export default function SystemStatusPage() {
             ))}
           </ul>
         )}
-        <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">{AUTHORITY_NOTE}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-stone-400">{AUTHORITY_NOTE}</p>
       </section>
 
       <section className="mx-5 mt-3 rounded-xl border border-stone-150 bg-white px-3 py-2.5">
-        <h2 className="text-[11px] font-black tracking-wide text-stone-500">Calendar Snapshot</h2>
-        <dl className="mt-1 grid grid-cols-[5.5rem_1fr] gap-x-2 gap-y-1 text-[11px]">
+        <h2 className="text-[13px] font-black tracking-wide text-stone-500">Calendar Snapshot</h2>
+        <dl className="mt-1 grid grid-cols-[5.5rem_1fr] gap-x-2 gap-y-1 text-[13px]">
           <dt className="text-stone-400">最終取得</dt>
           <dd className="tabular-nums text-stone-700">{calendarSnapshot.readAt}</dd>
           <dt className="text-stone-400">範囲</dt>
@@ -128,15 +128,15 @@ export default function SystemStatusPage() {
           <dt className="text-stone-400">件数</dt>
           <dd className="tabular-nums text-stone-700">{calendarSnapshot.events.length}件</dd>
         </dl>
-        <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+        <p className="mt-1.5 text-[13px] leading-relaxed text-stone-400">
           静的Snapshotです。取得したあとに本人がCalendarを編集したかどうかは、このアプリからは分かりません。
           だから「最新」とは表示せず、いつ取得したものかだけを出しています。
         </p>
       </section>
 
       <section className="mx-5 mt-3 rounded-xl border border-stone-150 bg-white px-3 py-2.5">
-        <h2 className="text-[11px] font-black tracking-wide text-stone-500">Build</h2>
-        <p className="mt-1 text-[11px] tabular-nums text-stone-600">{buildLabel()}</p>
+        <h2 className="text-[13px] font-black tracking-wide text-stone-500">Build</h2>
+        <p className="mt-1 text-[13px] tabular-nums text-stone-600">{buildLabel()}</p>
       </section>
     </div>
   );

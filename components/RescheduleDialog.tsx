@@ -53,10 +53,10 @@ export default function RescheduleDialog({
 
   return (
     <StudioDialog title="日時を決める" onClose={onCancel}>
-        <p className="text-xs font-black tracking-widest text-stone-400">予定を変更</p>
+        <p className="text-[14px] font-black tracking-widest text-stone-400">予定を変更</p>
         <p className="mt-1 text-[15px] font-black leading-snug text-stone-800">{task.title}</p>
         {currentBlock && (
-          <p className="mt-1 text-xs font-bold text-stone-400">
+          <p className="mt-1 text-[14px] font-bold text-stone-400">
             現在 {formatMd(currentBlock.date)} {currentBlock.startTime}〜{currentBlock.endTime}
           </p>
         )}
@@ -92,7 +92,7 @@ export default function RescheduleDialog({
         )}
 
         {/* §10: date alone is not enough for an ACTIVE Task. */}
-        <p className="mt-3 text-xs font-bold text-stone-500">何時にやるか（必須）</p>
+        <p className="mt-3 text-[14px] font-bold text-stone-500">何時にやるか（必須）</p>
         <div className="mt-1 flex items-center gap-1.5">
           <input
             type="time" aria-label="開始時刻"
@@ -111,16 +111,16 @@ export default function RescheduleDialog({
           />
         </div>
         {!timesValid && (startTime !== "" || endTime !== "") && (
-          <p className="mt-1 text-xs font-bold text-danger">開始と終了を、終了が後になるように入れてください</p>
+          <p className="mt-1 text-[14px] font-bold text-danger">開始と終了を、終了が後になるように入れてください</p>
         )}
 
         {risk && (
           <div className="mt-3 rounded-2xl bg-danger-soft px-3.5 py-3">
             <p className="text-sm font-bold text-danger">この変更では期限に間に合いません</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-stone-600">
+            <p className="mt-0.5 text-[14px] leading-relaxed text-stone-600">
               期限 {formatMd(risk.deadline)} に対して {risk.overshootDays}日 後ろになります。
             </p>
-            <label className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-stone-700">
+            <label className="mt-2 flex items-start gap-2 text-[14px] leading-relaxed text-stone-700">
               <input
                 type="checkbox"
                 checked={moveDeadline}
@@ -155,7 +155,7 @@ export default function RescheduleDialog({
             キャンセル
           </button>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-stone-400">
+        <p className="mt-2 text-[14px] leading-relaxed text-stone-400">
           変更前の予定も履歴に残ります。Google
           Calendarへの反映は別途必要です（このアプリからの書き込みは未実装）。
         </p>

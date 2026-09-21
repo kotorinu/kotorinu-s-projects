@@ -66,7 +66,7 @@ export default function PhaseProgressGrid({
               className="flex aspect-square flex-col items-center justify-center rounded-lg border transition-transform duration-200 active:scale-95"
               style={{ backgroundColor: bg, borderColor: border }}
             >
-              <span className="tabular-nums text-[11px] font-black leading-none" style={{ color: text }}>
+              <span className="tabular-nums text-[13px] font-black leading-none" style={{ color: text }}>
                 {String(n).padStart(2, "0")}
               </span>
               <span className="mt-0.5 text-[9px] font-bold leading-none" style={{ color: text }}>
@@ -77,7 +77,7 @@ export default function PhaseProgressGrid({
         })}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-stone-400">
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-stone-400">
         <Legend color="#51B749" label="完成 3/3" />
         <Legend color="#5484ED" label="書きかけ" />
         <Legend color="#E7E5E4" label="未着手" />

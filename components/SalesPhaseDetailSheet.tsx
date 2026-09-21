@@ -34,11 +34,11 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
         <div className="shrink-0 px-5 pb-3 pt-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold text-stone-400">
+              <p className="text-[13px] font-bold text-stone-400">
                 PHASE {String(phase.phaseNumber).padStart(2, "0")}
               </p>
               <p className="text-[17px] font-black leading-snug text-stone-900">{phase.title}</p>
-              <span className="mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent-dark">
+              <span className="mt-1 inline-block rounded-full bg-accent-soft px-2 py-0.5 text-[13px] font-bold text-accent-dark">
                 {masteryStatusLabel(phase.masteryStatus)}
               </span>
             </div>
@@ -60,7 +60,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
               <div className="flex flex-col gap-3 text-[13px] leading-relaxed text-stone-700">
                 {phase.purpose && (
                   <div>
-                    <p className="text-[10px] font-black tracking-wide text-stone-400">目的</p>
+                    <p className="text-[13px] font-black tracking-wide text-stone-400">目的</p>
                     <p className="mt-0.5">{phase.purpose}</p>
                   </div>
                 )}
@@ -69,7 +69,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
                 ) : (
                   phase.okState && (
                     <div>
-                      <p className="text-[10px] font-black tracking-wide text-stone-400">OK状態</p>
+                      <p className="text-[13px] font-black tracking-wide text-stone-400">OK状態</p>
                       <p className="mt-0.5">{phase.okState}</p>
                     </div>
                   )
@@ -85,7 +85,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
                 )}
               </div>
             ) : (
-              <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[12px] text-stone-400">
+              <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[14px] text-stone-400">
                 営業フェーズ分解ワークシートの内容がまだ登録されていません。ワークシートを共有いただければ反映します。
               </p>
             )}
@@ -93,7 +93,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
 
           {/* ①を読んで終わりにしない導線 (§P10). */}
           {hasBasics && (
-            <p className="mt-4 rounded-xl bg-accent-soft px-3 py-2.5 text-[12px] font-bold leading-relaxed text-accent-dark">
+            <p className="mt-4 rounded-xl bg-accent-soft px-3 py-2.5 text-[14px] font-bold leading-relaxed text-accent-dark">
               この内容を、自分ならどう説明する？
             </p>
           )}
@@ -114,8 +114,8 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
               <ul className="flex flex-col gap-2">
                 {linkedPractitionerFb.map((fb) => (
                   <li key={fb.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
-                    <p className="text-[12px] font-bold text-stone-700">{fb.title}</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-stone-600">{fb.lesson}</p>
+                    <p className="text-[14px] font-bold text-stone-700">{fb.title}</p>
+                    <p className="mt-1 text-[14px] leading-relaxed text-stone-600">{fb.lesson}</p>
                   </li>
                 ))}
               </ul>
@@ -132,7 +132,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {linkedRoleplayFb.map((fb) => (
-                  <li key={fb.id} className="rounded-xl bg-stone-50 px-3 py-2.5 text-[12px] text-stone-600">
+                  <li key={fb.id} className="rounded-xl bg-stone-50 px-3 py-2.5 text-[14px] text-stone-600">
                     {fb.date ?? "日付未記録"}
                   </li>
                 ))}
@@ -146,7 +146,7 @@ export default function SalesPhaseDetailSheet({ phase, onClose }: { phase: Sales
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {linkedLiveFb.map((fb) => (
-                  <li key={fb.id} className="rounded-xl bg-stone-50 px-3 py-2.5 text-[12px] text-stone-600">
+                  <li key={fb.id} className="rounded-xl bg-stone-50 px-3 py-2.5 text-[14px] text-stone-600">
                     {fb.date ?? "日付未記録"}
                   </li>
                 ))}
@@ -174,7 +174,7 @@ function SourceSection({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-4 rounded-2xl border border-stone-150 bg-stone-50/60 px-3.5 py-3">
       <div className="mb-2 flex items-baseline gap-2">
-        <h3 className="text-[11px] font-black tracking-wide text-stone-500">① 基礎</h3>
+        <h3 className="text-[13px] font-black tracking-wide text-stone-500">① 基礎</h3>
         <span className="rounded-full bg-stone-200/70 px-1.5 py-0.5 text-[9px] font-bold text-stone-500">
           SOURCE 営業ワークシート
         </span>
@@ -188,7 +188,7 @@ function OwnSection({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-2 rounded-2xl border border-accent-soft bg-white px-3.5 py-3">
       <div className="mb-2 flex items-baseline gap-2">
-        <h3 className="text-[11px] font-black tracking-wide text-accent-dark">② 自分版</h3>
+        <h3 className="text-[13px] font-black tracking-wide text-accent-dark">② 自分版</h3>
         <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold text-accent-dark">
           YOU 琴音さんの理解
         </span>
@@ -202,11 +202,11 @@ function OwnSection({ children }: { children: React.ReactNode }) {
 function TickList({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
-      <p className="text-[10px] font-black tracking-wide text-stone-400">{label}</p>
+      <p className="text-[13px] font-black tracking-wide text-stone-400">{label}</p>
       <ul className="mt-1 flex flex-col gap-1">
         {items.map((item, i) => (
           <li key={i} className="flex items-start gap-1.5">
-            <span className="mt-[3px] shrink-0 text-[11px] font-black text-emerald-500">✓</span>
+            <span className="mt-[3px] shrink-0 text-[13px] font-black text-emerald-500">✓</span>
             <span>{item}</span>
           </li>
         ))}
@@ -225,9 +225,9 @@ function Collapsible({ label, count, items }: { label: string; count: number; it
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-1.5 text-left"
       >
-        <span className="text-[10px] font-black tracking-wide text-stone-400">{label}</span>
-        <span className="tabular-nums text-[10px] font-bold text-stone-300">{count}件</span>
-        <span className="ml-auto text-[10px] font-bold text-accent-dark">{open ? "閉じる" : "見る"}</span>
+        <span className="text-[13px] font-black tracking-wide text-stone-400">{label}</span>
+        <span className="tabular-nums text-[13px] font-bold text-stone-300">{count}件</span>
+        <span className="ml-auto text-[13px] font-bold text-accent-dark">{open ? "閉じる" : "見る"}</span>
       </button>
       {open && (
         <ul className="mt-1 flex flex-col gap-1">
@@ -246,7 +246,7 @@ function Collapsible({ label, count, items }: { label: string; count: number; it
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-5 first:mt-4">
-      <h3 className="mb-1.5 text-[11px] font-black tracking-wide text-stone-400">{title}</h3>
+      <h3 className="mb-1.5 text-[13px] font-black tracking-wide text-stone-400">{title}</h3>
       {children}
     </div>
   );
@@ -286,5 +286,5 @@ function ListFieldOrEmpty({ label, items, emptyText = "まだ書かれていま�
 }
 
 function EmptyNote({ text }: { text: string }) {
-  return <p className="text-[12px] text-stone-400">{text}</p>;
+  return <p className="text-[14px] text-stone-400">{text}</p>;
 }

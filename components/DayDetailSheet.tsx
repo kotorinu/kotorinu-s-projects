@@ -86,7 +86,7 @@ export default function DayDetailSheet({
               <p className="text-[17px] font-black leading-snug text-stone-900">
                 {formatMd(date)}（{weekday}）
               </p>
-              <p className="mt-1 text-[11px] font-bold text-stone-400">
+              <p className="mt-1 text-[13px] font-bold text-stone-400">
                 予定{dayBlocks.length}件
                 {plannedMinutes > 0 && `・計${Math.floor(plannedMinutes / 60)}時間${plannedMinutes % 60 || ""}${plannedMinutes % 60 ? "分" : ""}`}
                 {untimedTasks.length > 0 && `・時間未定${untimedTasks.length}件`}
@@ -106,29 +106,29 @@ export default function DayDetailSheet({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
           {overlaps.length > 0 && (
             <div className="mb-3 rounded-2xl bg-danger-soft px-3.5 py-3">
-              <p className="text-[12px] font-bold text-danger">⚠ 予定が重複しています（{overlaps.length}件）</p>
+              <p className="text-[14px] font-bold text-danger">⚠ 予定が重複しています（{overlaps.length}件）</p>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {overlaps.map((o, i) => (
-                  <li key={i} className="text-[11px] leading-relaxed text-stone-600">
+                  <li key={i} className="text-[13px] leading-relaxed text-stone-600">
                     「{o.a.label}」({o.a.startTime}〜{o.a.endTime}) と「{o.b.label}」({o.b.startTime}〜{o.b.endTime}) が
                     {o.overlapMinutes}分重なっています
                   </li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[10px] text-stone-500">
+              <p className="mt-1.5 text-[13px] text-stone-500">
                 どちらかを短縮／後ろへ移動／別日へ移す必要があります（自動では動かしません）。
               </p>
             </div>
           )}
 
           {dayFixedEvents.length > 0 && (
-            <p className="mb-2.5 text-[11px] font-bold text-stone-400">
+            <p className="mb-2.5 text-[13px] font-bold text-stone-400">
               固定予定：{dayFixedEvents.map((e) => e.title).join("・")}
             </p>
           )}
 
           {dayBlocks.length === 0 && untimedTasks.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-8 text-center text-xs text-stone-400">
+            <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-8 text-center text-[14px] text-stone-400">
               この日の予定はまだありません
             </p>
           ) : (
@@ -146,7 +146,7 @@ export default function DayDetailSheet({
                     className={`rounded-2xl px-3.5 py-3 ${conflicted ? "bg-danger-soft/60 ring-1 ring-danger" : "bg-stone-50"}`}
                     style={{ opacity: doneAlready ? 0.6 : 1 }}
                   >
-                    <p className="tabular-nums text-[11px] font-bold text-stone-500">
+                    <p className="tabular-nums text-[13px] font-bold text-stone-500">
                       {tb.startTime}〜{tb.endTime}
                       {conflicted && <span className="ml-1.5 text-danger">重複</span>}
                     </p>
@@ -155,7 +155,7 @@ export default function DayDetailSheet({
                         <p className={`text-[14px] font-bold ${doneAlready ? "text-stone-400 line-through" : "text-stone-800"}`}>
                           {task.title}
                         </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px]">
                           <span className="rounded-full bg-white px-1.5 py-0.5 font-bold text-stone-500">{task.area}</span>
                           {task.estimateMinutes !== null && (
                             <span className="font-bold text-stone-400">予定{task.estimateMinutes}分</span>
@@ -165,7 +165,7 @@ export default function DayDetailSheet({
                           </span>
                         </div>
                         {task.definitionOfDone.length > 0 && (
-                          <p className="mt-1 text-[10px] leading-relaxed text-stone-500">
+                          <p className="mt-1 text-[13px] leading-relaxed text-stone-500">
                             達成基準：{task.definitionOfDone[0]}
                           </p>
                         )}
@@ -179,7 +179,7 @@ export default function DayDetailSheet({
 
               {untimedTasks.length > 0 && (
                 <li className="mt-1">
-                  <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
+                  <p className="mb-1.5 text-[13px] font-black tracking-widest text-stone-400">
                     時間未定（{untimedTasks.length}）
                   </p>
                   <ul className="flex flex-col gap-1.5">
@@ -191,7 +191,7 @@ export default function DayDetailSheet({
                           className="w-full rounded-xl bg-stone-50 px-3 py-2 text-left"
                         >
                           <p className="text-[13px] font-bold text-stone-700">{t.title}</p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px]">
                             <span className="rounded-full bg-white px-1.5 py-0.5 font-bold text-stone-500">{t.area}</span>
                             {t.estimateMinutes !== null && (
                               <span className="font-bold text-stone-400">予定{t.estimateMinutes}分</span>

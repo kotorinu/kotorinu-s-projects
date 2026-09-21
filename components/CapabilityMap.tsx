@@ -42,14 +42,14 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
                 <span className="text-[13px] font-bold text-stone-800">{c.title}</span>
                 {/* P4: Evidenceが無いのは失敗ではなく「まだ記録が無い」だけ。
                     赤や警告色は当てない。 */}
-                <span className="shrink-0 text-[10px] font-bold text-stone-300">
+                <span className="shrink-0 text-[13px] font-bold text-stone-300">
                   {c.evidence.length === 0 ? "まだEvidenceなし" : "Evidence " + c.evidence.length + "件"}{" "}
                   {isOpen ? "▾" : "▸"}
                 </span>
               </div>
               {/* 開いている時は下に全文が出るので、ここでは繰り返さない。 */}
               {!isOpen && (
-                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-stone-500">{c.currentGap}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-stone-500">{c.currentGap}</p>
               )}
             </button>
 
@@ -58,12 +58,12 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
                 <Field label="なぜ鍛えるか" body={c.why} />
                 <Field label="いま足りないこと（Current Gap）" body={c.currentGap} />
                 <div className="mt-2">
-                  <p className="text-[10px] font-bold text-stone-400">練習していること</p>
+                  <p className="text-[13px] font-bold text-stone-400">練習していること</p>
                   <ul className="mt-1 flex flex-wrap gap-1">
                     {c.practices.map((p) => (
                       <li
                         key={p}
-                        className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        className="rounded-full px-2 py-0.5 text-[13px] font-bold"
                         style={{ backgroundColor: theme.soft, color: theme.text }}
                       >
                         {p}
@@ -72,15 +72,15 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
                   </ul>
                 </div>
                 <div className="mt-2">
-                  <p className="text-[10px] font-bold text-stone-400">Evidence</p>
+                  <p className="text-[13px] font-bold text-stone-400">Evidence</p>
                   {c.evidence.length === 0 ? (
-                    <p className="mt-0.5 text-[11px] text-stone-400">
+                    <p className="mt-0.5 text-[13px] text-stone-400">
                       まだEvidenceなし。実際に使った記録がここに溜まります。
                     </p>
                   ) : (
                     <ul className="mt-0.5 flex flex-col gap-0.5">
                       {c.evidence.map((e) => (
-                        <li key={e} className="text-[11px] leading-relaxed text-stone-600">
+                        <li key={e} className="text-[13px] leading-relaxed text-stone-600">
                           ・{e}
                         </li>
                       ))}
@@ -93,7 +93,7 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
           </div>
         );
       })}
-      <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+      <p className="mt-1 text-[13px] leading-relaxed text-stone-400">
         点数はつけません。Task完了率は「何個やったか」であって、能力が身についたかとは別のためです。
       </p>
     </div>
@@ -103,8 +103,8 @@ export default function CapabilityMap({ capabilities }: { capabilities: Capabili
 function Field({ label, body, accent = false }: { label: string; body: string; accent?: boolean }) {
   return (
     <div className="mt-2 first:mt-0">
-      <p className="text-[10px] font-bold text-stone-400">{label}</p>
-      <p className={`mt-0.5 text-[11px] leading-relaxed ${accent ? "font-bold text-accent-dark" : "text-stone-600"}`}>
+      <p className="text-[13px] font-bold text-stone-400">{label}</p>
+      <p className={`mt-0.5 text-[13px] leading-relaxed ${accent ? "font-bold text-accent-dark" : "text-stone-600"}`}>
         {body}
       </p>
     </div>

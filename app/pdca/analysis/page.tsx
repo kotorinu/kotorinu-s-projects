@@ -56,9 +56,9 @@ export default function PdcaPage() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-xs font-bold tracking-widest text-accent-dark">AI WORK OS</p>
+        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">PDCA</h1>
-        <p className="mt-0.5 text-xs font-medium text-stone-400">今回どうだった？ 次回どう変える？</p>
+        <p className="mt-0.5 text-[14px] font-medium text-stone-400">今回どうだった？ 次回どう変える？</p>
       </header>
 
       <div className="mt-2 flex gap-1.5 px-5">
@@ -74,9 +74,9 @@ export default function PdcaPage() {
         <div className="mt-3 flex flex-col gap-3 px-5 lg:max-w-[820px]">
           {/* §35: 数字が無いなら作らない。 */}
           <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-            <p className="text-[11px] font-bold text-stone-400">今日のPlan vs Actual</p>
+            <p className="text-[13px] font-bold text-stone-400">今日のPlan vs Actual</p>
             {daily.plannedMinutes === null && daily.actualMinutes === null ? (
-              <p className="mt-1.5 text-[12px] leading-relaxed text-stone-400">
+              <p className="mt-1.5 text-[14px] leading-relaxed text-stone-400">
                 今日はまだ実績がありません。Taskを完了して実績を入れると、ここに出ます。
               </p>
             ) : (
@@ -86,7 +86,7 @@ export default function PdcaPage() {
                 <Figure label="差" minutes={daily.varianceMinutes} signed />
               </div>
             )}
-            <p className="mt-1.5 text-[10px] text-stone-400">
+            <p className="mt-1.5 text-[13px] text-stone-400">
               完了 {daily.completed}件
               {daily.missingActual > 0 && ` ・実績未入力 ${daily.missingActual}件`}
             </p>
@@ -106,12 +106,12 @@ export default function PdcaPage() {
 
           {daily.replanned.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-              <p className="text-[11px] font-bold text-stone-400">今日Replanしたもの</p>
+              <p className="text-[13px] font-bold text-stone-400">今日Replanしたもの</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {daily.replanned.map((r) => (
                   <li key={r.task.id} className="rounded-xl bg-stone-50 px-3 py-2">
-                    <p className="text-[12px] font-bold text-stone-800">{r.task.title}</p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-stone-500">{r.detail}</p>
+                    <p className="text-[14px] font-bold text-stone-800">{r.task.title}</p>
+                    <p className="mt-0.5 text-[13px] leading-snug text-stone-500">{r.detail}</p>
                   </li>
                 ))}
               </ul>
@@ -120,12 +120,12 @@ export default function PdcaPage() {
 
           {daily.blocked.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-              <p className="text-[11px] font-bold text-stone-400">止まっているもの</p>
+              <p className="text-[13px] font-bold text-stone-400">止まっているもの</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {daily.blocked.map((b) => (
                   <li key={b.task.id} className="rounded-xl bg-amber-50 px-3 py-2">
-                    <p className="text-[12px] font-bold text-amber-900">{b.task.title}</p>
-                    {b.note && <p className="mt-0.5 text-[11px] leading-snug text-amber-800">{b.note}</p>}
+                    <p className="text-[14px] font-bold text-amber-900">{b.task.title}</p>
+                    {b.note && <p className="mt-0.5 text-[13px] leading-snug text-amber-800">{b.note}</p>}
                   </li>
                 ))}
               </ul>
@@ -133,7 +133,7 @@ export default function PdcaPage() {
           )}
 
           {daily.over.length === 0 && daily.under.length === 0 && daily.completed > 0 && (
-            <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[11px] leading-relaxed text-stone-500">
+            <p className="rounded-xl bg-stone-50 px-3 py-2.5 text-[13px] leading-relaxed text-stone-500">
               見積りと実績の差が {"15分"}未満・{"20%"}未満に収まっています。この見積りは当たっているので、
               変える必要はありません。
             </p>
@@ -142,12 +142,12 @@ export default function PdcaPage() {
       ) : (
         <div className="mt-3 flex flex-col gap-3 px-5 lg:max-w-[820px]">
           <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-            <p className="text-[11px] font-bold text-stone-400">直近7日</p>
-            <p className="mt-1 text-[12px] text-stone-600">
+            <p className="text-[13px] font-bold text-stone-400">直近7日</p>
+            <p className="mt-1 text-[14px] text-stone-600">
               完了 {weekly.completed}件・実績あり {weekly.withActual}件・Replan {weekly.replanCount}回
             </p>
             {weekly.withActual === 0 && (
-              <p className="mt-1 text-[11px] leading-relaxed text-stone-400">
+              <p className="mt-1 text-[13px] leading-relaxed text-stone-400">
                 実績が1件も入っていないので、見積り誤差はまだ計算できません。
               </p>
             )}
@@ -156,19 +156,19 @@ export default function PdcaPage() {
           {/* §48: 次週へ変えること。全部挙げると何も変わらないので最大3件。 */}
           {weekly.changeNextWeek.length > 0 && (
             <section className="rounded-2xl border border-accent-soft bg-white px-4 py-3.5">
-              <p className="text-[11px] font-black text-accent-dark">次週へ変えること</p>
+              <p className="text-[13px] font-black text-accent-dark">次週へ変えること</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {weekly.changeNextWeek.map((c) => (
                   <li key={c.label} className="rounded-xl bg-accent-soft px-3 py-2">
-                    <p className="text-[12px] font-bold text-stone-800">{c.label}</p>
-                    <p className="mt-0.5 text-[12px] tabular-nums font-bold text-accent-dark">
+                    <p className="text-[14px] font-bold text-stone-800">{c.label}</p>
+                    <p className="mt-0.5 text-[14px] tabular-nums font-bold text-accent-dark">
                       {c.from !== null ? `${c.from}分 → ` : "次回 "}
                       {c.to}分
                     </p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-stone-400">
                 ここを変えないと、来週も同じだけズレます。採用は各Taskの「次回見積に採用」から。
               </p>
             </section>
@@ -176,12 +176,12 @@ export default function PdcaPage() {
 
           {weekly.groups.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-              <p className="text-[11px] font-bold text-stone-400">繰り返しズレているもの</p>
+              <p className="text-[13px] font-bold text-stone-400">繰り返しズレているもの</p>
               <ul className="mt-1.5 flex flex-col gap-2">
                 {weekly.groups.map((g) => (
                   <li key={g.groupKey} className="rounded-xl bg-stone-50 px-3 py-2.5">
-                    <p className="text-[12px] font-bold text-stone-800">{g.groupLabel}</p>
-                    <p className="mt-0.5 text-[11px] tabular-nums text-stone-600">
+                    <p className="text-[14px] font-bold text-stone-800">{g.groupLabel}</p>
+                    <p className="mt-0.5 text-[13px] tabular-nums text-stone-600">
                       実績 {g.samples.join(" / ")}分
                       {g.averageDriftMinutes !== null && (
                         <span className={g.averageDriftMinutes > 0 ? "ml-2 font-bold text-amber-700" : "ml-2 font-bold text-stone-500"}>
@@ -190,7 +190,7 @@ export default function PdcaPage() {
                         </span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-[11px] font-bold text-accent-dark">
+                    <p className="mt-0.5 text-[13px] font-bold text-accent-dark">
                       次回候補 {g.suggestedMinutes}分・{CONFIDENCE_LABEL[g.confidence]}
                     </p>
                   </li>
@@ -201,10 +201,10 @@ export default function PdcaPage() {
 
           {weekly.reasons.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-              <p className="text-[11px] font-bold text-stone-400">ズレた理由</p>
+              <p className="text-[13px] font-bold text-stone-400">ズレた理由</p>
               <ul className="mt-1.5 flex flex-col gap-1">
                 {weekly.reasons.map((r) => (
-                  <li key={r.reason} className="flex items-baseline gap-2 text-[12px]">
+                  <li key={r.reason} className="flex items-baseline gap-2 text-[14px]">
                     <span className="text-stone-700">{varianceReasonLabel[r.reason]}</span>
                     <span className="tabular-nums font-bold text-stone-400">{r.count}件</span>
                   </li>
@@ -215,7 +215,7 @@ export default function PdcaPage() {
         </div>
       )}
 
-      <p className="mx-5 mt-4 text-[10px] leading-relaxed text-stone-400 lg:max-w-[820px]">
+      <p className="mx-5 mt-4 text-[13px] leading-relaxed text-stone-400 lg:max-w-[820px]">
         次回見積りを採用しても、過去のTaskの「予定」は書き換えません。当時どう見積もって、
         実際どうだったかは記録として残ります。
       </p>
@@ -228,7 +228,7 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3 py-1.5 text-[12px] font-bold ${
+      className={`rounded-full px-3 py-1.5 text-[14px] font-bold ${
         active ? "bg-accent text-white" : "bg-stone-100 text-stone-500"
       }`}
     >
@@ -240,7 +240,7 @@ function TabButton({ active, onClick, label }: { active: boolean; onClick: () =>
 function Figure({ label, minutes, signed = false }: { label: string; minutes: number | null; signed?: boolean }) {
   return (
     <div>
-      <p className="text-[10px] font-bold text-stone-400">{label}</p>
+      <p className="text-[13px] font-bold text-stone-400">{label}</p>
       <p className="text-[19px] font-black tabular-nums text-stone-800">
         {minutes === null ? "—" : `${signed && minutes >= 0 ? "+" : ""}${minutes}分`}
       </p>
@@ -260,14 +260,14 @@ function ReviewList({
   if (items.length === 0) {
     return (
       <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3">
-        <p className="text-[11px] font-bold text-stone-400">{title}</p>
-        <p className="mt-1 text-[11px] text-stone-400">{emptyText}</p>
+        <p className="text-[13px] font-bold text-stone-400">{title}</p>
+        <p className="mt-1 text-[13px] text-stone-400">{emptyText}</p>
       </section>
     );
   }
   return (
     <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
-      <p className="text-[11px] font-bold text-stone-400">
+      <p className="text-[13px] font-bold text-stone-400">
         {title} <span className="tabular-nums">{items.length}件</span>
       </p>
       <ul className="mt-1.5 flex flex-col gap-2">
@@ -291,7 +291,7 @@ function CheckCard({ item }: { item: CheckItem }) {
     <li className="rounded-xl border border-stone-150 px-3 py-2.5">
       <p className="line-clamp-2 text-[13px] font-bold leading-snug text-stone-800">{item.task.title}</p>
 
-      <div className="mt-1.5 flex items-baseline gap-3 text-[12px] tabular-nums">
+      <div className="mt-1.5 flex items-baseline gap-3 text-[14px] tabular-nums">
         <span className="text-stone-500">
           予定 <span className="font-bold text-stone-700">{item.estimateMinutes}分</span>
         </span>
@@ -306,40 +306,40 @@ function CheckCard({ item }: { item: CheckItem }) {
       </div>
 
       {item.reason && (
-        <p className="mt-1 text-[11px] text-stone-500">理由　{varianceReasonLabel[item.reason]}</p>
+        <p className="mt-1 text-[13px] text-stone-500">理由　{varianceReasonLabel[item.reason]}</p>
       )}
 
       {proposal === null ? (
-        <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">
+        <p className="mt-1.5 text-[13px] leading-relaxed text-stone-400">
           このTaskには繰り返しの単位がないので、次回見積りの候補は出しません。
           似ているだけのTaskを平均しても、当たる見積りにはなりません。
         </p>
       ) : (
         <div className="mt-2 rounded-lg bg-accent-soft px-2.5 py-2">
-          <p className="text-[11px] font-bold text-accent-dark">
+          <p className="text-[13px] font-bold text-accent-dark">
             次回候補 {proposal.suggestedMinutes}分・{CONFIDENCE_LABEL[proposal.confidence]}
           </p>
-          <p className="mt-0.5 text-[10px] tabular-nums text-stone-500">
+          <p className="mt-0.5 text-[13px] tabular-nums text-stone-500">
             {proposal.groupLabel}の実績 {proposal.samples.join(" / ")}分
           </p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">
+          <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">
             {CONFIDENCE_HINT[proposal.confidence]}
           </p>
           {adopted === proposal.suggestedMinutes ? (
-            <p className="mt-1.5 text-[11px] font-bold text-accent-dark">
+            <p className="mt-1.5 text-[13px] font-bold text-accent-dark">
               ✓ 次回見積 {adopted}分 として採用済み
             </p>
           ) : (
             <button
               type="button"
               onClick={() => setNextEstimate(item.task.id, proposal.suggestedMinutes)}
-              className="mt-1.5 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
+              className="mt-1.5 rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
             >
               次回見積に採用
             </button>
           )}
           {calendarProposal && adopted === proposal.suggestedMinutes && (
-            <p className="mt-1.5 rounded bg-white/70 px-2 py-1 text-[10px] leading-relaxed text-stone-600">
+            <p className="mt-1.5 rounded bg-white/70 px-2 py-1 text-[13px] leading-relaxed text-stone-600">
               {calendarProposal.label}（{calendarProposal.state}）。
               このアプリはCalendarへ書き込めないので、まだ変わっていません。反映後、次のCalendar取得で確認できます。
             </p>

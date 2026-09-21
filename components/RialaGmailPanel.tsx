@@ -118,22 +118,22 @@ export default function RialaGmailPanel() {
     <section className="mt-3 rounded-3xl border border-violet-100 bg-white/70 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-[10px] font-black tracking-[0.18em] text-violet-700">INCOMING / GMAIL</p>
-          <p role="status" aria-live="polite" className="mt-0.5 text-[11px] font-bold text-stone-600">{freshness}</p>
+          <p className="text-[13px] font-black tracking-[0.18em] text-violet-700">INCOMING / GMAIL</p>
+          <p role="status" aria-live="polite" className="mt-0.5 text-[13px] font-bold text-stone-600">{freshness}</p>
           {connection?.connected && result?.accountMasked ? (
-            <p className="text-[10px] text-stone-400">{result.accountMasked}・読み取りのみ{result.window ? `・直近${result.window.days}日` : ""}</p>
+            <p className="text-[13px] text-stone-400">{result.accountMasked}・読み取りのみ{result.window ? `・直近${result.window.days}日` : ""}</p>
           ) : null}
         </div>
         <div className="flex gap-1.5">
           {canConnect ? (
             <button type="button" onClick={() => void connect()} disabled={busy}
-              className="rounded-xl bg-violet-700 px-3 py-2 text-[11px] font-black text-white disabled:opacity-40">
+              className="rounded-xl bg-violet-700 px-3 py-2 text-[13px] font-black text-white disabled:opacity-40">
               {busy ? "接続中…" : "Gmailを接続"}
             </button>
           ) : null}
           {connection?.connected ? (
             <button type="button" onClick={() => void refresh()} disabled={busy}
-              className="rounded-xl border border-violet-200 px-3 py-2 text-[11px] font-black text-violet-700 disabled:opacity-40">
+              className="rounded-xl border border-violet-200 px-3 py-2 text-[13px] font-black text-violet-700 disabled:opacity-40">
               {busy ? "取得中…" : "Gmailを取得 ⟳"}
             </button>
           ) : null}
@@ -141,7 +141,7 @@ export default function RialaGmailPanel() {
       </div>
 
       {connection && !connection.connected ? (
-        <p className="mt-2 text-[10px] leading-relaxed text-stone-500">
+        <p className="mt-2 text-[13px] leading-relaxed text-stone-500">
           {!connection.clientConfigured ? "Google OAuthクライアントが未設定です。" : null}
           {!connection.keyConfigured ? "GMAIL_TOKEN_KEY が未設定のため、暗号化できず接続しません。" : null}
           {connection.clientConfigured && connection.keyConfigured ? "受信メールを読むには接続が必要です。権限は読み取りのみで、送信・下書き・既読変更はできません。" : null}
@@ -156,7 +156,7 @@ export default function RialaGmailPanel() {
             <Stat label="判別材料なし" value={result.counts.unknown} />
           </div>
           {result.reason ? (
-            <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">
+            <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">
               <p>{result.reason}</p>
               {result.diagnostic ? (
                 <p className="mt-0.5 font-normal text-amber-700">
@@ -167,23 +167,23 @@ export default function RialaGmailPanel() {
               ) : null}
             </div>
           ) : null}
-          <button type="button" onClick={() => setOpen(v => !v)} className="mt-2 text-[10px] font-black text-violet-700">
+          <button type="button" onClick={() => setOpen(v => !v)} className="mt-2 text-[13px] font-black text-violet-700">
             {open ? "内訳を閉じる" : `内訳を見る（${result.counts.threads}スレッド / ${result.counts.messages}通）`}
           </button>
           {open ? (
             <div className="mt-2 space-y-1.5">
-              {result.threads.length === 0 ? <p className="text-[11px] text-stone-400">この期間に該当はありません</p> : null}
+              {result.threads.length === 0 ? <p className="text-[13px] text-stone-400">この期間に該当はありません</p> : null}
               {result.threads.map(thread => (
                 <article key={thread.threadId} className="rounded-2xl border border-stone-100 bg-white px-3 py-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${thread.relevance === "RIALA_RELEVANT" ? "bg-violet-50 text-violet-700" : "bg-stone-50 text-stone-500"}`}>
                       {RELEVANCE_LABEL[thread.relevance] ?? thread.relevance}
                     </span>
-                    <span className="text-[10px] font-bold text-stone-500">{REPLY_LABEL[thread.replyState] ?? thread.replyState}</span>
-                    {thread.unreadCount > 0 ? <span className="text-[10px] font-bold text-amber-700">未読{thread.unreadCount}</span> : null}
+                    <span className="text-[13px] font-bold text-stone-500">{REPLY_LABEL[thread.replyState] ?? thread.replyState}</span>
+                    {thread.unreadCount > 0 ? <span className="text-[13px] font-bold text-amber-700">未読{thread.unreadCount}</span> : null}
                   </div>
-                  <p className="mt-1 text-[12px] font-bold text-stone-800">{thread.subject || "(件名なし)"}</p>
-                  <p className="text-[10px] text-stone-400">
+                  <p className="mt-1 text-[14px] font-bold text-stone-800">{thread.subject || "(件名なし)"}</p>
+                  <p className="text-[13px] text-stone-400">
                     最終 {stamp(thread.lastMessageAt)}
                     {thread.lastIncomingAt ? `・相手から ${stamp(thread.lastIncomingAt)}` : ""}
                     ・{thread.messageCount}通
@@ -191,7 +191,7 @@ export default function RialaGmailPanel() {
                   {thread.evidence.length > 0 ? (
                     <div className="mt-1 space-y-0.5">
                       {thread.evidence.slice(0, 3).map((e, index) => (
-                        <p key={`${thread.threadId}-${index}`} className="rounded-lg bg-stone-50 px-2 py-1 text-[10px] text-stone-500">{e.detail}</p>
+                        <p key={`${thread.threadId}-${index}`} className="rounded-lg bg-stone-50 px-2 py-1 text-[13px] text-stone-500">{e.detail}</p>
                       ))}
                     </div>
                   ) : null}
@@ -199,15 +199,15 @@ export default function RialaGmailPanel() {
               ))}
             </div>
           ) : null}
-          <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+          <p className="mt-2 text-[13px] leading-relaxed text-stone-400">
             返信が必要かどうかはここでは決めません。事実だけを出しています。送信・下書き・既読変更は行いません。
           </p>
         </>
       ) : null}
 
-      {notice ? <p className="mt-2 text-[11px] font-bold text-violet-800">{notice}</p> : null}
+      {notice ? <p className="mt-2 text-[13px] font-bold text-violet-800">{notice}</p> : null}
       {body && !body.configured && body.reason && !body.authRequired ? (
-        <p className="mt-2 text-[11px] font-bold text-amber-800">{body.reason}</p>
+        <p className="mt-2 text-[13px] font-bold text-amber-800">{body.reason}</p>
       ) : null}
     </section>
   );
@@ -216,7 +216,7 @@ export default function RialaGmailPanel() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-white px-3 py-2">
-      <p className="text-[10px] font-bold text-stone-400">{label}</p>
+      <p className="text-[13px] font-bold text-stone-400">{label}</p>
       <p className="mt-0.5 text-[20px] font-black tabular-nums text-violet-700">{value}</p>
     </div>
   );

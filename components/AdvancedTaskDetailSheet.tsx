@@ -142,7 +142,7 @@ export default function TaskDetailSheet({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[17px] font-semibold leading-snug text-stone-900">{task.title}</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-bold text-stone-500">
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[14px] font-bold text-stone-500">
                 <span className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-600">{task.area}</span>
                 <span>期限 {formatMd(taskDeadline)}</span>
               </div>
@@ -158,7 +158,7 @@ export default function TaskDetailSheet({
           </div>
 
           <div className="mt-3 rounded-2xl bg-stone-50 px-3.5 py-3">
-            <h3 className="mb-1 text-xs font-semibold tracking-wide text-stone-400">■ 完了基準</h3>
+            <h3 className="mb-1 text-[14px] font-semibold tracking-wide text-stone-400">■ 完了基準</h3>
             <ul className="flex flex-col gap-1">
               {task.definitionOfDone.map((d, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-[13px] leading-relaxed text-stone-700">
@@ -171,12 +171,12 @@ export default function TaskDetailSheet({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
-          {!connected && <p className="mt-4 text-xs leading-6 text-amber-800">接続前の参考情報です。記録の変更は接続後に使えます。</p>}
+          {!connected && <p className="mt-4 text-[14px] leading-6 text-amber-800">接続前の参考情報です。記録の変更は接続後に使えます。</p>}
           <fieldset disabled={!connected || !execution.executionReady} className="min-w-0">
           <Section title="何をする？">
             <p className="text-[13px] leading-relaxed text-stone-700">{task.description}</p>
             {task.blockedOnInfo && (
-              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[14px] leading-relaxed text-amber-800">
                 ⚠ 情報待ち：{task.blockedOnInfo}
               </p>
             )}
@@ -195,7 +195,7 @@ export default function TaskDetailSheet({
             ) : (
               <>
                 <p className="text-[13px] leading-relaxed text-stone-700">{task.why}</p>
-                <p className="mt-1.5 text-xs text-stone-400">
+                <p className="mt-1.5 text-[14px] text-stone-400">
                   このTaskはまだ Outcome / 現在のGap / なぜ今 に分解されていません
                 </p>
               </>
@@ -204,23 +204,23 @@ export default function TaskDetailSheet({
 
           {task.workContext && (
             <Section title="今回使う仕事の型">
-              <p className="mb-1.5 text-xs font-bold text-stone-400">
+              <p className="mb-1.5 text-[14px] font-bold text-stone-400">
                 {WORK_CONTEXT_LABEL[task.workContext]}
               </p>
               <ul className="flex flex-col gap-1.5">
                 {principlesForContext(workPrinciples, task.workContext).map((p) => (
                   <li key={p.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
                     <p className="text-sm font-bold text-stone-700">{p.title}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{p.summary}</p>
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-stone-500">{p.summary}</p>
                     {p.examples.length > 0 && (
-                      <p className="mt-1 text-xs text-stone-400">例：{p.examples[0]}</p>
+                      <p className="mt-1 text-[14px] text-stone-400">例：{p.examples[0]}</p>
                     )}
                   </li>
                 ))}
                 {WORK_CONTEXT_PRINCIPLES[task.workContext].usesHelpNeed && (
                   <li className="rounded-xl bg-stone-50 px-3 py-2.5">
                     <p className="text-sm font-bold text-stone-700">Help Need Workflow</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-stone-500">
                       相談前に、目的・現状・分かっていること／いないこと・欲しい回答を整理してから相談する
                     </p>
                   </li>
@@ -245,11 +245,11 @@ export default function TaskDetailSheet({
                   <p className="mt-1 text-sm leading-relaxed text-stone-600">{goal.desiredState}</p>
                   {goalProgress && <div className="mt-2 flex items-center gap-2">
                     <ProgressBar pct={goalProgress.pct} size="sm" />
-                    <span className="tabular-nums shrink-0 text-xs font-bold text-stone-500">
+                    <span className="tabular-nums shrink-0 text-[14px] font-bold text-stone-500">
                       {goalProgress.done}/{goalProgress.total}
                     </span>
                   </div>}
-                  <p className="mt-2 text-xs leading-6 text-stone-500">関連タスクの完了状況です。目標そのものの達成率ではありません。</p>
+                  <p className="mt-2 text-[14px] leading-6 text-stone-500">関連タスクの完了状況です。目標そのものの達成率ではありません。</p>
                   <Link
                     href={`/goals?focus=${goal.id}`}
                     className="mt-2 inline-block text-sm font-bold text-accent-dark"
@@ -296,13 +296,13 @@ export default function TaskDetailSheet({
                           {src.label}
                           {!src.url.startsWith("/") && " ↗"}
                         </p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="mt-0.5 text-[14px] leading-relaxed text-stone-500">{src.purpose}</p>
                       </a>
                     ) : (
                       <div className="rounded-xl bg-stone-50 px-3 py-2.5">
                         <p className="text-sm font-bold text-stone-600">{src.label}</p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{src.purpose}</p>
-                        <p className="mt-0.5 text-xs font-bold text-stone-400">リンク未確認</p>
+                        <p className="mt-0.5 text-[14px] leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="mt-0.5 text-[14px] font-bold text-stone-400">リンク未確認</p>
                       </div>
                     )}
                   </li>
@@ -312,7 +312,7 @@ export default function TaskDetailSheet({
           )}
 
           <Section title="具体手順">
-            <p className="mb-1.5 text-xs font-medium text-stone-400">
+            <p className="mb-1.5 text-[14px] font-medium text-stone-400">
               作業の進み具合の目安です（完了判定は上の「完了基準」で行います）
             </p>
             <ul className="flex flex-col gap-1.5">
@@ -355,7 +355,7 @@ export default function TaskDetailSheet({
                     <dt className="text-stone-500">状態</dt>
                     <dd>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        className={`rounded-full px-2 py-0.5 text-[14px] font-bold ${
                           deliveryStatusLabel(task.deliveryStatus).tone === "accent"
                             ? "bg-accent-soft text-accent-dark"
                             : deliveryStatusLabel(task.deliveryStatus).tone === "warning"
@@ -370,7 +370,7 @@ export default function TaskDetailSheet({
                 )}
               </dl>
               {task.automationCandidate && (
-                <p className="mt-2 text-xs text-stone-400">
+                <p className="mt-2 text-[14px] text-stone-400">
                   🔁 将来の自動化候補（Phase1では実行しません）
                 </p>
               )}
@@ -415,14 +415,14 @@ export default function TaskDetailSheet({
                 貯まるようにする。押し忘れると見積り改善のデータが止まる。 */}
             {estimateSuggestion && (
               <div className="mt-2 rounded-2xl bg-stone-50 px-3.5 py-3">
-                <p className="text-xs font-bold text-stone-500">次回の見積り候補</p>
+                <p className="text-[14px] font-bold text-stone-500">次回の見積り候補</p>
                 <p className="mt-0.5 text-[13px] font-semibold text-stone-800">
                   {estimateSuggestion.suggestedMinutes}分
-                  <span className="ml-1.5 text-xs font-bold text-stone-400">
+                  <span className="ml-1.5 text-[14px] font-bold text-stone-400">
                     （{estimateSuggestion.basis}の実績 {estimateSuggestion.samples.join(" / ")}分）
                   </span>
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-stone-400">
+                <p className="mt-1 text-[14px] leading-relaxed text-stone-400">
                   提案です。自動では変更しません。
                 </p>
               </div>
@@ -440,14 +440,14 @@ export default function TaskDetailSheet({
                 time trains the user to dismiss it. */}
             {shouldAskVarianceReason(task.estimateMinutes, shownActualMinutes) && onSetVarianceReason && (
               <div className="mt-3">
-                <p className="mb-1.5 text-xs font-bold text-stone-400">なぜ差が出た？（任意）</p>
+                <p className="mb-1.5 text-[14px] font-bold text-stone-400">なぜ差が出た？（任意）</p>
                 <div className="flex flex-wrap gap-1.5">
                   {VARIANCE_REASONS.map((r) => (
                     <button
                       key={r}
                       type="button"
                       onClick={() => onSetVarianceReason(r)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
+                      className={`rounded-full px-2.5 py-1 text-[14px] font-bold transition-colors ${
                         varianceReason === r ? "bg-accent text-white" : "bg-stone-100 text-stone-500"
                       }`}
                     >
@@ -461,7 +461,7 @@ export default function TaskDetailSheet({
 
           {series && (
             <Section title="Task Series">
-              <p className="mb-1.5 text-xs font-bold text-stone-500">
+              <p className="mb-1.5 text-[14px] font-bold text-stone-500">
                 {series.seriesTitle}　全{series.totalSteps}回中{series.sequenceNumber}回目
               </p>
               <ul className="flex flex-col gap-1.5">
@@ -485,11 +485,11 @@ export default function TaskDetailSheet({
                 )}
               </ul>
               {series.finalDeadline && (
-                <p className="mt-2 text-xs font-bold text-stone-500">
+                <p className="mt-2 text-[14px] font-bold text-stone-500">
                   最終期限：<span className="text-stone-700">{formatMd(series.finalDeadline)}</span>
                 </p>
               )}
-              <p className="mt-1.5 text-xs text-stone-400">
+              <p className="mt-1.5 text-[14px] text-stone-400">
                 Task Series＝成果を分割した仕事単位。TimeBlock（下）＝その回に使う時間枠で、混同していません
               </p>
             </Section>
@@ -501,7 +501,7 @@ export default function TaskDetailSheet({
                 <button
                   type="button"
                   onClick={() => setRescheduleOpen(true)}
-                  className="rounded-full bg-stone-800 px-3 py-1.5 text-xs font-bold text-white"
+                  className="rounded-full bg-stone-800 px-3 py-1.5 text-[14px] font-bold text-white"
                 >
                   予定を変更
                 </button>
@@ -509,14 +509,14 @@ export default function TaskDetailSheet({
                   <button
                     type="button"
                     onClick={() => clearReplan(task.id)}
-                    className="rounded-full bg-danger-soft px-3 py-1.5 text-xs font-bold text-danger"
+                    className="rounded-full bg-danger-soft px-3 py-1.5 text-[14px] font-bold text-danger"
                   >
                     再計画済みにする
                   </button>
                 )}
               </div>
               {replanFlag && (
-                <p className="mb-2 rounded-xl bg-danger-soft px-3 py-2 text-xs leading-relaxed text-danger">
+                <p className="mb-2 rounded-xl bg-danger-soft px-3 py-2 text-[14px] leading-relaxed text-danger">
                   ⚠ 再計画が必要：{replanFlag.detail}
                 </p>
               )}
@@ -543,7 +543,7 @@ export default function TaskDetailSheet({
                         const sync = calendarSyncState(tb, { syncEnabled });
                         return (
                           <p
-                            className={`mt-1 text-xs font-bold ${
+                            className={`mt-1 text-[14px] font-bold ${
                               sync === "CALENDAR_CONFIRMED"
                                 ? "text-emerald-600"
                                 : sync === "NEEDS_CALENDAR_SYNC"
@@ -557,13 +557,13 @@ export default function TaskDetailSheet({
                         );
                       })()}
                       <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-stone-200/70 pt-1.5">
-                        <span className="text-xs font-bold text-stone-400">
+                        <span className="text-[14px] font-bold text-stone-400">
                           {tb.calendarEventId ? "📅 Google Calendar同期済み" : "Google Calendarへ表示"}
                         </span>
                         <button
                           type="button"
                           onClick={() => setCalendarSyncEnabled(tb.id, !syncEnabled)}
-                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-[14px] font-bold transition-colors ${
                             syncEnabled ? "bg-accent text-white" : "bg-stone-200 text-stone-500"
                           }`}
                         >
@@ -574,7 +574,7 @@ export default function TaskDetailSheet({
                   );
                 })}
               </ul>
-              <p className="mt-1.5 text-xs text-stone-400">
+              <p className="mt-1.5 text-[14px] text-stone-400">
                 Task ≠ Time Block：1つのTaskを複数の予定に分けて実行できます。「確定する」はこの予定をGoogle
                 Calendarへ載せる対象にする印です（Phase1は実際の自動送信はまだ行わず、確定済みの一覧を人が
                 Calendarへ反映します）。
@@ -584,22 +584,22 @@ export default function TaskDetailSheet({
 
           {runbook && nextBlock && (
             <Section title="この枠の進め方（Session Runbook）">
-              <p className="mb-1.5 text-xs leading-relaxed text-stone-400">
+              <p className="mb-1.5 text-[14px] leading-relaxed text-stone-400">
                 {formatMd(nextBlock.date)} {nextBlock.startTime}〜{nextBlock.endTime}
                 の進め方です。Calendarには1件のまま——15分ごとの予定は作りません。
               </p>
               <ol className="flex flex-col gap-1.5">
                 {runbook.steps.map((step) => (
                   <li key={step.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
-                    <p className="tabular-nums text-xs font-semibold text-accent-dark">
+                    <p className="tabular-nums text-[14px] font-semibold text-accent-dark">
                       {step.startTime}〜{step.endTime}
                     </p>
                     <p className="mt-0.5 text-sm font-bold text-stone-800">{step.label}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-stone-500">→ {step.outputs}</p>
+                    <p className="mt-0.5 text-[14px] leading-relaxed text-stone-500">→ {step.outputs}</p>
                   </li>
                 ))}
               </ol>
-              {runbook.note && <p className="mt-1.5 text-xs leading-relaxed text-stone-400">{runbook.note}</p>}
+              {runbook.note && <p className="mt-1.5 text-[14px] leading-relaxed text-stone-400">{runbook.note}</p>}
             </Section>
           )}
 
@@ -629,7 +629,7 @@ export default function TaskDetailSheet({
 function WhyPart({ label, body, tone = "normal" }: { label: string; body: string; tone?: "normal" | "accent" }) {
   return (
     <div className={`rounded-xl px-3 py-2.5 ${tone === "accent" ? "bg-accent-soft" : "bg-stone-50"}`}>
-      <p className={`text-xs font-semibold tracking-wide ${tone === "accent" ? "text-accent-dark" : "text-stone-400"}`}>
+      <p className={`text-[14px] font-semibold tracking-wide ${tone === "accent" ? "text-accent-dark" : "text-stone-400"}`}>
         {label}
       </p>
       <p className="mt-0.5 text-sm leading-relaxed text-stone-700">{body}</p>
@@ -672,11 +672,11 @@ function SeriesRow({
 }) {
   const content = (
     <div className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${current ? "bg-accent-soft ring-1 ring-accent" : "bg-stone-50"}`}>
-      <span className={`mt-0.5 shrink-0 text-xs font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{icon}</span>
+      <span className={`mt-0.5 shrink-0 text-[14px] font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className={`text-xs font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
+        <p className={`text-[14px] font-bold ${current ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
         <p className={`truncate font-bold ${current ? "text-accent-dark" : "text-stone-700"}`}>{taskTitle}</p>
-        {subLabel && <p className="text-xs text-stone-400">{subLabel}予定</p>}
+        {subLabel && <p className="text-[14px] text-stone-400">{subLabel}予定</p>}
       </div>
     </div>
   );

@@ -54,19 +54,19 @@ export default function CompletionToast({
             {feedback.changed.length > 0 && (
               <ul className="mt-1 flex flex-col gap-0.5">
                 {feedback.changed.map((c) => (
-                  <li key={c} className="text-[11px] leading-snug text-stone-500">
+                  <li key={c} className="text-[13px] leading-snug text-stone-500">
                     {c}
                   </li>
                 ))}
               </ul>
             )}
             {feedback.unlocked && (
-              <p className="mt-1 text-[11px] font-bold text-[#2C55B8]">{feedback.unlocked}</p>
+              <p className="mt-1 text-[13px] font-bold text-[#2C55B8]">{feedback.unlocked}</p>
             )}
             {/* §37/§51: 完了した瞬間が、次の見積りを直す一番いいタイミング。
                 ただし提案までで、勝手には変えない。採用はPDCAで押す。 */}
             {feedback.nextEstimate && (
-              <p className="mt-1 text-[11px] font-bold text-stone-500">
+              <p className="mt-1 text-[13px] font-bold text-stone-500">
                 次回候補 {feedback.nextEstimate.minutes}分（{feedback.nextEstimate.confidence}）
               </p>
             )}
@@ -75,7 +75,7 @@ export default function CompletionToast({
             type="button"
             onClick={onDismiss}
             aria-label="閉じる"
-            className="shrink-0 text-[12px] text-stone-300"
+            className="shrink-0 text-[14px] text-stone-300"
           >
             ✕
           </button>

@@ -49,20 +49,20 @@ export default function ManualActualEntry({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-full bg-stone-100 px-3 py-1.5 text-[11px] font-bold text-stone-600"
+          className="rounded-full bg-stone-100 px-3 py-1.5 text-[13px] font-bold text-stone-600"
         >
           {actualMinutes === null ? "実績時間を手入力する" : "実績時間を修正する"}
         </button>
       ) : (
         <div className="rounded-2xl bg-stone-50 px-3.5 py-3">
-          <p className="text-[11px] font-bold text-stone-500">実際にかかった時間（分）</p>
+          <p className="text-[13px] font-bold text-stone-500">実際にかかった時間（分）</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {PRESETS.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => save(m)}
-                className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-stone-600 shadow-sm"
+                className="rounded-full bg-white px-2.5 py-1 text-[13px] font-bold text-stone-600 shadow-sm"
               >
                 {m}分
               </button>
@@ -83,7 +83,7 @@ export default function ManualActualEntry({
               type="button"
               disabled={!valid}
               onClick={() => save(parsed)}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
+              className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${
                 valid ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
               }`}
             >
@@ -95,13 +95,13 @@ export default function ManualActualEntry({
                 setOpen(false);
                 setValue("");
               }}
-              className="rounded-full px-3 py-1.5 text-[11px] font-bold text-stone-400"
+              className="rounded-full px-3 py-1.5 text-[13px] font-bold text-stone-400"
             >
               キャンセル
             </button>
           </div>
           {preview?.varianceMinutes !== null && preview !== null && task.estimateMinutes !== null && (
-            <p className="mt-1.5 text-[10px] font-bold text-stone-400">
+            <p className="mt-1.5 text-[13px] font-bold text-stone-400">
               見積 {task.estimateMinutes}分 → 差分 {preview.varianceMinutes > 0 ? "+" : ""}
               {preview.varianceMinutes}分
             </p>
@@ -113,7 +113,7 @@ export default function ManualActualEntry({
                 onClear();
                 setOpen(false);
               }}
-              className="mt-2 text-[10px] font-bold text-stone-400 underline"
+              className="mt-2 text-[13px] font-bold text-stone-400 underline"
             >
               記録を取り消す
             </button>
@@ -121,7 +121,7 @@ export default function ManualActualEntry({
         </div>
       )}
       {actualMinutes !== null && isManual && (
-        <p className="mt-1 text-[10px] font-bold text-stone-400">実績 {actualMinutes}分（手入力）</p>
+        <p className="mt-1 text-[13px] font-bold text-stone-400">実績 {actualMinutes}分（手入力）</p>
       )}
     </div>
   );

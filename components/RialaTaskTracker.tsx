@@ -273,21 +273,21 @@ export default function RialaTaskTracker() {
         >
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">RIALA 計測</span>
+              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[14px] font-semibold text-violet-700">RIALA 計測</span>
               <span className="text-sm text-stone-500">18個の実タスク</span>
             </div>
             <h2 className="mt-2 text-lg font-bold text-stone-900">RIALA タスク実行・時間計測</h2>
           </div>
           <div className="text-right">
             <div className="text-sm font-semibold text-stone-800">{completedCount} / {tasks.length} 完了</div>
-            <div className="mt-1 text-xs text-stone-500">累計 {secondsToLabel(totalSeconds)}</div>
-            <div className="mt-1 text-xs text-violet-600">{open ? "閉じる" : "開く"}</div>
+            <div className="mt-1 text-[14px] text-stone-500">累計 {secondsToLabel(totalSeconds)}</div>
+            <div className="mt-1 text-[14px] text-violet-600">{open ? "閉じる" : "開く"}</div>
           </div>
         </button>
 
         {open && (
           <div className="border-t border-stone-100 px-4 py-4 sm:px-5">
-            <p className="mb-4 text-xs leading-5 text-stone-500">
+            <p className="mb-4 text-[14px] leading-5 text-stone-500">
               各タスクはGoogle Calendarの21:30〜22:00枠と対応。開始・停止で実績時間を計測し、達成基準を満たしたら完了にする。
             </p>
             <div className="grid gap-3 lg:grid-cols-2">
@@ -299,7 +299,7 @@ export default function RialaTaskTracker() {
                   <article key={task.id} className="rounded-xl border border-stone-200 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-2 text-[14px]">
                           <span className="font-medium text-violet-700">{task.category}</span>
                           <span className="text-stone-400">{task.date}</span>
                           <span className={`rounded-full px-2 py-0.5 font-medium ${done ? "bg-stone-900 text-white" : running ? "bg-violet-100 text-violet-700" : "bg-stone-100 text-stone-600"}`}>
@@ -308,34 +308,34 @@ export default function RialaTaskTracker() {
                         </div>
                         <h3 className="mt-2 text-sm font-semibold leading-5 text-stone-900">{task.title}</h3>
                       </div>
-                      <div className="shrink-0 text-right font-mono text-xs font-semibold text-stone-700">
+                      <div className="shrink-0 text-right font-mono text-[14px] font-semibold text-stone-700">
                         {secondsToLabel(currentElapsed(m))}
                       </div>
                     </div>
 
                     <div className="mt-3 rounded-lg bg-stone-50 px-3 py-2.5">
-                      <div className="text-[11px] font-semibold text-stone-500">達成基準</div>
-                      <p className="mt-1 text-xs leading-5 text-stone-700">{task.criterion}</p>
+                      <div className="text-[13px] font-semibold text-stone-500">達成基準</div>
+                      <p className="mt-1 text-[14px] leading-5 text-stone-700">{task.criterion}</p>
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {!done && !running && (
-                        <button type="button" onClick={() => start(task.id)} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-700">
+                        <button type="button" onClick={() => start(task.id)} className="rounded-lg bg-violet-600 px-3 py-2 text-[14px] font-semibold text-white hover:bg-violet-700">
                           開始
                         </button>
                       )}
                       {!done && running && (
-                        <button type="button" onClick={() => stop(task.id)} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-50">
+                        <button type="button" onClick={() => stop(task.id)} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-[14px] font-semibold text-violet-700 hover:bg-violet-50">
                           一時停止
                         </button>
                       )}
                       {!done && (
-                        <button type="button" onClick={() => complete(task.id)} className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50">
+                        <button type="button" onClick={() => complete(task.id)} className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-[14px] font-semibold text-stone-700 hover:bg-stone-50">
                           達成・完了
                         </button>
                       )}
                       {(done || m.elapsedSeconds > 0 || running) && (
-                        <button type="button" onClick={() => reset(task.id)} className="rounded-lg px-3 py-2 text-xs font-medium text-stone-400 hover:bg-stone-50 hover:text-stone-600">
+                        <button type="button" onClick={() => reset(task.id)} className="rounded-lg px-3 py-2 text-[14px] font-medium text-stone-400 hover:bg-stone-50 hover:text-stone-600">
                           リセット
                         </button>
                       )}

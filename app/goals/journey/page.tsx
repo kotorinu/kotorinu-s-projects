@@ -77,9 +77,9 @@ function GoalTreeContent() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-xs font-bold tracking-widest text-accent-dark">AI WORK OS</p>
+        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">GOAL TREE</h1>
-        <p className="mt-0.5 text-xs font-medium text-stone-400">いまはどこへ向かっているか</p>
+        <p className="mt-0.5 text-[14px] font-medium text-stone-400">いまはどこへ向かっているか</p>
       </header>
 
       {/* §8/P2: 開いた瞬間に「あと何日で、何になっていればいいか」。 */}
@@ -100,7 +100,7 @@ function GoalTreeContent() {
               />
               {node.goal.horizon === "1M" && areas.length > 0 && (
                 <div className="mb-2 ml-6 border-l border-dashed border-stone-200 pl-3">
-                  <p className="mb-1.5 text-[10px] font-bold text-stone-400">この1か月を作っているもの</p>
+                  <p className="mb-1.5 text-[13px] font-bold text-stone-400">この1か月を作っているもの</p>
                   <div className="flex flex-col gap-1.5">
                     {areas.map((g) => (
                       <div key={g.id} id={`goal-${g.id}`} className="scroll-mt-28">
@@ -170,10 +170,10 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
     <section className="mt-4 px-5">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full bg-stone-800" />
-        <p className="text-[11px] font-black tracking-widest text-stone-800">NORTH STAR</p>
+        <p className="text-[13px] font-black tracking-widest text-stone-800">NORTH STAR</p>
         <span className="h-px flex-1 bg-stone-200" />
       </div>
-      <p className="mb-2 mt-1 pl-[18px] text-[10px] text-stone-400">
+      <p className="mb-2 mt-1 pl-[18px] text-[13px] text-stone-400">
         期限を持たないもの。ここへ向かって、上の期間Goalが並んでいます。
       </p>
 
@@ -189,10 +189,10 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
                 onClick={() => setOpenId(open ? null : g.id)}
                 className="flex w-full items-baseline gap-2 text-left lg:cursor-default"
               >
-                <span className="text-[11px] font-black tracking-wide text-accent-dark">
+                <span className="text-[13px] font-black tracking-wide text-accent-dark">
                   {NORTH_STAR_LABEL[star]}
                 </span>
-                <span className="ml-auto text-[10px] font-bold text-stone-300 lg:hidden">
+                <span className="ml-auto text-[13px] font-bold text-stone-300 lg:hidden">
                   {open ? "閉じる" : "全文を読む"}
                 </span>
               </button>
@@ -208,7 +208,7 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
               </p>
 
               {g.achievementCriteria && (open || false) && (
-                <p className="mt-2 whitespace-pre-line text-[11px] leading-relaxed text-stone-400">
+                <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-stone-400">
                   {g.achievementCriteria}
                 </p>
               )}
@@ -216,7 +216,7 @@ function NorthStarSection({ stars, onOpen }: { stars: Goal[]; onOpen: (id: strin
               <button
                 type="button"
                 onClick={() => onOpen(g.id)}
-                className="mt-2 text-[11px] font-bold text-accent-dark"
+                className="mt-2 text-[13px] font-bold text-accent-dark"
               >
                 このNorth Starの詳細 ＞
               </button>
@@ -233,18 +233,18 @@ function NextMilestoneCard({ goal, today }: { goal: Goal; today: string }) {
   const label = GOAL_HORIZON_LABEL[goal.horizon];
   return (
     <section className="mx-5 mt-2 rounded-2xl bg-accent px-4 py-3 text-white">
-      <p className="text-[10px] font-black tracking-widest text-white/70">NEXT MILESTONE</p>
+      <p className="text-[13px] font-black tracking-widest text-white/70">NEXT MILESTONE</p>
       <div className="mt-0.5 flex items-baseline gap-2">
         <span className="text-[26px] font-black leading-none tabular-nums">{headline}</span>
         <span className="text-[13px] font-bold text-white/80">
           {label === "この期間の中身" ? goal.title : label}
         </span>
         {goal.targetDate && (
-          <span className="ml-auto text-[11px] font-bold text-white/70">{formatMd(goal.targetDate)}</span>
+          <span className="ml-auto text-[13px] font-bold text-white/70">{formatMd(goal.targetDate)}</span>
         )}
       </div>
       {/* §9: ここも2行まで。全文は下のCardをTapして読む。 */}
-      <p className="mt-1.5 line-clamp-2 text-[12px] font-medium leading-relaxed text-white/95">
+      <p className="mt-1.5 line-clamp-2 text-[14px] font-medium leading-relaxed text-white/95">
         {goal.desiredState.replace(/\n/g, " ")}
       </p>
     </section>
@@ -256,8 +256,8 @@ function NowMarker({ today }: { today: string }) {
   return (
     <div className="flex items-center gap-2 pb-1">
       <span className="h-2.5 w-2.5 rounded-full bg-stone-800 ring-4 ring-stone-800/10" />
-      <span className="text-[11px] font-black tracking-widest text-stone-800">NOW</span>
-      <span className="tabular-nums text-[11px] font-bold text-stone-400">
+      <span className="text-[13px] font-black tracking-widest text-stone-800">NOW</span>
+      <span className="tabular-nums text-[13px] font-bold text-stone-400">
         {Number(m)}/{Number(d)}
       </span>
       <span className="h-px flex-1 bg-stone-200" />
@@ -316,7 +316,7 @@ function JourneyCard({
           </span>
           {headline && (
             <span
-              className={`tabular-nums font-black ${selected ? "text-[15px]" : "text-[12px]"} ${
+              className={`tabular-nums font-black ${selected ? "text-[15px]" : "text-[14px]"} ${
                 isNext || selected ? "text-accent-dark" : "text-stone-400"
               }`}
             >
@@ -324,10 +324,10 @@ function JourneyCard({
             </span>
           )}
           {goal.targetDate && (
-            <span className="ml-auto shrink-0 text-[10px] font-bold text-stone-300">{formatMd(goal.targetDate)}</span>
+            <span className="ml-auto shrink-0 text-[13px] font-bold text-stone-300">{formatMd(goal.targetDate)}</span>
           )}
         </div>
-        <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-stone-600">
+        <p className="mt-1 line-clamp-2 text-[14px] leading-snug text-stone-600">
           {goal.desiredState.replace(/\n/g, " ")}
         </p>
         {line.kind !== "NONE" && <SurfaceLine kind={line.kind} text={line.text} />}
@@ -358,15 +358,15 @@ function AreaCard({
       }`}
     >
       <div className="flex items-baseline gap-2">
-        <span className="text-[12px] font-bold text-stone-800">{goal.title}</span>
-        {headline && <span className="tabular-nums text-[11px] font-bold text-stone-400">{headline}</span>}
+        <span className="text-[14px] font-bold text-stone-800">{goal.title}</span>
+        {headline && <span className="tabular-nums text-[13px] font-bold text-stone-400">{headline}</span>}
       </div>
-      <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-stone-500">
+      <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-stone-500">
         {goal.desiredState.replace(/\n/g, " ")}
       </p>
       {/* いま止まっている一歩を1行だけ。 */}
       {step && (
-        <p className="mt-1 line-clamp-1 text-[10px] font-bold text-stone-400">
+        <p className="mt-1 line-clamp-1 text-[13px] font-bold text-stone-400">
           いまここ　{step.title}・{GAP_STATUS_LABEL[step.status]}
         </p>
       )}
@@ -377,7 +377,7 @@ function AreaCard({
 function SurfaceLine({ kind, text }: { kind: "EVIDENCE" | "GAP"; text: string }) {
   return (
     <p
-      className={`mt-1 line-clamp-1 text-[10px] font-bold ${
+      className={`mt-1 line-clamp-1 text-[13px] font-bold ${
         kind === "EVIDENCE" ? "text-accent-dark" : "text-stone-400"
       }`}
     >
@@ -407,16 +407,16 @@ function GoalDetail({
   return (
     <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
       <div className="flex items-baseline gap-2">
-        <span className="text-[10px] font-black tracking-widest text-stone-400">
+        <span className="text-[13px] font-black tracking-widest text-stone-400">
           {goal.isNorthStar ? "NORTH STAR" : label}
         </span>
         {goal.targetDate && (
-          <span className="ml-auto tabular-nums text-[11px] font-bold text-stone-400">
+          <span className="ml-auto tabular-nums text-[13px] font-bold text-stone-400">
             {formatMd(goal.targetDate)}
           </span>
         )}
         {onClose && (
-          <button type="button" onClick={onClose} className="ml-auto text-[11px] font-bold text-stone-400 lg:hidden">
+          <button type="button" onClick={onClose} className="ml-auto text-[13px] font-bold text-stone-400 lg:hidden">
             閉じる
           </button>
         )}
@@ -430,7 +430,7 @@ function GoalDetail({
 
       {/* §10: どのNorth Starに繋がるか。説明はしない。 */}
       {goal.northStars.length > 0 && (
-        <p className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px] font-bold text-stone-400">
+        <p className="mt-1.5 flex flex-wrap items-center gap-1 text-[13px] font-bold text-stone-400">
           {goal.northStars.map((s) => (
             <span key={s} className="rounded-full bg-stone-100 px-1.5 py-0.5">
               → {NORTH_STAR_LABEL[s]}
@@ -444,25 +444,25 @@ function GoalDetail({
       </Block>
 
       <Block label="達成条件">
-        <p className="whitespace-pre-line text-[12px] leading-relaxed text-stone-600">{goal.achievementCriteria}</p>
+        <p className="whitespace-pre-line text-[14px] leading-relaxed text-stone-600">{goal.achievementCriteria}</p>
       </Block>
 
       <Block label="現在のGap">
         {goal.currentGap ? (
-          <p className="whitespace-pre-line text-[12px] leading-relaxed text-stone-700">{goal.currentGap}</p>
+          <p className="whitespace-pre-line text-[14px] leading-relaxed text-stone-700">{goal.currentGap}</p>
         ) : (
           // 測っていないことを「差が無い」と書かない。
-          <p className="text-[12px] leading-relaxed text-stone-400">まだ測っていません。</p>
+          <p className="text-[14px] leading-relaxed text-stone-400">まだ測っていません。</p>
         )}
       </Block>
 
       <Block label="次に積むEvidence">
         {goal.nextEvidence ? (
-          <p className="rounded-xl bg-accent-soft px-3 py-2 text-[12px] font-bold leading-relaxed text-accent-dark">
+          <p className="rounded-xl bg-accent-soft px-3 py-2 text-[14px] font-bold leading-relaxed text-accent-dark">
             {goal.nextEvidence}
           </p>
         ) : (
-          <p className="text-[12px] text-stone-400">まだ決まっていません。</p>
+          <p className="text-[14px] text-stone-400">まだ決まっていません。</p>
         )}
       </Block>
 
@@ -478,10 +478,10 @@ function GoalDetail({
 
       {(linkedTasks > 0 || goal.linkedUrl || goal.note) && (
         <div className="mt-3 border-t border-stone-100 pt-2.5">
-          {linkedTasks > 0 && <p className="text-[11px] text-stone-500">紐づくタスク {linkedTasks}件</p>}
-          {goal.note && <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{goal.note}</p>}
+          {linkedTasks > 0 && <p className="text-[13px] text-stone-500">紐づくタスク {linkedTasks}件</p>}
+          {goal.note && <p className="mt-1 text-[13px] leading-relaxed text-stone-400">{goal.note}</p>}
           {goal.linkedUrl && (
-            <Link href={goal.linkedUrl} className="mt-1.5 inline-block text-[12px] font-bold text-accent-dark">
+            <Link href={goal.linkedUrl} className="mt-1.5 inline-block text-[14px] font-bold text-accent-dark">
               ＞ 詳細を見る
             </Link>
           )}
@@ -505,19 +505,19 @@ function PathStep({ step, isCurrent }: { step: GapItem; isCurrent: boolean }) {
       }`}
     >
       <span
-        className={`mt-[3px] shrink-0 text-[11px] font-black ${
+        className={`mt-[3px] shrink-0 text-[13px] font-black ${
           done ? "text-emerald-500" : waiting ? "text-amber-500" : isCurrent ? "text-accent-dark" : "text-stone-300"
         }`}
       >
         {mark}
       </span>
       <span className="min-w-0 flex-1">
-        <span className={`text-[12px] leading-snug ${done ? "text-stone-400" : "font-bold text-stone-700"}`}>
+        <span className={`text-[14px] leading-snug ${done ? "text-stone-400" : "font-bold text-stone-700"}`}>
           {step.title}
         </span>
-        <span className="ml-1.5 text-[10px] font-bold text-stone-400">{GAP_STATUS_LABEL[step.status]}</span>
+        <span className="ml-1.5 text-[13px] font-bold text-stone-400">{GAP_STATUS_LABEL[step.status]}</span>
         {waiting && step.waitingOn && (
-          <span className="block text-[10px] leading-snug text-amber-700">{step.waitingOn}</span>
+          <span className="block text-[13px] leading-snug text-amber-700">{step.waitingOn}</span>
         )}
       </span>
     </li>
@@ -527,7 +527,7 @@ function PathStep({ step, isCurrent }: { step: GapItem; isCurrent: boolean }) {
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mt-3">
-      <p className="mb-1 text-[10px] font-black tracking-wide text-stone-400">{label}</p>
+      <p className="mb-1 text-[13px] font-black tracking-wide text-stone-400">{label}</p>
       {children}
     </div>
   );

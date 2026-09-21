@@ -586,7 +586,7 @@ export default function TodayPage() {
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs font-bold tracking-widest text-accent-dark">AI WORK OS</p>
+            <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
             <h1 className="mt-0.5 flex items-center gap-2 text-[26px] font-black tracking-tight">
               <span className="text-2xl">☀</span> TODAY
             </h1>
@@ -594,7 +594,7 @@ export default function TodayPage() {
                 was the period while this OS was being built, and its numbers
                 are not counted as execution. */}
             {dayNumber !== null && (
-              <p className="mt-1 text-[11px] font-black tracking-widest text-stone-400">
+              <p className="mt-1 text-[13px] font-black tracking-widest text-stone-400">
                 DAY {dayNumber}
                 {streak.days > 0 && <span className="ml-2 text-accent-dark">・{streak.days}日連続</span>}
                 {streak.days > 0 && !streak.todayCounted && (
@@ -605,7 +605,7 @@ export default function TodayPage() {
           </div>
           <div className="text-right">
             <p className="tabular-nums text-2xl font-black">{formatMd(today)}</p>
-            <p className="text-xs font-medium text-stone-400">{weekday}曜日</p>
+            <p className="text-[14px] font-medium text-stone-400">{weekday}曜日</p>
           </div>
         </div>
       </header>
@@ -620,7 +620,7 @@ export default function TodayPage() {
       <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)] lg:col-start-1">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-bold text-stone-800">今日の前進</p>
-          <p className="tabular-nums text-xs font-bold text-stone-400">
+          <p className="tabular-nums text-[14px] font-bold text-stone-400">
             <span className="text-base text-accent-dark">{doneCount}</span> / {totalCount} 完了
           </p>
         </div>
@@ -629,7 +629,7 @@ export default function TodayPage() {
           <span className="tabular-nums w-10 shrink-0 text-right text-lg font-black text-accent-dark">{pct}%</span>
         </div>
         {totalCount - doneCount > 0 && (
-          <p className="mt-1.5 text-[11px] font-medium text-stone-400">残り{totalCount - doneCount}件</p>
+          <p className="mt-1.5 text-[13px] font-medium text-stone-400">残り{totalCount - doneCount}件</p>
         )}
 
         {/* Explainable summary (§14): the percentage above is just
@@ -640,12 +640,12 @@ export default function TodayPage() {
         <button
           type="button"
           onClick={() => setSummaryOpen((v) => !v)}
-          className="mt-2 text-[10px] font-bold text-stone-400"
+          className="mt-2 text-[13px] font-bold text-stone-400"
         >
           内訳 {summaryOpen ? "▾" : "▸"}
         </button>
         {summaryOpen && (
-          <dl className="mt-1.5 flex flex-col gap-1 rounded-xl bg-stone-50 px-3 py-2.5 text-[11px]">
+          <dl className="mt-1.5 flex flex-col gap-1 rounded-xl bg-stone-50 px-3 py-2.5 text-[13px]">
             <SummaryRow label="今日の予定Task" value={`${totalCount}件`} />
             <SummaryRow label="完了" value={`${doneCount}件`} />
             <SummaryRow label="未完了" value={`${totalCount - doneCount}件`} />
@@ -661,7 +661,7 @@ export default function TodayPage() {
             {todayLateCompletions > 0 && (
               <SummaryRow label="期限後に完了" value={`${todayLateCompletions}件`} />
             )}
-            <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+            <p className="mt-1 text-[13px] leading-relaxed text-stone-400">
               {pct}% ＝ 完了{doneCount} ÷ 予定{totalCount}。期限後に完了したTaskも完了として数え、遅延は実績として別に記録します。
             </p>
           </dl>
@@ -671,8 +671,8 @@ export default function TodayPage() {
       {recurringRules.length > 0 && (
         <section className="mx-5 mt-3 rounded-2xl bg-white px-4 py-3 shadow-sm lg:col-start-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-stone-500">毎日の積み上げ</p>
-            <p className="tabular-nums text-xs font-bold text-stone-400">
+            <p className="text-[14px] font-bold text-stone-500">毎日の積み上げ</p>
+            <p className="tabular-nums text-[14px] font-bold text-stone-400">
               {recurringDoneCount} / {recurringRules.length}
             </p>
           </div>
@@ -708,7 +708,7 @@ export default function TodayPage() {
                           : (history[d]?.recurringDone ?? []).includes(r.id)
                       );
                       return rs.days > 0 ? (
-                        <span className="ml-auto shrink-0 text-[10px] font-bold text-accent-dark">
+                        <span className="ml-auto shrink-0 text-[13px] font-bold text-accent-dark">
                           {rs.days}日連続
                         </span>
                       ) : null;
@@ -731,7 +731,7 @@ export default function TodayPage() {
       <section className="px-5 pt-4 lg:col-start-1">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-bold text-stone-800">今日のTimeline</h2>
-          <div className="text-right text-[10px] font-bold text-stone-500">
+          <div className="text-right text-[13px] font-bold text-stone-500">
             <p role="status" aria-live="polite">{calendar.loading ? "Calendar取得中…" : calendarFreshnessLabel(calendar)}</p>
             {calendar.authRequired ? <Link href="/area/riala" className="underline">Calendarを読むためにログイン</Link> : (
               <div className="mt-0.5 flex items-center justify-end gap-2">
@@ -754,15 +754,15 @@ export default function TodayPage() {
             Timelineへ差し込まず見出しの下に置く。 */}
         {(day.deadlines.length > 0 || fixedEventsAllDayToday.length > 0) && (
           <div className="mb-2.5">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">TODAY DEADLINES</p>
+            <p className="text-[13px] font-black tracking-widest text-stone-400">TODAY DEADLINES</p>
             <ul className="mt-1 flex flex-col gap-0.5">
               {day.deadlines.map((d) => (
-                <li key={d.key} className="text-[11px] font-bold leading-snug text-stone-500">
+                <li key={d.key} className="text-[13px] font-bold leading-snug text-stone-500">
                   ・{d.title}
                 </li>
               ))}
               {fixedEventsAllDayToday.map((e) => (
-                <li key={e.id} className="text-[11px] font-bold leading-snug text-stone-500">
+                <li key={e.id} className="text-[13px] font-bold leading-snug text-stone-500">
                   ・{e.title}
                 </li>
               ))}
@@ -851,7 +851,7 @@ export default function TodayPage() {
 
             {unscheduledTodayTasks.length > 0 && (
               <div>
-                <p className="mb-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[11px] font-bold leading-relaxed text-danger">
+                <p className="mb-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[13px] font-bold leading-relaxed text-danger">
                   ⚠ 実行時間が決まっていないのに実行計画へ入っているTaskが{unscheduledTodayTasks.length}件あります。
                   時間を決めるか、Backlogへ戻してください。
                 </p>
@@ -877,7 +877,7 @@ export default function TodayPage() {
                 <button
                   type="button"
                   onClick={() => setDoneListOpen((v) => !v)}
-                  className="text-[11px] font-bold text-stone-400"
+                  className="text-[13px] font-bold text-stone-400"
                 >
                   完了（{doneTodayTasks.length}） {doneListOpen ? "▾" : "▸"}
                 </button>
@@ -907,7 +907,7 @@ export default function TodayPage() {
       {carryoverPendingTasks.length > 0 && (
         <section className="mx-5 mt-3 lg:col-start-2">
           <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <p className="text-xs font-bold text-stone-500">
+            <p className="text-[14px] font-bold text-stone-500">
               昨日の未完了 <span className="text-stone-800">{carryoverPendingTasks.length}件</span>・行き先未決定
             </p>
             <ul className="mt-2 flex flex-col gap-2">
@@ -915,13 +915,13 @@ export default function TodayPage() {
                 <li key={t.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="truncate text-[13px] font-bold text-stone-700">{t.title}</p>
-                    <span className="shrink-0 text-[10px] font-bold text-stone-400">期限 {formatMd(t.deadline)}</span>
+                    <span className="shrink-0 text-[13px] font-bold text-stone-400">期限 {formatMd(t.deadline)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <button
                       type="button"
                       onClick={() => decideCarryover(t.id, "MOVED_TODAY", today)}
-                      className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
+                      className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
                     >
                       今日やる
                     </button>
@@ -931,14 +931,14 @@ export default function TodayPage() {
                         setReschedulingTaskId(reschedulingTaskId === t.id ? null : t.id);
                         setRescheduleDateValue("");
                       }}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-600"
+                      className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
                     >
                       別日に移す
                     </button>
                     <button
                       type="button"
                       onClick={() => decideCarryover(t.id, "DROPPED", null)}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-bold text-stone-400"
+                      className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-400"
                     >
                       今回はやめる
                     </button>
@@ -950,13 +950,13 @@ export default function TodayPage() {
                         value={rescheduleDateValue}
                         min={today}
                         onChange={(e) => setRescheduleDateValue(e.target.value)}
-                        className="rounded-lg border border-stone-200 px-2 py-1 text-[12px] text-stone-700"
+                        className="rounded-lg border border-stone-200 px-2 py-1 text-[14px] text-stone-700"
                       />
                       <button
                         type="button"
                         disabled={!rescheduleDateValue}
                         onClick={() => decideCarryover(t.id, "RESCHEDULED", rescheduleDateValue)}
-                        className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                        className={`rounded-full px-3 py-1 text-[13px] font-bold ${
                           rescheduleDateValue ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
                         }`}
                       >
@@ -978,7 +978,7 @@ export default function TodayPage() {
             onClick={() => setYesterdaySummaryOpen((v) => !v)}
             className="flex w-full items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-left shadow-sm"
           >
-            <span className="text-xs font-bold text-stone-500">
+            <span className="text-[14px] font-bold text-stone-500">
               昨日の頑張り　{yesterdayCompletedCount}/{yesterdayTotalCount} Task完了
             </span>
             <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${yesterdaySummaryOpen ? "rotate-180" : ""}`}>
@@ -986,7 +986,7 @@ export default function TodayPage() {
             </span>
           </button>
           {yesterdaySummaryOpen && (
-            <div className="mt-1.5 rounded-2xl bg-stone-50 px-4 py-3 text-[12px] text-stone-600">
+            <div className="mt-1.5 rounded-2xl bg-stone-50 px-4 py-3 text-[14px] text-stone-600">
               {yesterdayTotalCount > 0 && yesterdayCompletedCount === yesterdayTotalCount ? (
                 <p className="font-bold text-accent-dark">昨日はすべてやり切りました ✓</p>
               ) : (
@@ -1033,7 +1033,7 @@ export default function TodayPage() {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold text-stone-500"
+            className="flex items-center gap-1 rounded-full px-2 py-1 text-[13px] font-bold text-stone-500"
           >
             ◷ 2日以内 {upcomingTasks.length}
           </button>
@@ -1042,12 +1042,12 @@ export default function TodayPage() {
         {expanded && (
           <ul className="mt-1.5 flex flex-col gap-1.5">
             {upcomingTasks.length === 0 ? (
-              <li className="rounded-xl bg-stone-50 px-3 py-3 text-center text-xs text-stone-400">
+              <li className="rounded-xl bg-stone-50 px-3 py-3 text-center text-[14px] text-stone-400">
                 2日以内の期限タスクはありません
               </li>
             ) : (
               upcomingTasks.map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 text-xs">
+                <li key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-stone-50 px-3 py-2 text-[14px]">
                   <span className="truncate font-medium text-stone-600">{t.title}</span>
                   <span className="shrink-0 font-bold text-stone-500">
                     期限 {formatMd(effectiveDeadline(t, overlays))}
@@ -1187,13 +1187,13 @@ export default function TodayPage() {
                         borderLeftColor: themeFor(currentTask.area, currentTask.activityType).surface.primary,
                       }}
                     >
-                      <p className="text-[10px] font-bold text-stone-500">いま実行中</p>
+                      <p className="text-[13px] font-bold text-stone-500">いま実行中</p>
                       <p className="mt-0.5 text-[13px] font-bold text-stone-800">{currentTask.title}</p>
                       {(() => {
                         const started = taskStartedAt.get(currentTask.id);
                         const mins = bankedMinutes(currentTask.id) + (started ? minutesSince(started) : 0);
                         return mins > 0 ? (
-                          <p className="mt-0.5 text-[11px] font-bold text-stone-500">実績 {mins}分</p>
+                          <p className="mt-0.5 text-[13px] font-bold text-stone-500">実績 {mins}分</p>
                         ) : null;
                       })()}
                     </div>
@@ -1209,12 +1209,12 @@ export default function TodayPage() {
                       borderLeftColor: themeFor(nextTask.area, nextTask.activityType).surface.primary,
                     }}
                   >
-                    <p className="text-[10px] font-bold text-stone-500">次に始める</p>
+                    <p className="text-[13px] font-bold text-stone-500">次に始める</p>
                     <p className="mt-0.5 text-[13px] font-bold text-stone-800">{nextTask.title}</p>
                   </div>
                 </div>
 
-                <p className="mt-2.5 text-[11px] leading-relaxed text-stone-500">
+                <p className="mt-2.5 text-[13px] leading-relaxed text-stone-500">
                   中断した時点までの実績時間は保存されます。切り替えた後の時間は新しいTaskに記録されます。
                 </p>
 
@@ -1275,7 +1275,7 @@ function CelebrationToast({
       }`}
     >
       {celebration?.kind === "simple" && (
-        <div className="rounded-full bg-stone-900 px-4 py-2 text-xs font-bold text-white shadow-lg">
+        <div className="rounded-full bg-stone-900 px-4 py-2 text-[14px] font-bold text-white shadow-lg">
           完了！今日も1つ前進
         </div>
       )}
@@ -1287,7 +1287,7 @@ function CelebrationToast({
               {!reducedMotion && <Confetti count={14} />}
               <p className="text-center text-lg">🎉</p>
               <p className="mt-1 text-center text-[13px] font-black">{celebration.goalTitle} 達成</p>
-              <p className="mt-1 text-center text-[11px] leading-relaxed text-stone-300">
+              <p className="mt-1 text-center text-[13px] leading-relaxed text-stone-300">
                 「{celebration.achievementCriteria}」の達成基準を満たしました。
               </p>
             </>
@@ -1299,7 +1299,7 @@ function CelebrationToast({
               <div className="mt-2">
                 <ProgressBar pct={celebration.pct} size="sm" />
               </div>
-              <p className="mt-2 text-center text-[11px] text-stone-300">
+              <p className="mt-2 text-center text-[13px] text-stone-300">
                 あと{celebration.total - celebration.done}つで「{celebration.desiredState}」
               </p>
             </>
@@ -1312,7 +1312,7 @@ function CelebrationToast({
           {!reducedMotion && <Confetti count={12} />}
           <p className="text-lg">🎉</p>
           <p className="mt-1 text-[13px] font-black">{celebration.label}</p>
-          <p className="mt-1 text-[11px] text-stone-300">
+          <p className="mt-1 text-[13px] text-stone-300">
             毎日の積み上げ {celebration.total} / {celebration.total}
           </p>
         </div>
@@ -1323,7 +1323,7 @@ function CelebrationToast({
           {!reducedMotion && <Confetti count={18} />}
           <p className="text-2xl">🎉</p>
           <p className="mt-1 text-[15px] font-black">今日のタスク 100%</p>
-          <p className="mt-1 text-[11px] text-white/80">今日もやりきりました。</p>
+          <p className="mt-1 text-[13px] text-white/80">今日もやりきりました。</p>
         </div>
       )}
     </div>
@@ -1416,7 +1416,7 @@ function FragmentWithIndicator({
 // on hydration (the same class of bug fixed for nowHmValue's own useState).
 function NowIndicator({ nowHmValue }: { nowHmValue: string }) {
   return (
-    <li aria-hidden className="flex items-center gap-2 px-0.5 py-0.5 text-[10px] font-black text-accent-dark">
+    <li aria-hidden className="flex items-center gap-2 px-0.5 py-0.5 text-[13px] font-black text-accent-dark">
       <span className="h-px flex-1 bg-accent" />
       NOW {nowHmValue}
       <span className="h-px flex-1 bg-accent" />
@@ -1453,7 +1453,7 @@ function TaskStateButton({
         type="button"
         onClick={onUndo}
         aria-label="完了を取り消す"
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent text-xs text-white transition-all duration-150 active:scale-90"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent text-[14px] text-white transition-all duration-150 active:scale-90"
       >
         ✓
       </button>
@@ -1555,7 +1555,7 @@ function TimelineTaskCard({
         <TaskStateButton state={execState} onStart={onStart} onComplete={onComplete} onUndo={onUndo} />
         <div className="min-w-0 flex-1">
           <button type="button" onClick={onOpen} className="w-full text-left">
-          <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+          <div className="flex items-baseline gap-1.5 text-[13px] font-bold text-stone-400">
             <span className="tabular-nums">
               {startTime}〜{endTime}
             </span>
@@ -1573,7 +1573,7 @@ function TimelineTaskCard({
           <p className={`mt-0.5 text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
             {task.title}
           </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
             {task.activityType && surface.label !== areaTheme.label && (
               <span
                 className="rounded-full px-2 py-0.5 font-bold"
@@ -1616,20 +1616,20 @@ function TimelineTaskCard({
           {isFocused && !checked && runbook && <RunbookStrip runbook={runbook} nowHmValue={nowHmValue} />}
 
           {isFocused && !checked && task.definitionOfDone.length > 0 && (
-            <p className="mt-1.5 line-clamp-1 text-[11px] text-stone-500">完了条件　{task.definitionOfDone[0]}</p>
+            <p className="mt-1.5 line-clamp-1 text-[13px] text-stone-500">完了条件　{task.definitionOfDone[0]}</p>
           )}
           {isFocused && !checked && preparationCount > 0 && (
-            <p className="mt-1 text-[10px] font-bold text-stone-400">準備Task {preparationCount}件</p>
+            <p className="mt-1 text-[13px] font-bold text-stone-400">準備Task {preparationCount}件</p>
           )}
 
           {/* §17: 時刻はCalendarを採用した。OSが違う値を持っていたことは残す。 */}
           {osTimeWas && (
-            <p className="mt-1 text-[10px] text-stone-400">
+            <p className="mt-1 text-[13px] text-stone-400">
               Calendarの時刻を採用（OSは {osTimeWas.startTime}〜{osTimeWas.endTime}）
             </p>
           )}
           {pendingCalendar && (
-            <p className="mt-1 text-[10px] font-bold text-amber-700">Calendar未反映</p>
+            <p className="mt-1 text-[13px] font-bold text-amber-700">Calendar未反映</p>
           )}
 
           {/* §28/§29: 実績の修正はTask Detailの奥ではなく、完了カードの上で。 */}
@@ -1637,7 +1637,7 @@ function TimelineTaskCard({
             <button
               type="button"
               onClick={onEditActual}
-              className="mt-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-bold text-stone-600"
+              className="mt-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-[13px] font-bold text-stone-600"
             >
               {actualMinutes !== null ? `実績 ${actualMinutes}分を修正 ✎` : "実績を入力 ✎"}
             </button>
@@ -1671,12 +1671,12 @@ function PinnedNowCard({
       <div className="flex items-start gap-3">
         <TaskStateButton state="STARTED" onStart={() => {}} onComplete={onComplete} onUndo={() => {}} />
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-          <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-accent-dark">
+          <div className="flex items-baseline gap-1.5 text-[13px] font-bold text-accent-dark">
             <span>実行中</span>
             <span className="text-stone-400">・時間未定から開始</span>
           </div>
           <p className="mt-0.5 text-[15px] font-bold leading-snug text-stone-800">{task.title}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
             <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
             {badge.tone && (
               <span
@@ -1690,7 +1690,7 @@ function PinnedNowCard({
             {elapsedMinutes !== null && <span className="ml-auto font-bold text-stone-400">経過{elapsedMinutes}分</span>}
           </div>
           {(task.definitionOfDone.length > 0 || preparationCount > 0) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px] text-stone-400">
               {task.definitionOfDone.length > 0 && (
                 <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
               )}
@@ -1731,12 +1731,12 @@ function CrossMidnightBanner({
   return (
     <div className="rounded-2xl bg-white px-3.5 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_16px_-10px_rgba(0,0,0,0.15)] ring-2 ring-accent-soft">
       <button type="button" onClick={onOpen} className="w-full text-left">
-        <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-accent-dark">
+        <div className="flex items-baseline gap-1.5 text-[13px] font-bold text-accent-dark">
           <span>昨日から実行中</span>
           {startedDate && <span className="text-stone-400">・{formatMd(startedDate)}開始</span>}
         </div>
         <p className="mt-0.5 text-[15px] font-bold leading-snug text-stone-800">{task.title}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
           <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
           {elapsedMinutes !== null && <span className="ml-auto font-bold text-stone-400">経過{formatDurationHm(elapsedMinutes)}</span>}
         </div>
@@ -1745,21 +1745,21 @@ function CrossMidnightBanner({
         <button
           type="button"
           onClick={onInterrupt}
-          className="flex-1 rounded-full bg-stone-100 py-2 text-[12px] font-bold text-stone-500 active:scale-[0.98]"
+          className="flex-1 rounded-full bg-stone-100 py-2 text-[14px] font-bold text-stone-500 active:scale-[0.98]"
         >
           中断
         </button>
         <button
           type="button"
           onClick={onContinueToday}
-          className="flex-1 rounded-full bg-stone-800 py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+          className="flex-1 rounded-full bg-stone-800 py-2 text-[14px] font-bold text-white active:scale-[0.98]"
         >
           今日へ継続
         </button>
         <button
           type="button"
           onClick={onComplete}
-          className="flex-1 rounded-full bg-accent py-2 text-[12px] font-bold text-white active:scale-[0.98]"
+          className="flex-1 rounded-full bg-accent py-2 text-[14px] font-bold text-white active:scale-[0.98]"
         >
           完了
         </button>
@@ -1844,7 +1844,7 @@ function TaskRow({
         <p className={`text-[15px] font-bold leading-snug ${checked ? "text-stone-400 line-through" : "text-stone-800"}`}>
           {task.title}
         </p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
           <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-500">{task.area}</span>
           {task.estimateMinutes !== null && <span className="text-stone-400">{task.estimateMinutes}分</span>}
           {badge.tone && (
@@ -1862,7 +1862,7 @@ function TaskRow({
         </div>
 
         {!checked && (task.definitionOfDone.length > 0 || preparationCount > 0 || task.contextTags.length > 0) && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-400">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px] text-stone-400">
             {task.definitionOfDone.length > 0 && (
               <span className="truncate">完了条件：{task.definitionOfDone[0]}</span>
             )}

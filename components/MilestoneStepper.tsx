@@ -21,10 +21,10 @@ export default function MilestoneStepper({ milestones }: { milestones: OutcomeMi
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <p className="text-[12px] font-bold text-stone-500">工程</p>
-        <p className="tabular-nums text-[12px] font-black text-stone-700">
+        <p className="text-[14px] font-bold text-stone-500">工程</p>
+        <p className="tabular-nums text-[14px] font-black text-stone-700">
           {done}
-          <span className="text-[10px] font-bold text-stone-300"> / {milestones.length}</span>
+          <span className="text-[13px] font-bold text-stone-300"> / {milestones.length}</span>
         </p>
       </div>
 
@@ -45,13 +45,13 @@ export default function MilestoneStepper({ milestones }: { milestones: OutcomeMi
               </div>
               <div className={`min-w-0 flex-1 ${last ? "" : "pb-2.5"}`}>
                 <p
-                  className={`text-[12px] font-bold leading-snug ${
+                  className={`text-[14px] font-bold leading-snug ${
                     m.status === "DONE" ? "text-stone-400" : "text-stone-800"
                   }`}
                 >
                   {m.title}
                 </p>
-                <p className="text-[10px] text-stone-400">{GAP_OWNER_LABEL[m.owner]}</p>
+                <p className="text-[13px] text-stone-400">{GAP_OWNER_LABEL[m.owner]}</p>
               </div>
             </li>
           );

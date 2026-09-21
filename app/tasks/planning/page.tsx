@@ -403,7 +403,7 @@ export default function TaskMapPage() {
     <div className="flex flex-col">
       <WorkControl />
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-xs font-bold tracking-widest text-accent-dark">AI WORK OS</p>
+        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
         <div className="mt-0.5 flex items-center justify-between">
           <h1 className="text-[26px] font-black tracking-tight">TASK MAP</h1>
           <div className="flex items-center gap-1">
@@ -436,7 +436,7 @@ export default function TaskMapPage() {
           何を目指し / 今どこで / 何が足りず / 次に何を. */}
       {replanTasks.length > 0 && (
         <section className="mx-5 mt-1 rounded-2xl bg-danger-soft px-4 py-3">
-          <p className="text-xs font-bold text-danger">
+          <p className="text-[14px] font-bold text-danger">
             ⚠ 再計画が必要 <span className="text-stone-800">{replanTasks.length}件</span>
           </p>
           <ul className="mt-1.5 flex flex-col gap-1.5">
@@ -447,16 +447,16 @@ export default function TaskMapPage() {
                   onClick={() => setSelectedTask(task)}
                   className="w-full rounded-xl bg-white/70 px-3 py-2 text-left"
                 >
-                  <p className="text-[12px] font-bold text-stone-800">{task.title}</p>
-                  <p className="mt-0.5 text-[10px] font-bold text-danger">
+                  <p className="text-[14px] font-bold text-stone-800">{task.title}</p>
+                  <p className="mt-0.5 text-[13px] font-bold text-danger">
                     {REPLAN_REASON_LABEL[flag.reason]}
                   </p>
-                  <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{flag.detail}</p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">{flag.detail}</p>
                 </button>
               </li>
             ))}
           </ul>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-stone-500">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">
             予定・期限・見積のどれかが現実と合っていません。Taskを開いて予定を組み直してください。
           </p>
         </section>
@@ -478,10 +478,10 @@ export default function TaskMapPage() {
                 className="rounded-xl border border-stone-150 bg-white px-3 py-2"
                 style={{ borderLeftWidth: 3, borderLeftColor: th.primary }}
               >
-                <p className="text-[10px] font-bold" style={{ color: th.text }}>
+                <p className="text-[13px] font-bold" style={{ color: th.text }}>
                   {th.label}
                 </p>
-                <p className="mt-0.5 line-clamp-3 text-[12px] leading-snug text-stone-700">
+                <p className="mt-0.5 line-clamp-3 text-[14px] leading-snug text-stone-700">
                   {goal?.state ?? "未設定"}
                 </p>
               </div>
@@ -514,7 +514,7 @@ export default function TaskMapPage() {
           <h2 className="text-sm font-bold" style={{ color: AREA_THEME[selectedArea].text }}>
             {selectedArea}｜いま足りていないもの
           </h2>
-          <Link href={`/area/${areaCards.find((a) => a.profile.area === selectedArea)?.profile.slug ?? "sales"}`} className="text-[11px] font-bold text-accent-dark">
+          <Link href={`/area/${areaCards.find((a) => a.profile.area === selectedArea)?.profile.slug ?? "sales"}`} className="text-[13px] font-bold text-accent-dark">
             Area Home ›
           </Link>
         </div>
@@ -556,15 +556,15 @@ export default function TaskMapPage() {
           onClick={() => setMonthlyOpen((v) => !v)}
           className="flex w-full items-center justify-between text-left"
         >
-          <span className="text-xs font-bold text-stone-500">{monthLabel(monthKey)}の締切一覧</span>
-          <span className="text-[11px] text-stone-300">{monthlyOpen ? "▾" : "▸"}</span>
+          <span className="text-[14px] font-bold text-stone-500">{monthLabel(monthKey)}の締切一覧</span>
+          <span className="text-[13px] text-stone-300">{monthlyOpen ? "▾" : "▸"}</span>
         </button>
         {monthlyOpen && (
         <>
-        <p className="mb-2.5 mt-2 text-[10px] text-stone-400">補助情報です。実行の判断はArea Controlと今週のPlanで行います。</p>
+        <p className="mb-2.5 mt-2 text-[13px] text-stone-400">補助情報です。実行の判断はArea Controlと今週のPlanで行います。</p>
         <div className="grid grid-cols-7 gap-y-1.5 text-center">
           {WEEKDAY_LABEL.map((w) => (
-            <span key={w} className="text-[10px] font-bold text-stone-300">
+            <span key={w} className="text-[13px] font-bold text-stone-300">
               {w}
             </span>
           ))}
@@ -580,7 +580,7 @@ export default function TaskMapPage() {
                   c.date === today ? "bg-accent-soft ring-1 ring-accent" : "hover:bg-stone-100"
                 }`}
               >
-                <span className={`text-[10px] font-bold ${c.date === today ? "text-accent-dark" : "text-stone-500"}`}>
+                <span className={`text-[13px] font-bold ${c.date === today ? "text-accent-dark" : "text-stone-500"}`}>
                   {c.day}
                 </span>
                 {c.areas.length > 0 && (
@@ -602,7 +602,7 @@ export default function TaskMapPage() {
       <section className="mx-5 mt-2.5 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-bold text-stone-800">今月の前進</p>
-          <p className="tabular-nums text-xs font-bold text-stone-400">
+          <p className="tabular-nums text-[14px] font-bold text-stone-400">
             完了 <span className="text-base text-accent-dark">{progress.done}</span> / {progress.total}
           </p>
         </div>
@@ -661,11 +661,11 @@ export default function TaskMapPage() {
         >
           <span>
             <span className="block text-[13px] font-bold text-stone-700">全Taskを見る</span>
-            <span className="mt-0.5 block text-[11px] text-stone-400">
+            <span className="mt-0.5 block text-[13px] text-stone-400">
               絞り込み・並び替え・Archive・完了履歴（全{allTasks.length}件）
             </span>
           </span>
-          <span className="text-[12px] text-stone-300">{inventoryOpen ? "▾" : "▸"}</span>
+          <span className="text-[14px] text-stone-300">{inventoryOpen ? "▾" : "▸"}</span>
         </button>
       </section>
 
@@ -678,7 +678,7 @@ export default function TaskMapPage() {
               key={s}
               type="button"
               onClick={() => setScope(s)}
-              className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${
+              className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-bold transition-colors ${
                 scope === s ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
               }`}
             >
@@ -693,7 +693,7 @@ export default function TaskMapPage() {
           <button
             type="button"
             onClick={() => setRefineOpen((v) => !v)}
-            className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+            className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[14px] font-bold transition-colors ${
               activeRefineCount > 0 ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
             }`}
           >
@@ -702,14 +702,14 @@ export default function TaskMapPage() {
           </button>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <span className="text-[10px] font-medium text-stone-400">並び替え</span>
+            <span className="text-[13px] font-medium text-stone-400">並び替え</span>
             <div className="flex gap-1 rounded-full bg-stone-100 p-1">
               {SORTS.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setSort(s)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                  className={`rounded-full px-2.5 py-1 text-[13px] font-bold transition-colors ${
                     sort === s ? "bg-white text-stone-800 shadow-sm" : "text-stone-400"
                   }`}
                 >
@@ -727,7 +727,7 @@ export default function TaskMapPage() {
               setQuickFilter("全部");
               resetRefine();
             }}
-            className="mt-1.5 text-[11px] font-bold text-stone-400"
+            className="mt-1.5 text-[13px] font-bold text-stone-400"
           >
             フィルター解除
           </button>
@@ -743,7 +743,7 @@ export default function TaskMapPage() {
               <button
                 type="button"
                 onClick={resetRefine}
-                className="self-start text-[11px] font-bold text-stone-400"
+                className="self-start text-[13px] font-bold text-stone-400"
               >
                 絞り込みをクリア
               </button>
@@ -753,7 +753,7 @@ export default function TaskMapPage() {
       </section>
 
       <section className="mt-2.5 flex flex-col gap-1.5 px-5">
-        <p className="mb-0.5 text-[11px] font-bold text-stone-400">
+        <p className="mb-0.5 text-[13px] font-bold text-stone-400">
           {scope}：{visibleTasks.length}件 / 全{allTasks.length}件
         </p>
         {visibleTasks.length === 0 ? (
@@ -782,14 +782,14 @@ export default function TaskMapPage() {
         <h2 className="mb-2.5 text-sm font-bold text-stone-500">達成したい状態の詳細</h2>
         <div className="flex flex-col gap-2">
           {endStates.length === 0 && outcomes.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-4 text-center text-xs text-stone-400">
+            <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-4 text-center text-[14px] text-stone-400">
               この月の月末目標はまだ設定されていません
             </p>
           ) : (
             <>
               {endStates.map((s) => (
                 <div key={s.area} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-                  <p className="text-[11px] font-bold text-accent-dark">{s.area}</p>
+                  <p className="text-[13px] font-bold text-accent-dark">{s.area}</p>
                   <p className="mt-0.5 text-sm font-medium text-stone-700">{s.state}</p>
                 </div>
               ))}
@@ -801,8 +801,8 @@ export default function TaskMapPage() {
                   className="rounded-2xl bg-white px-4 py-3 text-left shadow-sm"
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-[11px] font-bold text-accent-dark">{o.area}</p>
-                    <span className="text-[10px] font-bold text-stone-300">詳しく見る ＞</span>
+                    <p className="text-[13px] font-bold text-accent-dark">{o.area}</p>
+                    <span className="text-[13px] font-bold text-stone-300">詳しく見る ＞</span>
                   </div>
                   <p className="mt-0.5 text-sm font-medium text-stone-700">{o.title}</p>
                 </button>
@@ -819,7 +819,7 @@ export default function TaskMapPage() {
             onClick={() => setFixedScheduleOpen((v) => !v)}
             className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-stone-200 px-4 py-2.5 text-left"
           >
-            <span className="text-[11px] font-bold text-stone-400">
+            <span className="text-[13px] font-bold text-stone-400">
               {monthLabel(monthKey)}の固定予定 {monthFixedEvents.length}件
             </span>
             <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${fixedScheduleOpen ? "rotate-180" : ""}`}>
@@ -837,18 +837,18 @@ export default function TaskMapPage() {
                 return (
                   <div key={e.id} className="rounded-xl bg-stone-50 px-3.5 py-2.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[12px] font-bold text-stone-600">
+                      <p className="text-[14px] font-bold text-stone-600">
                         {fixedEventTypeIcon[e.type]} {e.title}
                       </p>
-                      <span className="shrink-0 text-[10px] font-bold text-stone-400">{dateLabel}</span>
+                      <span className="shrink-0 text-[13px] font-bold text-stone-400">{dateLabel}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       {constraintLabel && (
-                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold text-stone-600">
+                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[13px] font-bold text-stone-600">
                           {constraintLabel}
                         </span>
                       )}
-                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-400">
+                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[13px] font-bold text-stone-400">
                         {confidenceLabel(e.confidence)}
                       </span>
                     </div>
@@ -863,7 +863,7 @@ export default function TaskMapPage() {
       {/* §21/§54: 診断はSystem Statusへ。日常のTASK MAPの主役にしない。 */}
       <div className="mt-6 flex items-center justify-end gap-2 px-5">
         <PlanOkMark health={planHealth} />
-        <Link href="/system" className="text-[10px] text-stone-300">
+        <Link href="/system" className="text-[13px] text-stone-300">
           System Status ＞
         </Link>
       </div>
@@ -935,7 +935,7 @@ function WeekView({
     <section className="mt-1 px-5">
       <div className="mb-2 flex items-baseline justify-between">
         <h2 className="text-sm font-bold text-stone-800">今週</h2>
-        <span className="text-[11px] font-bold text-stone-400">
+        <span className="text-[13px] font-bold text-stone-400">
           {formatMd(dates[0])}〜{formatMd(dates[6])}
         </span>
       </div>
@@ -962,7 +962,7 @@ function WeekView({
               <button
                 type="button"
                 onClick={() => onOpenDay(d)}
-                className={`w-full text-left text-[11px] font-bold underline-offset-2 hover:underline ${
+                className={`w-full text-left text-[13px] font-bold underline-offset-2 hover:underline ${
                   isToday ? "text-accent-dark" : "text-stone-400"
                 }`}
               >
@@ -970,7 +970,7 @@ function WeekView({
               </button>
               <div className="mt-1.5 flex flex-col gap-1">
                 {entries.length === 0 ? (
-                  <p className="text-[10px] text-stone-300">—</p>
+                  <p className="text-[13px] text-stone-300">—</p>
                 ) : (
                   entries.slice(0, 4).map((e) => (
                     <button
@@ -978,7 +978,7 @@ function WeekView({
                       type="button"
                       onClick={() => e.taskId && onOpenTask(e.taskId)}
                       disabled={!e.taskId}
-                      className={`truncate rounded-lg px-1.5 py-1 text-left text-[10px] font-bold ${weekEntryStyle(e).className}`}
+                      className={`truncate rounded-lg px-1.5 py-1 text-left text-[13px] font-bold ${weekEntryStyle(e).className}`}
                       style={weekEntryStyle(e).style}
                     >
                       {e.time && <span className="tabular-nums opacity-70">{e.time} </span>}
@@ -987,7 +987,7 @@ function WeekView({
                   ))
                 )}
                 {entries.length > 4 && (
-                  <p className="text-[10px] font-bold text-stone-400">+{entries.length - 4}件</p>
+                  <p className="text-[13px] font-bold text-stone-400">+{entries.length - 4}件</p>
                 )}
               </div>
             </div>
@@ -1011,14 +1011,14 @@ function RefineGroup<T extends string>({
 }) {
   return (
     <div>
-      <p className="mb-1 text-[10px] font-bold text-stone-400">{label}</p>
+      <p className="mb-1 text-[13px] font-bold text-stone-400">{label}</p>
       <div className="flex flex-wrap gap-1.5">
         {options.map((opt) => (
           <button
             key={opt}
             type="button"
             onClick={() => onChange(opt)}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+            className={`rounded-full px-2.5 py-1 text-[13px] font-bold transition-colors ${
               value === opt ? "bg-accent text-white" : "bg-stone-100 text-stone-500"
             }`}
           >
@@ -1056,7 +1056,7 @@ function StatFilterButton({
       >
         {value}
       </p>
-      <p className={`text-[10px] font-medium ${active ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
+      <p className={`text-[13px] font-medium ${active ? "text-accent-dark" : "text-stone-400"}`}>{label}</p>
     </button>
   );
 }
@@ -1099,34 +1099,34 @@ function TaskListRow({
           <p className={`truncate text-[13px] font-bold text-stone-800 ${done ? "line-through" : ""}`}>
             {task.title}
           </p>
-          <span className={`shrink-0 text-[11px] font-bold ${overdue ? "text-danger" : "text-stone-400"}`}>
+          <span className={`shrink-0 text-[13px] font-bold ${overdue ? "text-danger" : "text-stone-400"}`}>
             {formatMd(deadline)}
           </span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${areaStyle[task.area]}`}>
+          <span className={`rounded-full px-1.5 py-0.5 text-[13px] font-bold ${areaStyle[task.area]}`}>
             {task.area}
           </span>
           {series && (
-            <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-bold text-stone-500">
+            <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[13px] font-bold text-stone-500">
               ステップ{series.sequenceNumber}/{series.totalSteps}
             </span>
           )}
           {blocked && (
-            <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[10px] font-bold text-white">Blocked</span>
+            <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[13px] font-bold text-white">Blocked</span>
           )}
           {task.importance === "高" && !done && (
-            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-black text-white">MAX</span>
+            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[13px] font-black text-white">MAX</span>
           )}
-          <span className="text-[10px] font-medium text-stone-400">{capabilityOwnerLabel(task.aiCapability)}</span>
+          <span className="text-[13px] font-medium text-stone-400">{capabilityOwnerLabel(task.aiCapability)}</span>
           {badge.tone === "warning" && (
-            <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-bold text-danger">
+            <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[13px] font-bold text-danger">
               ⚠ Blocked
             </span>
           )}
           {task.deliveryStatus && task.deliveryStatus !== "BLOCKED" && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+              className={`rounded-full px-1.5 py-0.5 text-[13px] font-bold ${
                 deliveryStatusLabel(task.deliveryStatus).tone === "accent"
                   ? "bg-accent-soft text-accent-dark"
                   : "bg-stone-100 text-stone-500"

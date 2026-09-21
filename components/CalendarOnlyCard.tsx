@@ -33,7 +33,7 @@ export default function CalendarOnlyCard({ entry }: { entry: DayEntry }) {
         opacity: isPast ? 0.55 : 1,
       }}
     >
-      <div className="flex items-baseline gap-1.5 text-[11px] font-bold text-stone-400">
+      <div className="flex items-baseline gap-1.5 text-[13px] font-bold text-stone-400">
         <span className="tabular-nums">
           {entry.startTime}〜{entry.endTime}
         </span>
@@ -51,7 +51,7 @@ export default function CalendarOnlyCard({ entry }: { entry: DayEntry }) {
 
       {theme && (
         <span
-          className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold"
+          className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[13px] font-bold"
           style={{ backgroundColor: theme.soft, color: theme.text }}
         >
           {theme.label}
@@ -63,12 +63,12 @@ export default function CalendarOnlyCard({ entry }: { entry: DayEntry }) {
           <button
             type="button"
             onClick={() => setDescOpen((v) => !v)}
-            className="text-[10px] font-bold text-stone-400"
+            className="text-[13px] font-bold text-stone-400"
           >
             {descOpen ? "Calendarのメモを閉じる" : "Calendarのメモを見る"}
           </button>
           {descOpen && (
-            <p className="mt-1 whitespace-pre-line rounded-lg bg-stone-50 px-2.5 py-2 text-[11px] leading-relaxed text-stone-600">
+            <p className="mt-1 whitespace-pre-line rounded-lg bg-stone-50 px-2.5 py-2 text-[13px] leading-relaxed text-stone-600">
               {stripHtml(entry.description as string)}
             </p>
           )}

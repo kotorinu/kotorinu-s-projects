@@ -74,9 +74,9 @@ function DiffRow({ item }: { item: CalendarDiffItem }) {
         >
           {DIFF_TYPE_LABEL[item.type]}
         </span>
-        <span className="line-clamp-2 text-[11px] font-bold leading-snug text-stone-800">{item.title}</span>
+        <span className="line-clamp-2 text-[13px] font-bold leading-snug text-stone-800">{item.title}</span>
       </div>
-      <dl className="mt-1 grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-0.5 text-[10px]">
+      <dl className="mt-1 grid grid-cols-[4.5rem_1fr] gap-x-2 gap-y-0.5 text-[13px]">
         <dt className="text-stone-400">OS予定</dt>
         <dd className="text-stone-700">{item.osWhen ?? "なし"}</dd>
         <dt className="font-bold text-stone-400">Calendar</dt>
@@ -128,8 +128,8 @@ export default function PlanIntegrityPanel({
     <section className="mx-5 mt-2 rounded-xl border border-stone-150 bg-white">
       <button type="button" onClick={() => setOpen((v) => !v)} className="w-full px-3 py-2 text-left">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-bold text-stone-700">計画の状態</span>
-          <span className="ml-auto shrink-0 text-[11px] text-stone-400">{open ? "閉じる" : "開く"}</span>
+          <span className="text-[14px] font-bold text-stone-700">計画の状態</span>
+          <span className="ml-auto shrink-0 text-[13px] text-stone-400">{open ? "閉じる" : "開く"}</span>
         </div>
         <div className="mt-1 flex flex-col gap-0.5">
           <StatusLine
@@ -157,21 +157,21 @@ export default function PlanIntegrityPanel({
       {open && (
         <div className="border-t border-stone-150 px-3 py-2.5">
           {/* ── OS内部 ─────────────────────────────── */}
-          <h3 className="text-[11px] font-black tracking-wide text-stone-500">OS内部</h3>
-          <p className="mt-0.5 text-[10px] leading-snug text-stone-400">
+          <h3 className="text-[13px] font-black tracking-wide text-stone-500">OS内部</h3>
+          <p className="mt-0.5 text-[13px] leading-snug text-stone-400">
             いま計算した結果です。Taskと予定の間に矛盾があればここに出ます。
           </p>
           {issues.length === 0 ? (
-            <p className="mt-1 text-[11px] leading-snug text-stone-500">
+            <p className="mt-1 text-[13px] leading-snug text-stone-500">
               ✓ 整合。実行するTaskはすべてCalendarに枠があり、置き換え済みの予定は残っていません。
             </p>
           ) : (
             <ul className="mt-1 flex flex-col gap-1.5">
               {issues.map((issue: PlanIssue, i) => (
                 <li key={`${issue.code}-${issue.taskId}-${i}`} className="rounded-lg bg-rose-50 px-2.5 py-1.5">
-                  <p className="text-[11px] font-bold text-rose-900">{PLAN_ISSUE_LABEL[issue.code]}</p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-stone-700">{issue.taskTitle}</p>
-                  <p className="mt-0.5 text-[10px] leading-snug text-stone-500">{issue.detail}</p>
+                  <p className="text-[13px] font-bold text-rose-900">{PLAN_ISSUE_LABEL[issue.code]}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-stone-700">{issue.taskTitle}</p>
+                  <p className="mt-0.5 text-[13px] leading-snug text-stone-500">{issue.detail}</p>
                 </li>
               ))}
             </ul>
@@ -179,12 +179,12 @@ export default function PlanIntegrityPanel({
 
           {/* ── Google Calendar ────────────────────── */}
           <div className="mt-4 flex items-baseline gap-2">
-            <h3 className="text-[11px] font-black tracking-wide text-stone-500">Google Calendar</h3>
+            <h3 className="text-[13px] font-black tracking-wide text-stone-500">Google Calendar</h3>
             <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[8px] font-black tracking-wide text-white">
               SOURCE OF TRUTH
             </span>
           </div>
-          <dl className="mt-1 grid grid-cols-[5rem_1fr] gap-x-2 gap-y-1 text-[11px]">
+          <dl className="mt-1 grid grid-cols-[5rem_1fr] gap-x-2 gap-y-1 text-[13px]">
             <dt className="text-stone-400">最終照合</dt>
             <dd className="tabular-nums font-bold text-stone-700">{formatStamp(calendarSnapshot.readAt)}</dd>
             <dt className="text-stone-400">照合範囲</dt>
@@ -200,15 +200,15 @@ export default function PlanIntegrityPanel({
               {actionable.length}件{matched > 0 && `（一致 ${matched}件）`}
             </dd>
           </dl>
-          <p className="mt-1 text-[10px] leading-snug text-stone-400">{AUTHORITY_NOTE}</p>
-          <p className="mt-1 text-[10px] leading-snug text-stone-400">
+          <p className="mt-1 text-[13px] leading-snug text-stone-400">{AUTHORITY_NOTE}</p>
+          <p className="mt-1 text-[13px] leading-snug text-stone-400">
             これは静的Snapshotです。Live読み取りが有効なときだけ「最新」と表示します。
           </p>
 
           {changedSinceSnapshot && (
             <div className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2">
-              <p className="text-[11px] font-bold text-amber-900">Calendar再照合が必要</p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-amber-800">
+              <p className="text-[13px] font-bold text-amber-900">Calendar再照合が必要</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-amber-800">
                 最終照合（{formatStamp(calendarSnapshot.readAt)}）のあと、
                 {formatLocalStamp(planLastChangedAt as string)} にOS側の予定を変更しました。
                 下の内容は変更前の照合結果を元にしています。Calendarを読み直せば確定します。
@@ -217,7 +217,7 @@ export default function PlanIntegrityPanel({
           )}
 
           {actionable.length === 0 ? (
-            <p className="mt-1.5 text-[11px] text-stone-500">
+            <p className="mt-1.5 text-[13px] text-stone-500">
               最終照合の時点では、反映が必要な予定はありませんでした。
             </p>
           ) : (
@@ -227,7 +227,7 @@ export default function PlanIntegrityPanel({
                   <DiffRow key={`${item.type}-${item.blockId ?? item.eventId}-${i}`} item={item} />
                 ))}
               </ul>
-              <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[10px] leading-relaxed text-amber-800">
+              <p className="mt-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[13px] leading-relaxed text-amber-800">
                 このアプリからGoogle Calendarへ書き込む機能は未実装です（OAuthサーバもトークン保管先もありません）。
                 手動、またはCalendar接続のあるセッションから反映してください。
               </p>
@@ -241,10 +241,10 @@ export default function PlanIntegrityPanel({
                 onClick={() => setRecheckOpen((v) => !v)}
                 className="flex w-full items-center gap-1.5 rounded-lg bg-stone-50 px-2.5 py-1.5 text-left"
               >
-                <span className="text-[11px] font-bold text-stone-600">再照合が必要 {recheck.length}件</span>
-                <span className="ml-auto text-[10px] text-stone-400">{recheckOpen ? "閉じる" : "見る"}</span>
+                <span className="text-[13px] font-bold text-stone-600">再照合が必要 {recheck.length}件</span>
+                <span className="ml-auto text-[13px] text-stone-400">{recheckOpen ? "閉じる" : "見る"}</span>
               </button>
-              <p className="mt-1 text-[10px] leading-snug text-stone-400">
+              <p className="mt-1 text-[13px] leading-snug text-stone-400">
                 照合した範囲の外、または対応するイベントが見つからなかったもの。Calendarを読み直せば確定します。
               </p>
               {recheckOpen && (
@@ -292,13 +292,13 @@ function StatusLine({
   return (
     <div className="flex items-center gap-1.5">
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-      <span className="w-[6.5rem] shrink-0 text-[10px] text-stone-400">{label}</span>
+      <span className="w-[6.5rem] shrink-0 text-[13px] text-stone-400">{label}</span>
       {badge && (
         <span className="shrink-0 rounded-full bg-stone-800 px-1 py-px text-[7px] font-black tracking-wide text-white">
           {badge}
         </span>
       )}
-      <span className={`text-[11px] font-bold ${text}`}>{value}</span>
+      <span className={`text-[13px] font-bold ${text}`}>{value}</span>
     </div>
   );
 }

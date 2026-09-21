@@ -43,21 +43,21 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] font-bold text-stone-500">
+        <p className="text-[13px] font-bold text-stone-500">
           自分版
           <span className="ml-1.5 tabular-nums text-[13px] font-black text-stone-800">
             {state.filled} / {OWN_FIELDS.length}
           </span>
         </p>
         {state.needsProductInfo && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[13px] font-bold text-amber-800">
             商品情報待ち
           </span>
         )}
       </div>
 
       {state.needsProductInfo && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-800">
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-800">
           このフェーズは商品固有の内容（提案・価格・オファー・クロージング表現）が必要です。商品レクチャーを受けるまで、
           自分版の分母には入れていません。書ける範囲だけ書いても構いません。
         </p>
@@ -70,7 +70,7 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
           return (
             <li key={field} className={`rounded-xl px-3 py-2.5 ${value ? "bg-accent-soft" : "bg-stone-50"}`}>
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[10px] font-bold text-stone-500">
+                <p className="text-[13px] font-bold text-stone-500">
                   {value ? "✓ " : "□ "}
                   {OWN_FIELD_LABEL[field]}
                 </p>
@@ -78,7 +78,7 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                   <button
                     type="button"
                     onClick={() => startEdit(field)}
-                    className="shrink-0 text-[10px] font-bold text-accent-dark"
+                    className="shrink-0 text-[13px] font-bold text-accent-dark"
                   >
                     {value ? "書き直す" : "書く"}
                   </button>
@@ -92,21 +92,21 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                     onChange={(e) => setDraft(e.target.value)}
                     rows={3}
                     placeholder={PLACEHOLDER[field]}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[12px] leading-relaxed text-stone-700"
+                    className="w-full rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[14px] leading-relaxed text-stone-700"
                   />
-                  <p className="mt-0.5 text-[10px] text-stone-400">{HINT[field]}</p>
+                  <p className="mt-0.5 text-[13px] text-stone-400">{HINT[field]}</p>
                   <div className="mt-1.5 flex gap-1.5">
                     <button
                       type="button"
                       onClick={save}
-                      className="rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white"
+                      className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
                     >
                       保存
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditing(null)}
-                      className="rounded-full px-3 py-1 text-[11px] font-bold text-stone-400"
+                      className="rounded-full px-3 py-1 text-[13px] font-bold text-stone-400"
                     >
                       キャンセル
                     </button>
@@ -117,7 +117,7 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                           setPhaseOwnField(phase.id, field, null);
                           setEditing(null);
                         }}
-                        className="ml-auto rounded-full px-3 py-1 text-[11px] font-bold text-stone-400"
+                        className="ml-auto rounded-full px-3 py-1 text-[13px] font-bold text-stone-400"
                       >
                         消す
                       </button>
@@ -125,16 +125,16 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                   </div>
                 </div>
               ) : value ? (
-                <p className="mt-1 text-[12px] leading-relaxed text-stone-700">{value}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-stone-700">{value}</p>
               ) : (
-                <p className="mt-0.5 text-[11px] text-stone-400">{PLACEHOLDER[field]}</p>
+                <p className="mt-0.5 text-[13px] text-stone-400">{PLACEHOLDER[field]}</p>
               )}
             </li>
           );
         })}
       </ul>
 
-      <p className="text-[10px] leading-relaxed text-stone-400">
+      <p className="text-[13px] leading-relaxed text-stone-400">
         3項目そろったフェーズだけを「自分版完成」として数えます。カウンターを手で増やす操作はありません。
       </p>
     </div>

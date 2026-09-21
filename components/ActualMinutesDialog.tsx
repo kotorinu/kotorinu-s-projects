@@ -55,10 +55,10 @@ export default function ActualMinutesDialog({
         className="absolute inset-0 bg-stone-900/45"
       />
       <div className="relative w-full max-w-[430px] rounded-t-3xl bg-white p-5 shadow-2xl lg:rounded-3xl">
-        <p className="text-[11px] font-bold text-stone-400">{askMode ? "✓ 完了しました" : "実績時間"}</p>
+        <p className="text-[13px] font-bold text-stone-400">{askMode ? "✓ 完了しました" : "実績時間"}</p>
         <p className="mt-0.5 line-clamp-2 text-[15px] font-black leading-snug text-stone-900">{task.title}</p>
 
-        <dl className="mt-3 grid grid-cols-[4rem_1fr] gap-x-3 gap-y-1 text-[12px]">
+        <dl className="mt-3 grid grid-cols-[4rem_1fr] gap-x-3 gap-y-1 text-[14px]">
           <dt className="text-stone-400">予定</dt>
           <dd className="tabular-nums font-bold text-stone-700">
             {task.estimateMinutes !== null ? `${task.estimateMinutes}分` : "未設定"}
@@ -72,14 +72,14 @@ export default function ActualMinutesDialog({
         </dl>
 
         <div className="mt-3">
-          <p className="mb-1.5 text-[11px] font-bold text-stone-500">実際は何分かかりましたか？</p>
+          <p className="mb-1.5 text-[13px] font-bold text-stone-500">実際は何分かかりましたか？</p>
           <div className="flex flex-wrap gap-1.5">
             {PRESETS.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setValue(String(m))}
-                className={`rounded-full px-3 py-1.5 text-[12px] font-bold ${
+                className={`rounded-full px-3 py-1.5 text-[14px] font-bold ${
                   parsed === m ? "bg-accent text-white" : "bg-stone-100 text-stone-600"
                 }`}
               >
@@ -98,13 +98,13 @@ export default function ActualMinutesDialog({
               placeholder="自由入力"
               className="w-28 rounded-lg border border-stone-200 px-2.5 py-1.5 text-[13px] tabular-nums text-stone-800"
             />
-            <span className="text-[12px] text-stone-400">分</span>
+            <span className="text-[14px] text-stone-400">分</span>
           </div>
         </div>
 
         {preview && preview.varianceMinutes !== null && (
           <div className="mt-3 rounded-xl bg-stone-50 px-3 py-2.5">
-            <p className="text-[12px] tabular-nums text-stone-700">
+            <p className="text-[14px] tabular-nums text-stone-700">
               予定 {task.estimateMinutes}分 → 実績 {parsed}分
             </p>
             <p className="mt-0.5 text-[13px] font-black tabular-nums text-stone-800">
@@ -114,7 +114,7 @@ export default function ActualMinutesDialog({
                 ` (${preview.variancePercent >= 0 ? "+" : ""}${preview.variancePercent}%)`}
             </p>
             {corrected && (
-              <p className="mt-1 text-[10px] leading-relaxed text-stone-400">
+              <p className="mt-1 text-[13px] leading-relaxed text-stone-400">
                 計測 {timerMinutes}分はそのまま残ります。実績は補正後の {parsed}分 として扱います。
               </p>
             )}
@@ -130,20 +130,20 @@ export default function ActualMinutesDialog({
           >
             保存
           </button>
-          <button type="button" onClick={onClose} className="rounded-full px-3 py-2.5 text-[12px] font-bold text-stone-400">
+          <button type="button" onClick={onClose} className="rounded-full px-3 py-2.5 text-[14px] font-bold text-stone-400">
             {askMode ? "スキップ" : "キャンセル"}
           </button>
           {currentActual !== null && (
             <button
               type="button"
               onClick={onClear}
-              className="rounded-full px-3 py-2.5 text-[12px] font-bold text-stone-400"
+              className="rounded-full px-3 py-2.5 text-[14px] font-bold text-stone-400"
             >
               補正を消す
             </button>
           )}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+        <p className="mt-2 text-[13px] leading-relaxed text-stone-400">
           {askMode
             ? "スキップしても構いません。分からない時間を埋めるより、空のままの方が正確です。"
             : "保存すると、完了記録・今日の集計・PDCAの実績がすべて同じ値になります。"}

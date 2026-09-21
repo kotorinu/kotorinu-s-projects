@@ -64,7 +64,7 @@ export default function CalendarSyncStrip({
   return (
     <section className="mx-5 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3">
       <div className="flex items-baseline gap-2">
-        <p className="text-[12px] font-black text-amber-900">Calendar反映待ち</p>
+        <p className="text-[14px] font-black text-amber-900">Calendar反映待ち</p>
         <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black text-amber-900">
           NEEDS_CALENDAR_SYNC
         </span>
@@ -72,15 +72,15 @@ export default function CalendarSyncStrip({
 
       {replan.length > 0 && (
         <div className="mt-2">
-          <p className="text-[11px] font-bold text-amber-900">実行順が予定と変わりました</p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-amber-800">
+          <p className="text-[13px] font-bold text-amber-900">実行順が予定と変わりました</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-amber-800">
             実際に始めた順にCalendarを直します。所要時間は変えず、開始時刻だけ詰め直しています。
           </p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {replan.map((slot) => (
               <li key={slot.blockId} className="rounded-lg bg-white/70 px-2.5 py-1.5">
-                <p className="text-[11px] font-bold text-stone-800">{slot.label}</p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[11px] tabular-nums">
+                <p className="text-[13px] font-bold text-stone-800">{slot.label}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[13px] tabular-nums">
                   <span className="text-stone-400 line-through">
                     {slot.from.startTime}〜{slot.from.endTime}
                   </span>
@@ -93,7 +93,7 @@ export default function CalendarSyncStrip({
             ))}
           </ul>
           {overruns && (
-            <p className="mt-1.5 rounded-lg bg-white/70 px-2.5 py-1.5 text-[10px] leading-relaxed text-rose-800">
+            <p className="mt-1.5 rounded-lg bg-white/70 px-2.5 py-1.5 text-[13px] leading-relaxed text-rose-800">
               この順番だと、今日の予定の終わりを越えます。所要時間は変えていないので、
               どれかを短くするか別日へ移す判断が要ります。
             </p>
@@ -103,10 +103,10 @@ export default function CalendarSyncStrip({
 
       {pendingSync.length > 0 && (
         <div className="mt-2">
-          <p className="text-[11px] font-bold text-amber-900">Calendarに枠が無い予定</p>
+          <p className="text-[13px] font-bold text-amber-900">Calendarに枠が無い予定</p>
           <ul className="mt-1 flex flex-col gap-0.5">
             {pendingSync.map((b) => (
-              <li key={b.id} className="text-[11px] leading-snug text-amber-900">
+              <li key={b.id} className="text-[13px] leading-snug text-amber-900">
                 ・{b.label}（{b.startTime}〜{b.endTime}）
               </li>
             ))}
@@ -114,7 +114,7 @@ export default function CalendarSyncStrip({
         </div>
       )}
 
-      <p className="mt-2 text-[10px] leading-relaxed text-amber-800">
+      <p className="mt-2 text-[13px] leading-relaxed text-amber-800">
         このアプリからCalendarへは書き込めません。手動、またはCalendar接続のあるセッションから反映してください。
         反映後、次回の照合で一致が確認できます。
       </p>

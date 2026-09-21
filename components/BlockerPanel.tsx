@@ -44,11 +44,11 @@ export default function BlockerPanel({
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 text-left"
       >
-        <span className="text-[12px] font-bold text-stone-600">
+        <span className="text-[14px] font-bold text-stone-600">
           気になっていること
           <span className="ml-1.5 tabular-nums text-[13px] font-black text-stone-800">{items.length}</span>
         </span>
-        <span className="text-[11px] text-stone-300">{open ? "▾" : "▸"}</span>
+        <span className="text-[13px] text-stone-300">{open ? "▾" : "▸"}</span>
       </button>
 
       {open && (
@@ -56,20 +56,20 @@ export default function BlockerPanel({
           {items.map((b) => (
             <li key={b.id} className="rounded-xl bg-stone-50 px-3 py-2.5">
               <div className="flex items-baseline gap-1.5">
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${TYPE_STYLE[b.type]}`}>
+                <span className={`rounded-full px-1.5 py-0.5 text-[13px] font-bold ${TYPE_STYLE[b.type]}`}>
                   {TYPE_LABEL[b.type]}
                 </span>
-                <span className="text-[10px] font-bold text-stone-400">{b.owner}</span>
+                <span className="text-[13px] font-bold text-stone-400">{b.owner}</span>
               </div>
-              <p className="mt-1 text-[12px] font-bold leading-snug text-stone-800">{b.title}</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-stone-500">{b.detail}</p>
+              <p className="mt-1 text-[14px] font-bold leading-snug text-stone-800">{b.title}</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">{b.detail}</p>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 {b.linkedTaskId && onOpenTask && (
                   <button
                     type="button"
                     onClick={() => onOpenTask(b.linkedTaskId!)}
-                    className="text-[11px] font-bold text-accent-dark"
+                    className="text-[13px] font-bold text-accent-dark"
                   >
                     Taskを開く ›
                   </button>
@@ -78,13 +78,13 @@ export default function BlockerPanel({
                   <button
                     type="button"
                     onClick={() => onOpenGap(b.linkedGapId!)}
-                    className="text-[11px] font-bold text-accent-dark"
+                    className="text-[13px] font-bold text-accent-dark"
                   >
                     足りないものを見る ›
                   </button>
                 )}
                 {b.linkedHref && (
-                  <Link href={b.linkedHref} className="text-[11px] font-bold text-accent-dark">
+                  <Link href={b.linkedHref} className="text-[13px] font-bold text-accent-dark">
                     {b.linkedHref.includes("sales-master")
                       ? "営業Master ›"
                       : b.linkedHref.includes("riala-master")
@@ -92,7 +92,7 @@ export default function BlockerPanel({
                         : "Area Home ›"}
                   </Link>
                 )}
-                <span className="ml-auto text-[10px] text-stone-300">出典 {b.source}</span>
+                <span className="ml-auto text-[13px] text-stone-300">出典 {b.source}</span>
               </div>
             </li>
           ))}

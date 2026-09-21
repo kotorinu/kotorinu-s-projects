@@ -25,12 +25,12 @@ export default function RialaMasterPage() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <Link href="/tasks" className="text-xs font-bold text-stone-400">
+        <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
           ＜ TASK MAP
         </Link>
-        <p className="mt-1 text-xs font-bold tracking-widest text-accent-dark">RIALA</p>
+        <p className="mt-1 text-[14px] font-bold tracking-widest text-accent-dark">RIALA</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">RIALA運営</h1>
-        <p className="mt-0.5 text-xs font-medium text-stone-400">
+        <p className="mt-0.5 text-[14px] font-medium text-stone-400">
           Master（何がある）/ Workflow（どう処理する）/ Actual Task（今回やる）を分けて管理する
         </p>
       </header>
@@ -44,7 +44,7 @@ export default function RialaMasterPage() {
       </section>
 
       <section className="mt-5 px-5">
-        <h2 className="mb-2 text-xs font-bold text-stone-400">Operations Master（7カテゴリ）</h2>
+        <h2 className="mb-2 text-[14px] font-bold text-stone-400">Operations Master（7カテゴリ）</h2>
         <div className="flex flex-col gap-1.5">
           {operationCategories.map((cat) => {
             const counts = countAuditsByCategory(operationalAudits, cat.id);
@@ -56,12 +56,12 @@ export default function RialaMasterPage() {
                 onClick={() => setSelected(cat)}
                 className="flex w-full items-center gap-3 rounded-xl bg-white px-3.5 py-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_10px_-8px_rgba(0,0,0,0.15)]"
               >
-                <span className="tabular-nums w-6 shrink-0 text-[11px] font-bold text-stone-300">
+                <span className="tabular-nums w-6 shrink-0 text-[13px] font-bold text-stone-300">
                   {String(cat.categoryNumber).padStart(2, "0")}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold text-stone-800">{cat.title}</p>
-                  <p className="mt-0.5 text-[10px] text-stone-400">
+                  <p className="mt-0.5 text-[13px] text-stone-400">
                     ACTIVE {counts.active}・UNKNOWN {counts.unknown}・DONE {counts.done}
                     {activeTaskCount > 0 ? `・Task ${activeTaskCount}` : ""}
                   </p>
@@ -75,13 +75,13 @@ export default function RialaMasterPage() {
 
       {dailyLearning && (
         <section className="mt-5 px-5">
-          <h2 className="mb-2 text-xs font-bold text-stone-400">コミュニティ学習促進（Recurring Workflow）</h2>
+          <h2 className="mb-2 text-[14px] font-bold text-stone-400">コミュニティ学習促進（Recurring Workflow）</h2>
           <div className="rounded-2xl bg-white px-3.5 py-3.5 shadow-sm">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-[13px] font-bold text-stone-800">{dailyLearning.title}</p>
               {dailyLearning.schedulingCapability && (
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[13px] font-bold ${
                     schedulingCapabilityLabel[dailyLearning.schedulingCapability].tone === "warning"
                       ? "bg-danger-soft text-danger"
                       : "bg-accent-soft text-accent-dark"
@@ -91,23 +91,23 @@ export default function RialaMasterPage() {
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-stone-500">{dailyLearning.description}</p>
+            <p className="mt-1 text-[13px] leading-relaxed text-stone-500">{dailyLearning.description}</p>
 
             {dailyLearning.contentPoolCount !== null && dailyLearning.contentPoolCount !== undefined && (
-              <p className="mt-2 text-[11px] font-bold text-stone-600">
+              <p className="mt-2 text-[13px] font-bold text-stone-600">
                 参照コンテンツプール：約{dailyLearning.contentPoolCount}件
               </p>
             )}
             {dailyLearning.contentPoolNote && (
-              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">{dailyLearning.contentPoolNote}</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-stone-400">{dailyLearning.contentPoolNote}</p>
             )}
 
             {dailyLearning.postStructure && dailyLearning.postStructure.length > 0 && (
               <div className="mt-2.5">
-                <p className="mb-1 text-[10px] font-bold text-stone-400">投稿の基本構造</p>
+                <p className="mb-1 text-[13px] font-bold text-stone-400">投稿の基本構造</p>
                 <div className="flex flex-wrap gap-1">
                   {dailyLearning.postStructure.map((s, i) => (
-                    <span key={i} className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                    <span key={i} className="rounded-full bg-stone-100 px-2 py-0.5 text-[13px] font-bold text-stone-500">
                       {s}
                     </span>
                   ))}
@@ -117,10 +117,10 @@ export default function RialaMasterPage() {
 
             {dailyLearning.ctaTypes && dailyLearning.ctaTypes.length > 0 && (
               <div className="mt-2">
-                <p className="mb-1 text-[10px] font-bold text-stone-400">CTA種類（毎回同じにしない）</p>
+                <p className="mb-1 text-[13px] font-bold text-stone-400">CTA種類（毎回同じにしない）</p>
                 <div className="flex flex-wrap gap-1">
                   {dailyLearning.ctaTypes.map((c) => (
-                    <span key={c} className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                    <span key={c} className="rounded-full bg-stone-100 px-2 py-0.5 text-[13px] font-bold text-stone-500">
                       {c}
                     </span>
                   ))}
@@ -128,7 +128,7 @@ export default function RialaMasterPage() {
               </div>
             )}
 
-            <p className="mt-2.5 text-[10px] leading-relaxed text-stone-400">
+            <p className="mt-2.5 text-[13px] leading-relaxed text-stone-400">
               毎日Taskとしてdummy-dataへ増殖させず、Recurring Workflow（型）として1件のみ保持。今日のInstanceは実際に着手されるまでTODAYへ架空生成しません。予約投稿は現在しゅんさんへ依頼中のためDRAFT_ONLYまで（自動投稿できるとは表示しません）。
             </p>
           </div>
@@ -136,27 +136,27 @@ export default function RialaMasterPage() {
       )}
 
       <section className="mt-5 px-5">
-        <h2 className="mb-2 text-xs font-bold text-stone-400">AI Operation Matrix（候補・未確定）</h2>
+        <h2 className="mb-2 text-[14px] font-bold text-stone-400">AI Operation Matrix（候補・未確定）</h2>
         <div className="flex flex-col gap-1.5">
           {aiOperationMatrix.map((m) => (
             <div key={m.id} className="rounded-xl bg-white px-3.5 py-2.5 shadow-sm">
               <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[12px] font-bold text-stone-700">{m.operation}</p>
-                <span className="shrink-0 text-[10px] font-bold text-stone-400">
+                <p className="text-[14px] font-bold text-stone-700">{m.operation}</p>
+                <span className="shrink-0 text-[13px] font-bold text-stone-400">
                   {m.automationStatus === "CANDIDATE" ? "候補" : m.automationStatus === "CONFIRMED" ? "確定" : "対象外"}
                 </span>
               </div>
-              <p className="mt-0.5 text-[11px] text-stone-500">{capabilityOwnerLabel(m.aiCapability)}</p>
+              <p className="mt-0.5 text-[13px] text-stone-500">{capabilityOwnerLabel(m.aiCapability)}</p>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-[10px] text-stone-400">
+        <p className="mt-2 text-[13px] text-stone-400">
           candidateは確定扱いにしていません。「RIALA定型業務のAI移管範囲を確定する」Taskで確定させます。
         </p>
       </section>
 
       <section className="mt-5 px-5">
-        <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-3 text-[11px] leading-relaxed text-stone-400">
+        <p className="rounded-2xl border border-dashed border-stone-200 px-4 py-3 text-[13px] leading-relaxed text-stone-400">
           {auditStatusLabel("UNKNOWN")}が多いのは、このセッションからRIALAの実際の状態（イベント予定・メンバーの移行状況・未返信DM等）を確認できないためです。実データが分かり次第、各項目のstatusを更新してください。
         </p>
       </section>

@@ -52,13 +52,13 @@ export default function GapBoard({
       <section key={status} className="rounded-2xl border border-stone-150 bg-white p-3">
         <div className="flex items-baseline gap-1.5">
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-          <span className="text-[12px] font-bold text-stone-700">{GAP_STATUS_LABEL[status]}</span>
-          <span className="tabular-nums text-[11px] font-bold text-stone-300">{items.length}</span>
-          <span className="ml-auto text-[10px] text-stone-300">{GAP_STATUS_HINT[status]}</span>
+          <span className="text-[14px] font-bold text-stone-700">{GAP_STATUS_LABEL[status]}</span>
+          <span className="tabular-nums text-[13px] font-bold text-stone-300">{items.length}</span>
+          <span className="ml-auto text-[13px] text-stone-300">{GAP_STATUS_HINT[status]}</span>
         </div>
 
         {items.length === 0 ? (
-          <p className="mt-2 rounded-xl bg-stone-50 px-3 py-3 text-center text-[11px] text-stone-400">
+          <p className="mt-2 rounded-xl bg-stone-50 px-3 py-3 text-center text-[13px] text-stone-400">
             {GAP_STATUS_EMPTY[status]}
           </p>
         ) : (
@@ -76,14 +76,14 @@ export default function GapBoard({
                   >
                     <p className="text-[13px] font-bold leading-snug text-stone-800">{item.title}</p>
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="rounded-full bg-stone-50 px-1.5 py-0.5 text-[10px] font-bold text-stone-400">
+                      <span className="rounded-full bg-stone-50 px-1.5 py-0.5 text-[13px] font-bold text-stone-400">
                         {GAP_KIND_LABEL[item.kind]}
                       </span>
-                      <span className="text-[10px] font-bold text-stone-400">{GAP_OWNER_LABEL[item.owner]}</span>
+                      <span className="text-[13px] font-bold text-stone-400">{GAP_OWNER_LABEL[item.owner]}</span>
                       {progress && (
-                        <span className="ml-auto tabular-nums text-[12px] font-black text-stone-700">
+                        <span className="ml-auto tabular-nums text-[14px] font-black text-stone-700">
                           {progress.done}
-                          <span className="text-[10px] font-bold text-stone-300"> / {progress.total}</span>
+                          <span className="text-[13px] font-bold text-stone-300"> / {progress.total}</span>
                         </span>
                       )}
                     </div>
@@ -91,18 +91,18 @@ export default function GapBoard({
 
                   {isOpen && (
                     <div className="mt-1 rounded-xl bg-stone-50 px-3 py-2.5">
-                      <p className="text-[11px] leading-relaxed text-stone-600">
+                      <p className="text-[13px] leading-relaxed text-stone-600">
                         <span className="font-bold text-stone-400">完了条件　</span>
                         {item.doneWhen}
                       </p>
                       {item.waitingOn && (
-                        <p className="mt-1 text-[11px] leading-relaxed text-[#8A6A0B]">
+                        <p className="mt-1 text-[13px] leading-relaxed text-[#8A6A0B]">
                           <span className="font-bold">待ち　</span>
                           {item.waitingOn}
                         </p>
                       )}
                       {item.note && (
-                        <p className="mt-1 text-[10px] leading-relaxed text-stone-400">{item.note}</p>
+                        <p className="mt-1 text-[13px] leading-relaxed text-stone-400">{item.note}</p>
                       )}
                       {/* P4-3: the CTA only appears when it really opens a
                           Task. P4-1: an actionable gap with no Task says what
@@ -111,12 +111,12 @@ export default function GapBoard({
                         <button
                           type="button"
                           onClick={() => onOpenTask(item.taskId!)}
-                          className="mt-1.5 text-[11px] font-bold text-[#2C55B8]"
+                          className="mt-1.5 text-[13px] font-bold text-[#2C55B8]"
                         >
                           Taskを開く ›
                         </button>
                       ) : (status === "READY" || status === "DOING") && item.kind !== "PROBLEM" ? (
-                        <p className="mt-1.5 rounded-lg bg-white px-2 py-1.5 text-[10px] leading-relaxed text-stone-500">
+                        <p className="mt-1.5 rounded-lg bg-white px-2 py-1.5 text-[13px] leading-relaxed text-stone-500">
                           実行Taskがまだありません。着手するには 完了条件・期限・実行日時 を決めてTaskにする必要があります。
                         </p>
                       ) : null}
@@ -145,7 +145,7 @@ export default function GapBoard({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="w-full rounded-xl border border-stone-150 bg-white px-3 py-2 text-[11px] font-bold text-stone-400"
+            className="w-full rounded-xl border border-stone-150 bg-white px-3 py-2 text-[13px] font-bold text-stone-400"
           >
             {expanded ? "あとで・完了を隠す" : `あとで・完了 ${secondaryCount}件を見る`}
           </button>

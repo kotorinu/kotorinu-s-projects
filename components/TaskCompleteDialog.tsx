@@ -46,18 +46,18 @@ export default function TaskCompleteDialog({
 
   return (
     <StudioDialog title="完了を記録" onClose={onCancel}>
-        <p className="text-xs font-black tracking-wide text-stone-400">完了しますか？</p>
+        <p className="text-[14px] font-black tracking-wide text-stone-400">完了しますか？</p>
         <p className="mt-1 text-[15px] font-black leading-snug text-stone-900">{task.title}</p>
 
         {late && (
-          <p className="mt-2 rounded-xl bg-stone-100 px-3 min-h-11 py-2 text-xs font-bold text-stone-600">
+          <p className="mt-2 rounded-xl bg-stone-100 px-3 min-h-11 py-2 text-[14px] font-bold text-stone-600">
             期限 {formatMd(late)} を過ぎています。完了しても「期限内に完了」にはせず、遅延日数を実績として記録します。
           </p>
         )}
 
         {hasDoD ? (
           <div className="mt-3 rounded-2xl bg-stone-50 px-3.5 py-3">
-            <h3 className="mb-1 text-xs font-black tracking-wide text-stone-400">■ 達成基準</h3>
+            <h3 className="mb-1 text-[14px] font-black tracking-wide text-stone-400">■ 達成基準</h3>
             <ul className="flex flex-col gap-1">
               {task.definitionOfDone.map((d, i) => (
                 <li key={i} className="flex items-start gap-1.5 text-[13px] leading-relaxed text-stone-700">
@@ -95,7 +95,7 @@ export default function TaskCompleteDialog({
           </div>
         ) : (
           <div className="mt-4">
-            <p className="mb-2 text-xs font-bold text-stone-500">
+            <p className="mb-2 text-[14px] font-bold text-stone-500">
               未達のまま完了にはしません。次の扱いを選んでください。
             </p>
             <div className="flex flex-col gap-2">

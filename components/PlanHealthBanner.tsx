@@ -77,11 +77,11 @@ export default function PlanHealthBanner({ health }: { health: PlanHealth }) {
     >
       <div className="flex items-center gap-2">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-        <span className="text-[12px] font-bold text-amber-900">{lines[0]}</span>
+        <span className="text-[14px] font-bold text-amber-900">{lines[0]}</span>
         {lines.length > 1 && (
-          <span className="text-[11px] text-amber-800">ほか{lines.length - 1}件</span>
+          <span className="text-[13px] text-amber-800">ほか{lines.length - 1}件</span>
         )}
-        <span className="ml-auto shrink-0 text-[11px] font-bold text-amber-800">確認 ＞</span>
+        <span className="ml-auto shrink-0 text-[13px] font-bold text-amber-800">確認 ＞</span>
       </div>
     </Link>
   );
@@ -90,5 +90,5 @@ export default function PlanHealthBanner({ health }: { health: PlanHealth }) {
 /** 正常時のしるし。見出しの横に置く程度の大きさ。 */
 export function PlanOkMark({ health }: { health: PlanHealth }) {
   if (!health.ok) return null;
-  return <span className="text-[10px] font-bold text-emerald-600">✓ Plan OK</span>;
+  return <span className="text-[13px] font-bold text-emerald-600">✓ Plan OK</span>;
 }

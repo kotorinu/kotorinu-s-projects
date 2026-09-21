@@ -65,7 +65,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   if (!profile || !data) {
     return (
       <div className="px-5 py-10">
-        <Link href="/tasks" className="text-xs font-bold text-stone-400">
+        <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
           ＜ TASK MAP
         </Link>
         <p className="mt-4 text-sm text-stone-500">このAreaは見つかりませんでした。</p>
@@ -132,12 +132,12 @@ export default function AreaHomeView({ slug }: { slug: string }) {
   return (
     <div className="flex flex-col pb-10">
       <header className="px-5 pb-3 pt-6">
-        <Link href="/tasks" className="text-xs font-bold text-stone-400">
+        <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
           ＜ TASK MAP
         </Link>
         <h1 className="mt-1 text-[24px] font-black tracking-tight">{profile.area}</h1>
         {profile.area === "RIALA" && (
-          <p className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-[10px] font-bold leading-relaxed text-stone-500">
+          <p className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-[13px] font-bold leading-relaxed text-stone-500">
             旧FANTS移行の記録は <span className="text-stone-700">HISTORICAL / EXCEPTION ONLY</span>。新規の判断と準備は上のAI OPSで行います。
           </p>
         )}
@@ -157,11 +157,11 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               borderLeftColor: theme.primary,
             }}
           >
-            <p className="text-[11px] font-bold text-stone-500">{headline.label}</p>
+            <p className="text-[13px] font-bold text-stone-500">{headline.label}</p>
             <p className="mt-0.5 text-[30px] font-black leading-none tabular-nums" style={{ color: theme.text }}>
               {headline.value}
             </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-stone-500">{headline.sub}</p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-stone-500">{headline.sub}</p>
           </section>
 
           {/* P2-2/P2-4: 月末の到達点と「いま必達」を分ける。同じ言葉で
@@ -178,7 +178,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 borderLeftColor: theme.primary,
               }}
             >
-              <p className="text-[11px] font-bold text-stone-400">9月末の到達点</p>
+              <p className="text-[13px] font-bold text-stone-400">9月末の到達点</p>
               <p className="mt-0.5 text-[13px] font-bold leading-snug text-stone-800">{monthGoal.state}</p>
             </section>
           )}
@@ -186,9 +186,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {/* いま必達 */}
           <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[10px] font-black tracking-widest text-accent-dark">いま必達</p>
+              <p className="text-[13px] font-black tracking-widest text-accent-dark">いま必達</p>
               {data.outcome?.deadline && (
-                <span className="shrink-0 text-[11px] font-black text-accent-dark">
+                <span className="shrink-0 text-[13px] font-black text-accent-dark">
                   〜{formatMd(data.outcome.deadline)}
                   {outcomeDaysLeft !== null &&
                     (outcomeDaysLeft >= 0 ? `・あと${outcomeDaysLeft}日` : `・${-outcomeDaysLeft}日超過`)}
@@ -201,7 +201,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 <Collapsible label="達成の条件" count={data.outcome.achievementCriteria.length}>
                   <ul className="flex flex-col gap-1">
                     {data.outcome.achievementCriteria.map((c) => (
-                      <li key={c} className="flex gap-1.5 text-[11px] leading-relaxed text-stone-600">
+                      <li key={c} className="flex gap-1.5 text-[13px] leading-relaxed text-stone-600">
                         <span className="text-accent-dark">✓</span>
                         {c}
                       </li>
@@ -210,15 +210,15 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 </Collapsible>
               </>
             ) : (
-              <p className="mt-1 text-[12px] text-stone-500">Outcome未設定</p>
+              <p className="mt-1 text-[14px] text-stone-500">Outcome未設定</p>
             )}
           </section>
 
           {/* 次にやること */}
           <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
-            <p className="text-[10px] font-black tracking-widest text-stone-400">次にやること</p>
+            <p className="text-[13px] font-black tracking-widest text-stone-400">次にやること</p>
             {data.next.length === 0 ? (
-              <p className="mt-1.5 text-[12px] text-stone-400">実行中のTaskはありません</p>
+              <p className="mt-1.5 text-[14px] text-stone-400">実行中のTaskはありません</p>
             ) : (
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {data.next.map(({ task, block, deadline }) => (
@@ -228,7 +228,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                       onClick={() => setSelectedTask(task)}
                       className="w-full rounded-2xl bg-stone-50 px-3.5 py-2.5 text-left"
                     >
-                      <p className="text-[11px] font-black tabular-nums text-accent-dark">
+                      <p className="text-[13px] font-black tabular-nums text-accent-dark">
                         {block
                           ? `${formatMd(block.date)}（${WEEKDAY[new Date(block.date + "T00:00:00").getDay()]}） ${block.startTime}〜${block.endTime}`
                           : "実行時間が未設定"}
@@ -240,13 +240,13 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 ))}
               </ul>
             )}
-            <p className="mt-2 text-[10px] font-bold text-stone-400">
+            <p className="mt-2 text-[13px] font-bold text-stone-400">
               実行中の計画 {data.activeCount}件・Backlog {data.backlogCount}件
               {data.overdueCount > 0 && <span className="text-danger">・期限超過 {data.overdueCount}件</span>}
               {data.blockedCount > 0 && <span>・Blocked {data.blockedCount}件</span>}
             </p>
             {data.unscheduledActive.length > 0 && (
-              <p className="mt-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[11px] font-bold text-danger">
+              <p className="mt-1.5 rounded-xl bg-danger-soft px-3 py-2 text-[13px] font-bold text-danger">
                 実行時間が決まっていないACTIVE Taskが{data.unscheduledActive.length}件あります
               </p>
             )}
@@ -256,7 +256,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {milestones.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
               <MilestoneStepper milestones={milestones} />
-              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+              <p className="mt-2 text-[13px] leading-relaxed text-stone-400">
                 対象者の総数が確認できたら「分類済み N / 総数」へ切り替えます。数字は作りません。
               </p>
             </section>
@@ -264,7 +264,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
 
           {/* §4: 何が足りないか */}
           <section>
-            <p className="mb-1.5 text-[10px] font-black tracking-widest text-stone-400">
+            <p className="mb-1.5 text-[13px] font-black tracking-widest text-stone-400">
               足りていないもの（Gap Board）
             </p>
             <GapBoard
@@ -281,17 +281,17 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {coverage && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
               <div className="flex items-baseline justify-between">
-                <p className="text-[12px] font-bold text-stone-500">17フェーズの自分版</p>
+                <p className="text-[14px] font-bold text-stone-500">17フェーズの自分版</p>
                 <p className="tabular-nums text-[13px] font-black text-stone-700">
                   {coverage.ownFieldsFilled}
-                  <span className="text-[10px] font-bold text-stone-300"> / {coverage.ownFieldsTotal} 項目</span>
+                  <span className="text-[13px] font-bold text-stone-300"> / {coverage.ownFieldsTotal} 項目</span>
                 </p>
               </div>
-              <p className="mb-2 mt-0.5 text-[11px] text-stone-400">
+              <p className="mb-2 mt-0.5 text-[13px] text-stone-400">
                 タップして「自分の言葉の目的 / OK状態 / 質問」を書くと増えます
               </p>
               <PhaseProgressGrid phases={salesPhases} ownVersions={phaseOwnVersions} onOpenPhase={setSelectedPhase} />
-              <p className="mt-2 text-[10px] leading-relaxed text-stone-400">
+              <p className="mt-2 text-[13px] leading-relaxed text-stone-400">
                 ①基礎はワークシートから17/17。①が埋まっていることと「営業で使える」ことは別です。
                 商品情報が必要な{coverage.productInfoRequired}フェーズは分母から外しています。
               </p>
@@ -302,7 +302,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               >
                 <ul className="flex flex-col gap-1">
                   {salesVideoLibrary.videos.map((v) => (
-                    <li key={v.id} className="flex items-baseline justify-between gap-2 text-[11px]">
+                    <li key={v.id} className="flex items-baseline justify-between gap-2 text-[13px]">
                       <span className="min-w-0 truncate text-stone-600">{v.title}</span>
                       <span className="shrink-0 tabular-nums font-bold text-stone-400">
                         {v.minutes !== null ? `${v.minutes}分` : "-"}
@@ -310,7 +310,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-[10px] leading-relaxed text-stone-400">{salesVideoLibrary.note}</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-stone-400">{salesVideoLibrary.note}</p>
               </Collapsible>
             </section>
           )}
@@ -318,7 +318,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {areaCapabilities.length > 0 && (
             <section className="rounded-2xl border border-stone-150 bg-white px-4 py-3.5">
               <div className="flex items-baseline gap-2">
-                <p className="text-[12px] font-bold text-stone-500">
+                <p className="text-[14px] font-bold text-stone-500">
                   {campDaysLeft !== null && campDaysLeft >= 0 ? "合宿まで" : "鍛えている力"}
                 </p>
                 {campDaysLeft !== null && campDaysLeft >= 0 && (
@@ -327,14 +327,14 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                       あと{campDaysLeft}日
                     </span>
                     {campGoal?.targetDate && (
-                      <span className="ml-auto text-[10px] font-bold text-stone-300">
+                      <span className="ml-auto text-[13px] font-bold text-stone-300">
                         {formatMd(campGoal.targetDate)}
                       </span>
                     )}
                   </>
                 )}
               </div>
-              <p className="mb-2 mt-0.5 text-[11px] leading-relaxed text-stone-400">
+              <p className="mb-2 mt-0.5 text-[13px] leading-relaxed text-stone-400">
                 持ち運べる力（Portable Skills）。点数はつけません。いま何が足りないか・証拠・次の練習だけで見ます。
               </p>
               <CapabilityMap capabilities={areaCapabilities} />
@@ -353,11 +353,11 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                 borderLeftColor: ACTIVITY_THEME.READING.primary,
               }}
             >
-              <p className="text-[11px] font-bold" style={{ color: ACTIVITY_THEME.READING.text }}>
+              <p className="text-[13px] font-bold" style={{ color: ACTIVITY_THEME.READING.text }}>
                 今週の読書（GENESIS）
               </p>
               <p className="mt-0.5 text-[15px] font-black text-stone-800">『{currentReading.bookTitle}』</p>
-              <p className="mt-0.5 text-[10px] leading-relaxed text-stone-400">
+              <p className="mt-0.5 text-[13px] leading-relaxed text-stone-400">
                 読む → 学び → 具体例 → 次Action まで通して1冊
                 {currentReading.targetDate && `・目標 ${formatMd(currentReading.targetDate)}`}
               </p>
@@ -367,16 +367,16 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {/* たたんである説明 — 消してはいない */}
           <section className="rounded-3xl bg-white px-4 py-1 shadow-sm">
             <Collapsible label="このAreaは何のためにあるか" flush>
-              <p className="text-[12px] leading-relaxed text-stone-600">{profile.purpose}</p>
-              <p className="mt-2 text-[10px] font-black tracking-widest text-stone-400">目指している状態</p>
-              <p className="mt-0.5 text-[12px] leading-relaxed text-stone-600">{profile.standingGoal}</p>
+              <p className="text-[14px] leading-relaxed text-stone-600">{profile.purpose}</p>
+              <p className="mt-2 text-[13px] font-black tracking-widest text-stone-400">目指している状態</p>
+              <p className="mt-0.5 text-[14px] leading-relaxed text-stone-600">{profile.standingGoal}</p>
             </Collapsible>
             <Collapsible label="いまどこまで来ているか" flush>
-              <p className="text-[12px] leading-relaxed text-stone-600">{profile.currentState}</p>
+              <p className="text-[14px] leading-relaxed text-stone-600">{profile.currentState}</p>
               {profile.knowledge.length > 0 && (
                 <ul className="mt-2 flex flex-col gap-0.5">
                   {profile.knowledge.map((k) => (
-                    <li key={k} className="text-[11px] text-stone-500">
+                    <li key={k} className="text-[13px] text-stone-500">
                       ・{k}
                     </li>
                   ))}
@@ -394,7 +394,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               className="flex items-center justify-between rounded-3xl bg-stone-800 px-4 py-3.5 text-white shadow-sm"
             >
               <span>
-                <span className="block text-[10px] font-black tracking-widest text-white/50">MASTER</span>
+                <span className="block text-[13px] font-black tracking-widest text-white/50">MASTER</span>
                 <span className="mt-0.5 block text-[14px] font-black">{profile.masterLabel}</span>
               </span>
               <span className="text-lg">›</span>
@@ -413,14 +413,14 @@ export default function AreaHomeView({ slug }: { slug: string }) {
                         rel="noopener noreferrer"
                         className="block rounded-xl bg-stone-50 px-3 py-2"
                       >
-                        <p className="text-[12px] font-bold text-accent-dark">{src.label} ↗</p>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="text-[14px] font-bold text-accent-dark">{src.label} ↗</p>
+                        <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">{src.purpose}</p>
                       </a>
                     ) : (
                       <div className="rounded-xl bg-stone-50 px-3 py-2">
-                        <p className="text-[12px] font-bold text-stone-600">{src.label}</p>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-stone-500">{src.purpose}</p>
-                        <p className="mt-0.5 text-[10px] font-bold text-stone-400">リンク未確認</p>
+                        <p className="text-[14px] font-bold text-stone-600">{src.label}</p>
+                        <p className="mt-0.5 text-[13px] leading-relaxed text-stone-500">{src.purpose}</p>
+                        <p className="mt-0.5 text-[13px] font-bold text-stone-400">リンク未確認</p>
                       </div>
                     )}
                   </li>
@@ -475,13 +475,13 @@ function Collapsible({
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <span
-          className={`text-[11px] font-black tracking-wide ${tone === "danger" ? "text-danger" : "text-stone-400"}`}
+          className={`text-[13px] font-black tracking-wide ${tone === "danger" ? "text-danger" : "text-stone-400"}`}
         >
           {label}
           {count !== undefined && <span className="ml-1 tabular-nums">{count}</span>}
           {sub && <span className="ml-1.5 font-bold text-stone-300">{sub}</span>}
         </span>
-        <span className={`shrink-0 text-[11px] ${tone === "danger" ? "text-danger" : "text-stone-300"}`}>
+        <span className={`shrink-0 text-[13px] ${tone === "danger" ? "text-danger" : "text-stone-300"}`}>
           {open ? "▾" : "▸"}
         </span>
       </button>
