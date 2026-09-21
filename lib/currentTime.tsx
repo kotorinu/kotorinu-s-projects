@@ -6,7 +6,7 @@ import { nowHm } from "./date";
 // One clock for the whole app (2026-09-09, §13/§16).
 //
 // Every screen used to keep its own `nowHm` state, which meant NOW/NEXT/PAST
-// could disagree between TODAY and TASK MAP, and there was no way to test
+// could disagree between TODAY and 計画と工程, and there was no way to test
 // "what does this look like at 22:40" without waiting until 22:40.
 //
 // Two rules this enforces:

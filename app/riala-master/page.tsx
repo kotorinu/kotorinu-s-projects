@@ -26,7 +26,7 @@ export default function RialaMasterPage() {
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
-          ＜ TASK MAP
+          ＜ 計画と工程
         </Link>
         <p className="mt-1 text-[14px] font-bold tracking-widest text-accent-dark">RIALA</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">RIALA運営</h1>

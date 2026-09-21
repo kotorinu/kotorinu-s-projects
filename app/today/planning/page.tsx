@@ -376,7 +376,7 @@ export default function TodayPage() {
   );
   const [doneListOpen, setDoneListOpen] = useState(false);
 
-  // §16: the clock comes from ClockProvider so TODAY and TASK MAP always
+  // §16: the clock comes from ClockProvider so TODAY and 計画と工程 always
   // agree on "now". It starts at a placeholder and the real time arrives in
   // an effect — this page is statically prerendered, so reading the wall
   // clock during render would bake the build machine's time into the HTML.
@@ -492,7 +492,7 @@ export default function TodayPage() {
 
   // §2 (2026-09-08): "今日やるTaskなのに時間未定" is no longer a state this
   // app displays. A Task without a decided time is BACKLOG and belongs on
-  // TASK MAP, not here. This list therefore only ever holds a genuine plan
+  // 計画と工程, not here. This list therefore only ever holds a genuine plan
   // error — an ACTIVE Task whose TimeBlock went missing — and says so
   // instead of quietly presenting it as today's work.
   const unscheduledTodayTasks = useMemo(
@@ -586,9 +586,8 @@ export default function TodayPage() {
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
-            <h1 className="mt-0.5 flex items-center gap-2 text-[26px] font-black tracking-tight">
-              <span className="text-2xl">☀</span> TODAY
+            <h1 className="flex items-center gap-2 text-[26px] font-black tracking-tight">
+              <span className="text-2xl">☀</span> 今日の計画
             </h1>
             {/* Execution Baseline (§1/§28): 9/8 is DAY 1. Everything before it
                 was the period while this OS was being built, and its numbers
@@ -754,7 +753,7 @@ export default function TodayPage() {
             Timelineへ差し込まず見出しの下に置く。 */}
         {(day.deadlines.length > 0 || fixedEventsAllDayToday.length > 0) && (
           <div className="mb-2.5">
-            <p className="text-[13px] font-black tracking-widest text-stone-400">TODAY DEADLINES</p>
+            <p className="text-[13px] font-black tracking-widest text-stone-400">今日の締切</p>
             <ul className="mt-1 flex flex-col gap-0.5">
               {day.deadlines.map((d) => (
                 <li key={d.key} className="text-[13px] font-bold leading-snug text-stone-500">
@@ -1533,7 +1532,7 @@ function TimelineTaskCard({
   // nowHm() call here — see NowIndicator's comment for why that matters.
   const remaining = isFocused ? minutesUntil(endTime, nowHmValue) : null;
   // §35: the surface colour is the Activity's when it has one (reading is
-  // yellow), otherwise the Area's — matching TASK MAP, Area Home and the
+  // yellow), otherwise the Area's — matching 計画と工程, Area Home and the
   // Google Calendar colour ids.
   const { surface, area: areaTheme } = themeFor(task.area, task.activityType);
 

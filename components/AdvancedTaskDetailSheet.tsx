@@ -46,7 +46,7 @@ export default function TaskDetailSheet({
   task: Task;
   onClose: () => void;
   // Session-only Estimate vs Actual state (PRD.md §25/§29) — only the TODAY
-  // page tracks this (no DB yet), so these are optional; TASK MAP opens this
+  // page tracks this (no DB yet), so these are optional; 計画と工程 opens this
   // same sheet without them and simply shows no execution-tracking section.
   actualMinutes?: number | null;
   started?: boolean;
@@ -84,7 +84,7 @@ export default function TaskDetailSheet({
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const { reschedule } = useReschedule();
   // The timed value from the page, when there is one; otherwise whatever is
-  // stored (including a hand-typed figure) so this sheet works from TASK MAP
+  // stored (including a hand-typed figure) so this sheet works from 計画と工程
   // and Area Home too, not only from TODAY.
   const shownActualMinutes = actualMinutes ?? taskActualMinutes.get(task.id) ?? null;
   const planBlocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds });

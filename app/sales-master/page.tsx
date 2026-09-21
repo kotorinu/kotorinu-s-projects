@@ -14,7 +14,7 @@ const masteryDot: Record<SalesPhase["masteryStatus"], string> = {
   UNDERSTANDING: "bg-sky-400",
   FILLED: "bg-accent",
   PRACTICING: "bg-amber-500",
-  FEEDBACK_RECEIVED: "bg-violet-500",
+  FEEDBACK_RECEIVED: "bg-accent",
   USABLE: "bg-emerald-500",
 };
 
@@ -30,7 +30,7 @@ export default function SalesMasterPage() {
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
-          ＜ TASK MAP
+          ＜ 計画と工程
         </Link>
         <p className="mt-1 text-[14px] font-bold tracking-widest text-accent-dark">営業代行</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">営業Master</h1>

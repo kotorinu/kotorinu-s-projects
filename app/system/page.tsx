@@ -15,7 +15,7 @@ import { useTodayExecution } from "@/lib/todayExecutionStore";
 // System Status (2026-09-09, §21/§54).
 //
 // Plan Validator / Calendar Diff / Snapshot の詳細 / build情報 は、問題が
-// 起きたときにだけ必要なもの。毎日のTASK MAPの一等地に置いておくと、読まれ
+// 起きたときにだけ必要なもの。毎日の計画と工程の一等地に置いておくと、読まれ
 // ないまま場所だけ取り、肝心の「今日の前進」を押し下げる。
 //
 // だからここへ移した。日常の画面は、問題があるときだけ小さなBannerでここへ
@@ -60,7 +60,7 @@ export default function SystemStatusPage() {
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
-          ＜ TASK MAP
+          ＜ 計画と工程
         </Link>
         <h1 className="mt-1 text-[24px] font-black tracking-tight">System Status</h1>
         <p className="mt-0.5 text-[14px] font-medium text-stone-400">

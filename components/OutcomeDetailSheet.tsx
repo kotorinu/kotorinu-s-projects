@@ -146,7 +146,7 @@ export default function OutcomeDetailSheet({ outcome, onClose }: { outcome: Outc
                 })}
               </ul>
               <p className="mt-2 text-[13px] text-stone-400">
-                この期間は通常と同じ実行量を前提にしない。詳細はTASK MAP最下部の「固定予定」参照。
+                この期間は通常と同じ実行量を前提にしない。詳細は計画と工程最下部の「固定予定」参照。
               </p>
             </Section>
           )}

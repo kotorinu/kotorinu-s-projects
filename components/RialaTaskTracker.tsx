@@ -265,7 +265,7 @@ export default function RialaTaskTracker() {
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
-      <div className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-[#cfe5df] bg-white shadow-sm">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -273,7 +273,7 @@ export default function RialaTaskTracker() {
         >
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[14px] font-semibold text-violet-700">RIALA 計測</span>
+              <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[14px] font-semibold text-accent-dark">RIALA 計測</span>
               <span className="text-sm text-stone-500">18個の実タスク</span>
             </div>
             <h2 className="mt-2 text-lg font-bold text-stone-900">RIALA タスク実行・時間計測</h2>
@@ -281,7 +281,7 @@ export default function RialaTaskTracker() {
           <div className="text-right">
             <div className="text-sm font-semibold text-stone-800">{completedCount} / {tasks.length} 完了</div>
             <div className="mt-1 text-[14px] text-stone-500">累計 {secondsToLabel(totalSeconds)}</div>
-            <div className="mt-1 text-[14px] text-violet-600">{open ? "閉じる" : "開く"}</div>
+            <div className="mt-1 text-[14px] text-accent">{open ? "閉じる" : "開く"}</div>
           </div>
         </button>
 
@@ -300,9 +300,9 @@ export default function RialaTaskTracker() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 text-[14px]">
-                          <span className="font-medium text-violet-700">{task.category}</span>
+                          <span className="font-medium text-accent-dark">{task.category}</span>
                           <span className="text-stone-400">{task.date}</span>
-                          <span className={`rounded-full px-2 py-0.5 font-medium ${done ? "bg-stone-900 text-white" : running ? "bg-violet-100 text-violet-700" : "bg-stone-100 text-stone-600"}`}>
+                          <span className={`rounded-full px-2 py-0.5 font-medium ${done ? "bg-stone-900 text-white" : running ? "bg-accent-soft text-accent-dark" : "bg-stone-100 text-stone-600"}`}>
                             {m.status}
                           </span>
                         </div>
@@ -320,12 +320,12 @@ export default function RialaTaskTracker() {
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {!done && !running && (
-                        <button type="button" onClick={() => start(task.id)} className="rounded-lg bg-violet-600 px-3 py-2 text-[14px] font-semibold text-white hover:bg-violet-700">
+                        <button type="button" onClick={() => start(task.id)} className="rounded-lg bg-accent px-3 py-2 text-[14px] font-semibold text-white hover:bg-accent">
                           開始
                         </button>
                       )}
                       {!done && running && (
-                        <button type="button" onClick={() => stop(task.id)} className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-[14px] font-semibold text-violet-700 hover:bg-violet-50">
+                        <button type="button" onClick={() => stop(task.id)} className="rounded-lg border border-[#bcd9d1] bg-white px-3 py-2 text-[14px] font-semibold text-accent-dark hover:bg-accent-soft">
                           一時停止
                         </button>
                       )}

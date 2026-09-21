@@ -66,7 +66,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     return (
       <div className="px-5 py-10">
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
-          ＜ TASK MAP
+          ＜ 計画と工程
         </Link>
         <p className="mt-4 text-sm text-stone-500">このAreaは見つかりませんでした。</p>
       </div>
@@ -133,12 +133,12 @@ export default function AreaHomeView({ slug }: { slug: string }) {
     <div className="flex flex-col pb-10">
       <header className="px-5 pb-3 pt-6">
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
-          ＜ TASK MAP
+          ＜ 計画と工程
         </Link>
         <h1 className="mt-1 text-[24px] font-black tracking-tight">{profile.area}</h1>
         {profile.area === "RIALA" && (
           <p className="mt-2 rounded-xl bg-stone-100 px-3 py-2 text-[13px] font-bold leading-relaxed text-stone-500">
-            旧FANTS移行の記録は <span className="text-stone-700">HISTORICAL / EXCEPTION ONLY</span>。新規の判断と準備は上のAI OPSで行います。
+            旧FANTSの移行記録は <span className="text-stone-700">過去の記録</span>です。新しい判断と準備は、上のAIの受付で行います。
           </p>
         )}
       </header>
@@ -394,7 +394,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
               className="flex items-center justify-between rounded-3xl bg-stone-800 px-4 py-3.5 text-white shadow-sm"
             >
               <span>
-                <span className="block text-[13px] font-black tracking-widest text-white/50">MASTER</span>
+                <span className="block text-[13px] font-black tracking-widest text-white/50">資料</span>
                 <span className="mt-0.5 block text-[14px] font-black">{profile.masterLabel}</span>
               </span>
               <span className="text-lg">›</span>

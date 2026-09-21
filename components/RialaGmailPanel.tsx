@@ -115,10 +115,10 @@ export default function RialaGmailPanel() {
           : "Gmail 未取得";
 
   return (
-    <section className="mt-3 rounded-3xl border border-violet-100 bg-white/70 px-4 py-3 shadow-sm">
+    <section className="mt-3 rounded-3xl border border-[#dce9e5] bg-white/70 px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-[13px] font-black tracking-[0.18em] text-violet-700">INCOMING / GMAIL</p>
+          <p className="text-[13px] font-black tracking-[0.18em] text-accent-dark">届いているメール</p>
           <p role="status" aria-live="polite" className="mt-0.5 text-[13px] font-bold text-stone-600">{freshness}</p>
           {connection?.connected && result?.accountMasked ? (
             <p className="text-[13px] text-stone-400">{result.accountMasked}・読み取りのみ{result.window ? `・直近${result.window.days}日` : ""}</p>
@@ -127,13 +127,13 @@ export default function RialaGmailPanel() {
         <div className="flex gap-1.5">
           {canConnect ? (
             <button type="button" onClick={() => void connect()} disabled={busy}
-              className="rounded-xl bg-violet-700 px-3 py-2 text-[13px] font-black text-white disabled:opacity-40">
+              className="rounded-xl bg-accent px-3 py-2 text-[13px] font-black text-white disabled:opacity-40">
               {busy ? "接続中…" : "Gmailを接続"}
             </button>
           ) : null}
           {connection?.connected ? (
             <button type="button" onClick={() => void refresh()} disabled={busy}
-              className="rounded-xl border border-violet-200 px-3 py-2 text-[13px] font-black text-violet-700 disabled:opacity-40">
+              className="rounded-xl border border-[#cfe5df] px-3 py-2 text-[13px] font-black text-accent-dark disabled:opacity-40">
               {busy ? "取得中…" : "Gmailを取得 ⟳"}
             </button>
           ) : null}
@@ -167,7 +167,7 @@ export default function RialaGmailPanel() {
               ) : null}
             </div>
           ) : null}
-          <button type="button" onClick={() => setOpen(v => !v)} className="mt-2 text-[13px] font-black text-violet-700">
+          <button type="button" onClick={() => setOpen(v => !v)} className="mt-2 text-[13px] font-black text-accent-dark">
             {open ? "内訳を閉じる" : `内訳を見る（${result.counts.threads}スレッド / ${result.counts.messages}通）`}
           </button>
           {open ? (
@@ -176,7 +176,7 @@ export default function RialaGmailPanel() {
               {result.threads.map(thread => (
                 <article key={thread.threadId} className="rounded-2xl border border-stone-100 bg-white px-3 py-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${thread.relevance === "RIALA_RELEVANT" ? "bg-violet-50 text-violet-700" : "bg-stone-50 text-stone-500"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${thread.relevance === "RIALA_RELEVANT" ? "bg-accent-soft text-accent-dark" : "bg-stone-50 text-stone-500"}`}>
                       {RELEVANCE_LABEL[thread.relevance] ?? thread.relevance}
                     </span>
                     <span className="text-[13px] font-bold text-stone-500">{REPLY_LABEL[thread.replyState] ?? thread.replyState}</span>
@@ -205,7 +205,7 @@ export default function RialaGmailPanel() {
         </>
       ) : null}
 
-      {notice ? <p className="mt-2 text-[13px] font-bold text-violet-800">{notice}</p> : null}
+      {notice ? <p className="mt-2 text-[13px] font-bold text-accent-dark">{notice}</p> : null}
       {body && !body.configured && body.reason && !body.authRequired ? (
         <p className="mt-2 text-[13px] font-bold text-amber-800">{body.reason}</p>
       ) : null}
@@ -217,7 +217,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-white px-3 py-2">
       <p className="text-[13px] font-bold text-stone-400">{label}</p>
-      <p className="mt-0.5 text-[20px] font-black tabular-nums text-violet-700">{value}</p>
+      <p className="mt-0.5 text-[20px] font-black tabular-nums text-accent-dark">{value}</p>
     </div>
   );
 }

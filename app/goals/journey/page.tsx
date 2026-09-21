@@ -30,7 +30,7 @@ import {
 export default function GoalTreePage() {
   return (
     <Suspense fallback={null}>
-      <WorkControl kind="goal" /><GoalTreeContent />
+      <GoalTreeContent /><WorkControl kind="goal" />
     </Suspense>
   );
 }
@@ -77,8 +77,7 @@ function GoalTreeContent() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
-        <h1 className="mt-0.5 text-[26px] font-black tracking-tight">GOAL TREE</h1>
+        <h1 className="text-[26px] font-black tracking-tight">目標の道筋</h1>
         <p className="mt-0.5 text-[14px] font-medium text-stone-400">いまはどこへ向かっているか</p>
       </header>
 
@@ -233,7 +232,7 @@ function NextMilestoneCard({ goal, today }: { goal: Goal; today: string }) {
   const label = GOAL_HORIZON_LABEL[goal.horizon];
   return (
     <section className="mx-5 mt-2 rounded-2xl bg-accent px-4 py-3 text-white">
-      <p className="text-[13px] font-black tracking-widest text-white/70">NEXT MILESTONE</p>
+      <p className="text-[13px] font-black tracking-widest text-white/70">次の区切り</p>
       <div className="mt-0.5 flex items-baseline gap-2">
         <span className="text-[26px] font-black leading-none tabular-nums">{headline}</span>
         <span className="text-[13px] font-bold text-white/80">
@@ -256,7 +255,7 @@ function NowMarker({ today }: { today: string }) {
   return (
     <div className="flex items-center gap-2 pb-1">
       <span className="h-2.5 w-2.5 rounded-full bg-stone-800 ring-4 ring-stone-800/10" />
-      <span className="text-[13px] font-black tracking-widest text-stone-800">NOW</span>
+      <span className="text-[13px] font-black tracking-widest text-stone-800">いま</span>
       <span className="tabular-nums text-[13px] font-bold text-stone-400">
         {Number(m)}/{Number(d)}
       </span>

@@ -79,7 +79,7 @@ const priorityRank: Record<Priority, number> = { 高: 3, 中: 2, 低: 1 };
 
 const areaStyle: Record<Area, string> = {
   営業代行: "bg-sky-50 text-sky-700",
-  RIALA: "bg-violet-50 text-violet-700",
+  RIALA: "bg-accent-soft text-accent-dark",
   GENESIS: "bg-teal-50 text-teal-700",
   "Skill Plus": "bg-amber-50 text-amber-700",
   その他: "bg-stone-100 text-stone-500",
@@ -143,7 +143,7 @@ export default function TaskMapPage() {
   const [selectedArea, setSelectedArea] = useState<HomeArea>("営業代行");
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  // §16: one clock for the whole app, so TODAY and TASK MAP can never
+  // §16: one clock for the whole app, so TODAY and 計画と工程 can never
   // disagree about what "now" is.
   const { nowHmValue } = useClock();
 
@@ -293,7 +293,7 @@ export default function TaskMapPage() {
     [weekDateList, workDateOverrides, lifecycleOverrides, planBlocks, allTasks]
   );
 
-  // Area Home cards (2026-09-08, §20/§21). These are now the top of TASK MAP
+  // Area Home cards (2026-09-08, §20/§21). These are now the top of 計画と工程
   // and the entry point into each Area Home — the first thing the user needs
   // is 何を目指していて次に何をするか, not a count of open tasks. Every figure
   // is derived from the real Task set; an Area with no Outcome says so
@@ -401,11 +401,10 @@ export default function TaskMapPage() {
 
   return (
     <div className="flex flex-col">
-      <WorkControl />
+      <div className="order-last"><WorkControl /></div>
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
-        <div className="mt-0.5 flex items-center justify-between">
-          <h1 className="text-[26px] font-black tracking-tight">TASK MAP</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[26px] font-black tracking-tight">計画と工程</h1>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -860,7 +859,7 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {/* §21/§54: 診断はSystem Statusへ。日常のTASK MAPの主役にしない。 */}
+      {/* §21/§54: 診断はSystem Statusへ。日常の計画と工程の主役にしない。 */}
       <div className="mt-6 flex items-center justify-end gap-2 px-5">
         <PlanOkMark health={planHealth} />
         <Link href="/system" className="text-[13px] text-stone-300">
@@ -907,7 +906,7 @@ function weekEntryStyle(e: WeekEntry): { className: string; style?: React.CSSPro
   };
 }
 
-// TASK MAP Week View (2026-09-06): "今週、いつ何をやるか" at a glance —
+// 計画と工程 Week View (2026-09-06): "今週、いつ何をやるか" at a glance —
 // not a Google Calendar replacement (PRD.md's Google Calendar semantics
 // section), so this stays compact: a handful of short entries per day, not
 // a full time-grid. Horizontal scroll on narrow screens, today scrolled

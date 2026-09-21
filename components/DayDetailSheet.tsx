@@ -37,7 +37,7 @@ export default function DayDetailSheet({
     supersededBlockIds,
   } = useTodayExecution();
   const overlays = { completions, dispositions, deadlineOverrides, workDateOverrides, lifecycleOverrides };
-  // §19/§20: the same live plan TODAY and TASK MAP use — a rescheduled block
+  // §19/§20: the same live plan TODAY and 計画と工程 use — a rescheduled block
   // has to leave the old day's detail and appear on the new one.
   const planBlocks = liveTimeBlocks({ timeBlockOverrides, supersededBlockIds });
 

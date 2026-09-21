@@ -56,7 +56,7 @@ export default function PdcaPage() {
   return (
     <div className="flex flex-col pb-8">
       <header className="sticky top-0 z-10 bg-gradient-to-b from-background via-background to-transparent px-5 pb-2 pt-6">
-        <p className="text-[14px] font-bold tracking-widest text-accent-dark">AI WORK OS</p>
+        <p className="text-[14px] font-bold tracking-widest text-accent-dark">振り返りの内訳</p>
         <h1 className="mt-0.5 text-[26px] font-black tracking-tight">PDCA</h1>
         <p className="mt-0.5 text-[14px] font-medium text-stone-400">今回どうだった？ 次回どう変える？</p>
       </header>
