@@ -140,14 +140,14 @@ export default function OverdueInbox({
                 <button
                   type="button"
                   onClick={() => setCompletingTask(t)}
-                  className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
+                  className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-4 py-1 text-[13px] font-bold text-white"
                 >
                   完了
                 </button>
                 <button
                   type="button"
                   onClick={() => moveWorkDate(t, today)}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
+                  className="inline-flex min-h-[44px] items-center rounded-full bg-stone-100 px-4 py-1 text-[13px] font-bold text-stone-600"
                 >
                   今日やる
                 </button>
@@ -157,14 +157,14 @@ export default function OverdueInbox({
                     setDateOpenTaskId(dateOpenTaskId === t.id ? null : t.id);
                     setDateValue("");
                   }}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
+                  className="inline-flex min-h-[44px] items-center rounded-full bg-stone-100 px-4 py-1 text-[13px] font-bold text-stone-600"
                 >
                   日付を指定
                 </button>
                 <button
                   type="button"
                   onClick={() => (blocked ? setTaskDisposition(null, t.id) : block(t))}
-                  className={`rounded-full px-3 py-1 text-[13px] font-bold ${
+                  className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold ${
                     blocked ? "bg-stone-800 text-white" : "bg-stone-100 text-stone-500"
                   }`}
                 >
@@ -173,7 +173,7 @@ export default function OverdueInbox({
                 <button
                   type="button"
                   onClick={() => drop(t)}
-                  className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-400"
+                  className="inline-flex min-h-[44px] items-center rounded-full bg-stone-100 px-4 py-1 text-[13px] font-bold text-stone-400"
                 >
                   やめる
                 </button>
@@ -191,7 +191,7 @@ export default function OverdueInbox({
                     type="button"
                     disabled={!dateValue}
                     onClick={() => moveWorkDate(t, dateValue)}
-                    className={`rounded-full px-3 py-1 text-[13px] font-bold ${
+                    className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold ${
                       dateValue ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
                     }`}
                   >
@@ -204,7 +204,7 @@ export default function OverdueInbox({
                       setDeadlineOverride(t.id, dateValue);
                       closeDatePicker();
                     }}
-                    className={`rounded-full px-3 py-1 text-[13px] font-bold ${
+                    className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold ${
                       dateValue ? "bg-stone-800 text-white" : "bg-stone-100 text-stone-300"
                     }`}
                   >

@@ -326,7 +326,7 @@ export default function TaskDetailSheet({
                       className="flex w-full items-start gap-2 text-left"
                     >
                       <span
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-[8px] ${
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-[13px] ${
                           checked ? "bg-stone-400 text-white" : "border border-stone-300 text-transparent"
                         }`}
                       >

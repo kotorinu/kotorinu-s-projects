@@ -684,7 +684,7 @@ export default function TodayPage() {
                     type="button"
                     onClick={() => toggleRecurring(r.id)}
                     aria-label="完了にする"
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] transition-colors ${
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[13px] transition-colors ${
                       checked ? "border-accent bg-accent text-white" : "border-stone-200 text-transparent"
                     }`}
                   >
@@ -920,7 +920,7 @@ export default function TodayPage() {
                     <button
                       type="button"
                       onClick={() => decideCarryover(t.id, "MOVED_TODAY", today)}
-                      className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
+                      className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-4 py-1 text-[13px] font-bold text-white"
                     >
                       今日やる
                     </button>
@@ -930,14 +930,14 @@ export default function TodayPage() {
                         setReschedulingTaskId(reschedulingTaskId === t.id ? null : t.id);
                         setRescheduleDateValue("");
                       }}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-600"
+                      className="inline-flex min-h-[44px] items-center rounded-full bg-stone-100 px-4 py-1 text-[13px] font-bold text-stone-600"
                     >
                       別日に移す
                     </button>
                     <button
                       type="button"
                       onClick={() => decideCarryover(t.id, "DROPPED", null)}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-[13px] font-bold text-stone-400"
+                      className="inline-flex min-h-[44px] items-center rounded-full bg-stone-100 px-4 py-1 text-[13px] font-bold text-stone-400"
                     >
                       今回はやめる
                     </button>
@@ -955,7 +955,7 @@ export default function TodayPage() {
                         type="button"
                         disabled={!rescheduleDateValue}
                         onClick={() => decideCarryover(t.id, "RESCHEDULED", rescheduleDateValue)}
-                        className={`rounded-full px-3 py-1 text-[13px] font-bold ${
+                        className={`inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold ${
                           rescheduleDateValue ? "bg-accent text-white" : "bg-stone-100 text-stone-300"
                         }`}
                       >
@@ -980,7 +980,7 @@ export default function TodayPage() {
             <span className="text-[14px] font-bold text-stone-500">
               昨日の頑張り　{yesterdayCompletedCount}/{yesterdayTotalCount} Task完了
             </span>
-            <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${yesterdaySummaryOpen ? "rotate-180" : ""}`}>
+            <span className={`ml-auto text-[13px] text-stone-300 transition-transform ${yesterdaySummaryOpen ? "rotate-180" : ""}`}>
               ▾
             </span>
           </button>
@@ -1464,7 +1464,7 @@ function TaskStateButton({
         type="button"
         onClick={onComplete}
         aria-label="完了にする"
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent-soft text-[9px] text-accent-dark transition-all duration-150 active:scale-90"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent-soft text-[13px] text-accent-dark transition-all duration-150 active:scale-90"
       >
         ▶
       </button>

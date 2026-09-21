@@ -70,7 +70,7 @@ function DiffRow({ item }: { item: CalendarDiffItem }) {
     <li className="rounded-lg border border-stone-150 px-2.5 py-1.5">
       <div className="flex items-start gap-1.5">
         <span
-          className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-bold ${tone.bg} ${tone.text}`}
+          className={`shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[13px] font-bold ${tone.bg} ${tone.text}`}
         >
           {DIFF_TYPE_LABEL[item.type]}
         </span>
@@ -149,7 +149,7 @@ export default function PlanIntegrityPanel({
                   : "照合済み（Snapshot）"
                 : "再照合が必要"
             }
-            badge="SOURCE OF TRUTH"
+            badge="正本"
           />
         </div>
       </button>
@@ -180,8 +180,8 @@ export default function PlanIntegrityPanel({
           {/* ── Google Calendar ────────────────────── */}
           <div className="mt-4 flex items-baseline gap-2">
             <h3 className="text-[13px] font-black tracking-wide text-stone-500">Google Calendar</h3>
-            <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[8px] font-black tracking-wide text-white">
-              SOURCE OF TRUTH
+            <span className="rounded-full bg-stone-800 px-1.5 py-0.5 text-[13px] font-black tracking-wide text-white">
+              正本
             </span>
           </div>
           <dl className="mt-1 grid grid-cols-[5rem_1fr] gap-x-2 gap-y-1 text-[13px]">
@@ -294,7 +294,7 @@ function StatusLine({
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
       <span className="w-[6.5rem] shrink-0 text-[13px] text-stone-400">{label}</span>
       {badge && (
-        <span className="shrink-0 rounded-full bg-stone-800 px-1 py-px text-[7px] font-black tracking-wide text-white">
+        <span className="shrink-0 rounded-full bg-stone-800 px-2 py-0.5 text-[13px] font-black tracking-wide text-white">
           {badge}
         </span>
       )}

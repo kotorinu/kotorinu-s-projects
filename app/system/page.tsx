@@ -12,7 +12,7 @@ import { useClock } from "@/lib/currentTime";
 import { liveTimeBlocks, planLastChangedAt, supersededByReschedule } from "@/lib/livePlan";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
 
-// System Status (2026-09-09, §21/§54).
+// システムの状態 (2026-09-09, §21/§54).
 //
 // Plan Validator / Calendar Diff / Snapshot の詳細 / build情報 は、問題が
 // 起きたときにだけ必要なもの。毎日の計画と工程の一等地に置いておくと、読まれ
@@ -62,7 +62,7 @@ export default function SystemStatusPage() {
         <Link href="/tasks" className="text-[14px] font-bold text-stone-400">
           ＜ 計画と工程
         </Link>
-        <h1 className="mt-1 text-[24px] font-black tracking-tight">System Status</h1>
+        <h1 className="mt-1 text-[24px] font-black tracking-tight">システムの状態</h1>
         <p className="mt-0.5 text-[14px] font-medium text-stone-400">
           問題があるときだけ見る画面です。毎日は見なくて構いません。
         </p>

@@ -42,7 +42,7 @@ export default function CalendarOnlyCard({ entry }: { entry: DayEntry }) {
             {STATUS_LABEL[entry.status]}
           </span>
         )}
-        <span className="ml-auto rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] text-stone-400">
+        <span className="ml-auto rounded-full bg-stone-100 px-1.5 py-0.5 text-[13px] text-stone-400">
           {ROLE_LABEL[entry.role]}
         </span>
       </div>

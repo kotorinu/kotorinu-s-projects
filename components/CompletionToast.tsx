@@ -44,7 +44,7 @@ export default function CompletionToast({
       >
         <div className="flex items-start gap-2">
           <span
-            className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-black text-white"
+            className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-white"
             style={{ backgroundColor: milestone ? "#51B749" : "#5484ED" }}
           >
             ✓

@@ -176,7 +176,7 @@ export default function RialaGmailPanel() {
               {result.threads.map(thread => (
                 <article key={thread.threadId} className="rounded-2xl border border-stone-100 bg-white px-3 py-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${thread.relevance === "RIALA_RELEVANT" ? "bg-accent-soft text-accent-dark" : "bg-stone-50 text-stone-500"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[13px] font-black ${thread.relevance === "RIALA_RELEVANT" ? "bg-accent-soft text-accent-dark" : "bg-stone-50 text-stone-500"}`}>
                       {RELEVANCE_LABEL[thread.relevance] ?? thread.relevance}
                     </span>
                     <span className="text-[13px] font-bold text-stone-500">{REPLY_LABEL[thread.replyState] ?? thread.replyState}</span>

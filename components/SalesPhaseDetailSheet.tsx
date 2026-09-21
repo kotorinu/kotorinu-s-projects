@@ -175,7 +175,7 @@ function SourceSection({ children }: { children: React.ReactNode }) {
     <div className="mt-4 rounded-2xl border border-stone-150 bg-stone-50/60 px-3.5 py-3">
       <div className="mb-2 flex items-baseline gap-2">
         <h3 className="text-[13px] font-black tracking-wide text-stone-500">① 基礎</h3>
-        <span className="rounded-full bg-stone-200/70 px-1.5 py-0.5 text-[9px] font-bold text-stone-500">
+        <span className="rounded-full bg-stone-200/70 px-1.5 py-0.5 text-[13px] font-bold text-stone-500">
           SOURCE 営業ワークシート
         </span>
       </div>
@@ -189,7 +189,7 @@ function OwnSection({ children }: { children: React.ReactNode }) {
     <div className="mt-2 rounded-2xl border border-accent-soft bg-white px-3.5 py-3">
       <div className="mb-2 flex items-baseline gap-2">
         <h3 className="text-[13px] font-black tracking-wide text-accent-dark">② 自分版</h3>
-        <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold text-accent-dark">
+        <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[13px] font-bold text-accent-dark">
           YOU 琴音さんの理解
         </span>
       </div>

@@ -171,7 +171,7 @@ function StatTile({ label, value, tone }: { label: string; value: number; tone: 
   return (
     <div className="rounded-xl bg-white px-1 py-2 text-center shadow-sm">
       <p className={`tabular-nums text-base font-black ${color}`}>{value}</p>
-      <p className="text-[8px] font-bold text-stone-400">{label}</p>
+      <p className="text-[13px] font-bold text-stone-400">{label}</p>
     </div>
   );
 }

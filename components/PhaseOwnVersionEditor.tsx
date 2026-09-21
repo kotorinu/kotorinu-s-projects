@@ -99,14 +99,14 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                     <button
                       type="button"
                       onClick={save}
-                      className="rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
+                      className="inline-flex min-h-[44px] items-center rounded-full bg-accent px-4 py-1 text-[13px] font-bold text-white"
                     >
                       保存
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditing(null)}
-                      className="rounded-full px-3 py-1 text-[13px] font-bold text-stone-400"
+                      className="inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold text-stone-400"
                     >
                       キャンセル
                     </button>
@@ -117,7 +117,7 @@ export default function PhaseOwnVersionEditor({ phase }: { phase: SalesPhase }) 
                           setPhaseOwnField(phase.id, field, null);
                           setEditing(null);
                         }}
-                        className="ml-auto rounded-full px-3 py-1 text-[13px] font-bold text-stone-400"
+                        className="ml-auto inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold text-stone-400"
                       >
                         消す
                       </button>

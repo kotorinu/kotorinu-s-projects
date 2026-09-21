@@ -65,7 +65,7 @@ export default function CalendarSyncStrip({
     <section className="mx-5 mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3">
       <div className="flex items-baseline gap-2">
         <p className="text-[14px] font-black text-amber-900">Calendar反映待ち</p>
-        <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black text-amber-900">
+        <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-[13px] font-black text-amber-900">
           NEEDS_CALENDAR_SYNC
         </span>
       </div>

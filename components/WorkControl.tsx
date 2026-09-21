@@ -16,7 +16,7 @@ export default function WorkControl({ kind = "task" }: { kind?: "task" | "goal" 
         if (!response.ok) throw new Error("ログインできません。認証と保存先設定を確認してください");
         form.reset(); window.dispatchEvent(new Event("work-os-auth")); await work.refresh();
       } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
-    }}><input name="secret" aria-label="操作キー" type="password" autoComplete="current-password" required className="min-w-0 flex-1 rounded border p-2 text-[14px]" placeholder="操作キー" /><button disabled={busy} className="rounded bg-blue-600 px-3 text-[14px] text-white">ログイン</button></form>}
+    }}><input name="secret" aria-label="操作キー" type="password" autoComplete="current-password" required className="min-w-0 flex-1 rounded border p-2 text-[14px]" placeholder="操作キー" /><button disabled={busy} className="rounded bg-accent px-3 text-[14px] text-white">ログイン</button></form>}
     <details className="mt-3"><summary className="cursor-pointer text-[14px] font-bold">{kind === "task" ? "タスクを追加" : "目標を追加"}</summary>
       <form className="mt-3 grid gap-2" onSubmit={async e => {
         e.preventDefault(); const form = e.currentTarget; const data = new FormData(form);
@@ -34,7 +34,7 @@ export default function WorkControl({ kind = "task" }: { kind?: "task" | "goal" 
         <textarea name="criteria" aria-label="達成基準" placeholder="達成基準・完了条件（1行に1つ）" required={kind === "goal"} className="rounded border p-2 text-[14px]" />
         <label className="text-[14px]">{kind === "task" ? "期限（不明なら空欄）" : "目標日（不明なら空欄）"}<input name="date" type="date" className="ml-2 rounded border p-2" /></label>
         <select name="goal" aria-label={kind === "task" ? "関連目標" : "親目標"} className="rounded border p-2 text-[14px]"><option value="">目標の紐づけなし</option>{work.goals.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}</select>
-        <button disabled={busy || !work.connected} className="rounded bg-blue-600 p-2 text-[14px] font-bold text-white disabled:opacity-40">中央データへ保存</button>
+        <button disabled={busy || !work.connected} className="rounded bg-accent p-2 text-[14px] font-bold text-white disabled:opacity-40">中央データへ保存</button>
       </form></details>
     {kind === "task" && work.runs.length > 0 && <details className="mt-3"><summary className="cursor-pointer text-[14px] font-bold">AI実行・成果物 {work.runs.filter(r => r.status !== "ACCEPTED").length}件</summary>
       <div className="mt-2 space-y-2">{work.runs.map(r => <article key={r.id} className="rounded border p-2 text-[14px]">

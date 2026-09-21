@@ -587,7 +587,7 @@ export default function TaskMapPage() {
                     {c.areas.slice(0, 3).map((a, j) => (
                       <span key={j} className="h-1 w-1 rounded-full" style={{ backgroundColor: areaDotColor[a] }} />
                     ))}
-                    {c.areas.length > 3 && <span className="text-[7px] font-bold text-stone-400">+{c.areas.length - 3}</span>}
+                    {c.areas.length > 3 && <span className="text-[13px] font-bold text-stone-400">+{c.areas.length - 3}</span>}
                   </div>
                 )}
               </button>
@@ -677,7 +677,7 @@ export default function TaskMapPage() {
               key={s}
               type="button"
               onClick={() => setScope(s)}
-              className={`shrink-0 rounded-full px-3 py-1 text-[13px] font-bold transition-colors ${
+              className={`shrink-0 inline-flex min-h-[44px] items-center rounded-full px-4 py-1 text-[13px] font-bold transition-colors ${
                 scope === s ? "bg-stone-800 text-white" : "bg-white text-stone-500 shadow-sm"
               }`}
             >
@@ -697,7 +697,7 @@ export default function TaskMapPage() {
             }`}
           >
             絞り込み{activeRefineCount > 0 ? ` ${activeRefineCount}` : ""}
-            <span className={`text-[9px] transition-transform ${refineOpen ? "rotate-180" : ""}`}>▾</span>
+            <span className={`text-[13px] transition-transform ${refineOpen ? "rotate-180" : ""}`}>▾</span>
           </button>
 
           <div className="flex shrink-0 items-center gap-1.5">
@@ -821,7 +821,7 @@ export default function TaskMapPage() {
             <span className="text-[13px] font-bold text-stone-400">
               {monthLabel(monthKey)}の固定予定 {monthFixedEvents.length}件
             </span>
-            <span className={`ml-auto text-[9px] text-stone-300 transition-transform ${fixedScheduleOpen ? "rotate-180" : ""}`}>
+            <span className={`ml-auto text-[13px] text-stone-300 transition-transform ${fixedScheduleOpen ? "rotate-180" : ""}`}>
               ▾
             </span>
           </button>
@@ -859,11 +859,11 @@ export default function TaskMapPage() {
         </section>
       )}
 
-      {/* §21/§54: 診断はSystem Statusへ。日常の計画と工程の主役にしない。 */}
+      {/* §21/§54: 診断はシステムの状態へ。日常の計画と工程の主役にしない。 */}
       <div className="mt-6 flex items-center justify-end gap-2 px-5">
         <PlanOkMark health={planHealth} />
         <Link href="/system" className="text-[13px] text-stone-300">
-          System Status ＞
+          システムの状態 ＞
         </Link>
       </div>
 

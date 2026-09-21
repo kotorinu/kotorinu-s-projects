@@ -333,7 +333,7 @@ function CheckCard({ item }: { item: CheckItem }) {
             <button
               type="button"
               onClick={() => setNextEstimate(item.task.id, proposal.suggestedMinutes)}
-              className="mt-1.5 rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-white"
+              className="mt-1.5 inline-flex min-h-[44px] items-center rounded-full bg-accent px-4 py-1 text-[13px] font-bold text-white"
             >
               次回見積に採用
             </button>

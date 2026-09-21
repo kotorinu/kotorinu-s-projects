@@ -69,7 +69,7 @@ export default function PhaseProgressGrid({
               <span className="tabular-nums text-[13px] font-black leading-none" style={{ color: text }}>
                 {String(n).padStart(2, "0")}
               </span>
-              <span className="mt-0.5 text-[9px] font-bold leading-none" style={{ color: text }}>
+              <span className="mt-0.5 text-[13px] font-bold leading-none" style={{ color: text }}>
                 {complete ? "✓" : waiting ? "待" : `${s.filled}/${OWN_FIELDS.length}`}
               </span>
             </button>

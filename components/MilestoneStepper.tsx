@@ -36,7 +36,7 @@ export default function MilestoneStepper({ milestones }: { milestones: OutcomeMi
             <li key={m.id} className="flex gap-2.5">
               <div className="flex flex-col items-center">
                 <span
-                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-black text-white"
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[13px] font-black text-white"
                   style={{ backgroundColor: style.fill, borderColor: style.ring }}
                 >
                   {style.label}
