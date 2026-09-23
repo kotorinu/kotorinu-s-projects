@@ -4,6 +4,7 @@ import { useWork } from "@/lib/work/client";
 import { useState } from "react";
 import { useMemo } from "react";
 import Link from "next/link";
+import SalesResources from "@/components/SalesResources";
 import { allGapItems, blockers, capabilities, monthEndStates, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
 import BlockerPanel from "@/components/BlockerPanel";
 import CapabilityMap from "@/components/CapabilityMap";
@@ -142,6 +143,8 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           </p>
         )}
       </header>
+
+      {profile.area === "営業代行" && <div className="px-5 pb-4"><SalesResources /></div>}
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:px-5">
         <div className="flex flex-col gap-2.5 px-5 lg:px-0">

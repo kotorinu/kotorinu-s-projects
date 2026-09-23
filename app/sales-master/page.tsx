@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import SalesResources from "@/components/SalesResources";
 import { roleplayFeedback, salesPhases, salesSprint } from "@/lib/dummy-data";
 import { formatMd } from "@/lib/date";
 import { computeSprintProgress, masteryStatusLabel, phaseCoverage } from "@/lib/sales";
@@ -38,6 +39,8 @@ export default function SalesMasterPage() {
           学んだ知識・実践者FB・ロープレ・実商談を17フェーズへ蓄積する、自分専用の営業プレイブック
         </p>
       </header>
+
+      <div className="px-5 pb-4"><SalesResources /></div>
 
       <section className="mx-5 mt-1 rounded-3xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
         <p className="text-[13px] font-bold text-stone-400">CHECKPOINT</p>
