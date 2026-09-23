@@ -10,4 +10,4 @@ export const sugiyamaPage = `<!doctype html><html lang="ja"><head><meta charset=
 <section class="card"><label class="check"><input type="checkbox" id="mastered">このフェーズは暗記できた</label><span id="progress"></span><details><summary>FBメモ</summary><textarea id="memo" aria-label="このフェーズのFBメモ" placeholder="次に直すことを1つ"></textarea><small>チェック・メモはこのブラウザ内に保存</small></details></section></main>
 <footer><button id="prev">← 前へ</button><button id="next" class="primary">次へ →</button></footer>
 <dialog id="dialog"><div class="dialogtop"><strong id="dialogTitle"></strong><button id="close">閉じる</button></div><div id="dialogBody"></div></dialog>
-<script type="application/json" id="seed">${JSON.stringify(sugiyamaMarkdown).replace(/</g, '\\u003c')}</script><script src="/sugiyama.js" defer></script></body></html>`;
+<script type="application/json" id="seed">${JSON.stringify(sugiyamaMarkdown).replace(/</g, '\\u003c')}</script><script src="/sugiyama-reading.js?v=2" defer></script><script src="/sugiyama.js?v=2" defer></script></body></html>`;
