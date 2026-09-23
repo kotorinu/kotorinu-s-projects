@@ -7,8 +7,9 @@ const json = (data: unknown, status = 200) => Response.json(data, { status, head
 export async function GET(request: Request) {
   const action = new URL(request.url).pathname.split('/').pop();
   try {
-    const store = scriptStore();
-    const state = store ? await store.read() : initialScript();
+    const edition = new URL(request.url).searchParams.get('edition') === 'sugiyama' ? 'sugiyama' : 'mogi';
+    const store = scriptStore(edition);
+    const state = store ? await store.read() : initialScript(edition);
     if (action === 'document') return json({ content: state.content, revision: state.version, canEdit: !!store && (authenticated(request) || deviceAuthenticated(request)), persistent: !!store });
     if (action === 'versions') {
       if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: '履歴を見るには編集ログインが必要です' }, 401);
@@ -21,7 +22,7 @@ async function mutate(request: Request) {
   if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: '編集ログインが必要です' }, 401);
   if (!sameOrigin(request)) return json({ error: 'Origin mismatch' }, 403);
   if (!request.headers.get('content-type')?.startsWith('application/json')) return json({ error: 'JSON required' }, 415);
-  const store = scriptStore();
+  const store = scriptStore(new URL(request.url).searchParams.get('edition') === 'sugiyama' ? 'sugiyama' : 'mogi');
   if (!store) return json({ error: '保存先が未接続です' }, 503);
   try {
     const raw = await request.text();
