@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { sugiyamaMarkdown } from '../lib/sales-script/sugiyama-seed';
+import { latestSugiyamaMarkdown } from '../lib/sales-script/sugiyama-latest';
 import { initialScript, updateScript } from '../lib/sales-script/store';
 import { completeMarkdown } from '../lib/sales-script/seed';
 import { sugiyamaPage } from '../lib/sales-script/sugiyama-page';
@@ -14,16 +15,16 @@ test('Sugiyama V5 matches the full user attachment verbatim', () => {
 test('Mogi remains default for existing API clients; Sugiyama is isolated', () => {
   assert.equal(initialScript().content,completeMarkdown);
   const state=initialScript('sugiyama');
-  assert.equal(state.content,sugiyamaMarkdown);
-  const next=sugiyamaMarkdown+'\n確認用';
+  assert.equal(state.content,latestSugiyamaMarkdown);
+  const next=latestSugiyamaMarkdown+'\n確認用';
   state.version=updateScript(state,next,0,'手動保存');
   assert.equal(state.content,next);
-  assert.equal(state.versions[0].content,sugiyamaMarkdown);
+  assert.equal(state.versions[0].content,latestSugiyamaMarkdown);
   assert.throws(()=>updateScript(state,'古い版からの保存テスト',0,'自動保存'),/conflict/);
   assert.equal(initialScript().content,completeMarkdown);
 });
 test('Embedded JSON recovers the exact source without HTML interpolation', () => {
   const json=sugiyamaPage.match(/<script type="application\/json" id="seed">([\s\S]*?)<\/script>/)![1];
-  assert.equal(JSON.parse(json),sugiyamaMarkdown);
+  assert.equal(JSON.parse(json),latestSugiyamaMarkdown);
   assert.ok(sugiyamaPage.includes('?edition=mogi'));
 });

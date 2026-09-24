@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { sugiyamaMarkdown } from '../lib/sales-script/sugiyama-seed';
+import { latestSugiyamaMarkdown } from '../lib/sales-script/sugiyama-latest';
 import { sugiyamaPage } from '../lib/sales-script/sugiyama-page';
 
 const context: {SugiyamaReading?: {text: (s: string)=>string; title: (s: string)=>string}} = {};
@@ -16,6 +17,13 @@ test('reading removes author/source noise but keeps all 78 phases and subphases'
   for (const s of ['chatgpt-content-reference', '茂木さん', '今回追加', '今回かなり具体化', 'このV5で変えた重要点', '### メモ', '### 目的', '### 完了条件', 'アプリ補助メモ', '今回の重要修正', '削除禁止']) assert.ok(!cleaned.includes(s), s);
   assert.equal(reading.text(cleaned), cleaned);
   assert.ok(sugiyamaMarkdown.includes(':chatgpt-content-reference{index="0"}'));
+});
+
+test('latest app script keeps 78 phases and the 6A/6B discovery bridge', () => {
+  const latestCleaned = reading.text(latestSugiyamaMarkdown);
+  assert.deepEqual([...latestCleaned.matchAll(/^# (\d+)｜/gm)].map(m=>Number(m[1])), Array.from({length:78}, (_,i)=>i+1));
+  assert.ok(latestCleaned.includes('## 6A｜本ヒアリングへ切り替える許可'));
+  assert.ok(latestCleaned.includes('## 6B｜最初に保存したフックへ戻る'));
 });
 
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
@@ -37,7 +45,7 @@ test('safety conditions and customer-added dialogue are not removed', () => {
 });
 
 test('app loads projection first and removes repeated generic navigation accordion', () => {
-  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=2'));
+  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=4'));
   const js = readFileSync('public/sugiyama.js', 'utf8');
   assert.ok(js.includes('トークを開く'));
   assert.ok(js.includes('clean(SugiyamaReading.text(getPhase().raw))'));
