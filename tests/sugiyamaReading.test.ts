@@ -36,9 +36,11 @@ test('phase 2 treats the required videos as context and the appendix keeps train
 });
 
 test('opening builds quick rapport before returning to the 200-character assignment', () => {
-  assert.ok(latestSugiyamaMarkdown.includes('ちなみに今日は、お仕事はお休みだったんですか？'));
-  assert.ok(latestSugiyamaMarkdown.includes('200文字の課題についても少し聞いていいですか？'));
-  assert.ok(latestSugiyamaMarkdown.includes('さっき【仕事内容】と伺いましたけど'));
+  assert.ok(latestSugiyamaMarkdown.includes('最初の2分だけ、相手固有の話でラポールをつくる'));
+  assert.ok(latestSugiyamaMarkdown.includes('今日はお仕事終わりですか？'));
+  assert.ok(latestSugiyamaMarkdown.includes('私自身もクラウドワークスで案件に応募していた時期がある'));
+  assert.ok(latestSugiyamaMarkdown.includes('200文字の課題、実際に取り組んでみてどうでした？'));
+  assert.ok(!latestSugiyamaMarkdown.includes('今日はそのお話も聞きながら進めさせてください'));
 });
 
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {

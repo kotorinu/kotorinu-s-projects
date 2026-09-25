@@ -19,7 +19,7 @@ test('Script API: isolated edits, fresh read, versions, restore and conflict pro
     assert.equal((await PUT(req('document','PUT',{content:edited,revision:0,note:'手動保存'}))).status,200);
     assert.equal((await(await GET(req('document'))).json()).content,edited);
     assert.equal((await(await GET(req('document','GET',undefined,'mogi'))).json()).content,completeMarkdown);
-    assert.equal(data.size,1);assert.ok(data.has('sales-script:sugiyama:2026-09-25-v4'));
+    assert.equal(data.size,1);assert.ok(data.has('sales-script:sugiyama:2026-09-25-v5'));
     assert.equal((await PUT(req('document','PUT',{content:edited,revision:0}))).status,409);
     const history=await(await GET(req('versions'))).json();assert.equal(history.versions.length,2);
     assert.equal((await POST(req('restore/0','POST',{revision:1}))).status,200);
