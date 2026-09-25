@@ -43,6 +43,21 @@ test('opening builds quick rapport before returning to the 200-character assignm
   assert.ok(!latestSugiyamaMarkdown.includes('今日はそのお話も聞きながら進めさせてください'));
 });
 
+test('issue pattern workbook keeps diagnosis conversational before portfolio advice', () => {
+  for (const text of [
+    '## 21A｜課題別・質問と解説の問題集',
+    '事実を聞く → 本人の見立てを聞く → 課題候補を確認する → 必要な分だけ解説する → 相手へ返す',
+    '### 問題1｜AIを使って書いている',
+    '### 問題5｜応募しても返信が来ない',
+    '### 問題8｜低単価案件から抜けたい・単価を上げたい',
+    '### 問題9｜実績がないからポートフォリオを作れない',
+    '### 問題20｜本人も原因が分からない',
+    'ご自身ではどう感じます？',
+  ]) assert.ok(latestSugiyamaMarkdown.includes(text), text);
+  assert.ok(latestSugiyamaMarkdown.includes('AIを使うこと自体より'));
+  assert.ok(latestSugiyamaMarkdown.includes('ポートフォリオが関係する場合だけ22へ進む'));
+});
+
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
   const body = sugiyamaMarkdown.slice(sugiyamaMarkdown.indexOf('# 1｜'), sugiyamaMarkdown.indexOf('## このV5で変えた重要点'));
   const quotes = [...body.matchAll(/^(?:> )?「[\s\S]*?」/gm)].map(m=>m[0]);
