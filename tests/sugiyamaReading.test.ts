@@ -26,6 +26,15 @@ test('latest app script keeps 78 phases and the 6A/6B discovery bridge', () => {
   assert.ok(latestCleaned.includes('## 6B｜最初に保存したフックへ戻る'));
 });
 
+test('phase 2 treats the required videos as context and the appendix keeps training principles', () => {
+  assert.ok(latestSugiyamaMarkdown.includes('動画の学びが提出文にどうつながったかを聞く'));
+  assert.ok(latestSugiyamaMarkdown.includes('今回書く時に意識したところってありました？'));
+  assert.ok(!latestSugiyamaMarkdown.includes('事前の動画は、3本ともご覧になれましたか？'));
+  for (const text of ['商談前に準備すること', 'ヒアリングで確認する4つ', 'アドバイザーとして提案する', '不安は3種類に分けて聞く']) {
+    assert.ok(latestSugiyamaMarkdown.includes(text), text);
+  }
+});
+
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
   const body = sugiyamaMarkdown.slice(sugiyamaMarkdown.indexOf('# 1｜'), sugiyamaMarkdown.indexOf('## このV5で変えた重要点'));
   const quotes = [...body.matchAll(/^(?:> )?「[\s\S]*?」/gm)].map(m=>m[0]);
