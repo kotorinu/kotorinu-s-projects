@@ -1,4 +1,4 @@
-/* 2026-09-24 master source; navigation notes remain separate from dialogue. */
+/* 2026-09-25 master source; navigation notes remain separate from dialogue. */
 (() => {
   'use strict';
   const $ = s => document.querySelector(s);
@@ -7,9 +7,9 @@
   const source = JSON.parse($('#seed').textContent);
   const key = 'sugiyama-2026-09-24-practice';
   const draftKey = 'sugiyama-2026-09-24-draft';
-  let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false};
+  let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null};
   try { Object.assign(practice, JSON.parse(localStorage.getItem(key) || '{}')); } catch { /* reading still works */ }
-  let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = 'nav', review = false, branchFrom = null, editor = null, speech = null;
+  let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = ['nav','memory','full'].includes(practice.view) ? practice.view : (window.matchMedia('(min-width: 900px)').matches ? 'full' : 'nav'), review = false, branchFrom = null, editor = null, speech = null;
   let phases = [], index = 0;
   const hints = `場の安心を作る|自己紹介と時間確認が済む
 文章経験とAI使用を確認|文章力が主な課題か仮判断できる
@@ -107,10 +107,18 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   }
   function stopSpeech(){if('speechSynthesis' in window)window.speechSynthesis.cancel();speech=null;}
   function go(i){stopSpeech();index=Math.max(0,Math.min(i,phases.length-1));practice.index=index;persist();render();$('#card').scrollIntoView({block:'start'});}
+  function renderFull(){
+    $('#position').textContent='全文：'+phases.length+'フェーズ';$('#goal').textContent='上から順に、1ページで全文を読めます';
+    $('#card').className='full-script';
+    $('#card').innerHTML=phases.map(p=>'<section class="card phase-heading full-phase" id="phase-'+p.id+'"><h2>'+p.id+'｜'+esc(p.title)+'</h2>'+renderMarkdown(p.raw)+'</section>').join('');
+    $('#branches').hidden=true;$('#review').textContent='未暗記だけ復習';
+  }
   function render(){
     const p=getPhase();if(!p){$('#card').innerHTML='<p>番号付きフェーズが見つかりません。全文編集で原文を確認してください。</p>';return;}
+    document.body.classList.toggle('full-mode',mode==='full');
+    $('#navMode').setAttribute('aria-pressed',String(mode==='nav'));$('#memoryMode').setAttribute('aria-pressed',String(mode==='memory'));$('#fullMode').setAttribute('aria-pressed',String(mode==='full'));
+    if(mode==='full'){renderFull();return;}
     const s=summary(p);$('#position').textContent='現在地：'+p.id+' / '+phases.length;$('#goal').textContent='今のゴール：'+s.goal;
-    $('#navMode').setAttribute('aria-pressed',String(mode==='nav'));$('#memoryMode').setAttribute('aria-pressed',String(mode==='memory'));
     $('#card').className='card phase-heading';
     let html='<h2>'+p.id+'｜'+esc(p.title)+'</h2><p><strong>目的：</strong>'+esc(s.goal)+'</p><p><strong>完了：</strong>'+esc(s.done)+'</p>';
     if([6,52,65].includes(p.id))html+='<details><summary>🏄 後半回収フラグ</summary><p>誰と始めた？／どう上達した？／誰かに教わった？／今も一緒に行く？</p><p>「教わって上達した」が実際に出た場合だけ、自信・相談環境の話へ。独学なら決めつけない。</p><button data-jump="52">相談環境の回収へ</button><button data-jump="65">自信の分岐へ</button></details>';
@@ -128,18 +136,19 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   function closeDialog(){if(editor)applyPreview();$('#dialog').close();editor=null;}
   $('#close').onclick=closeDialog;$('#dialog').addEventListener('close',()=>{if(editor)applyPreview();editor=null;});
   $('#dialog').addEventListener('click',e=>{if(e.target===$('#dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}});
-  function jump(id){const target=phases.findIndex(p=>p.id===id);if(target>=0){branchFrom=index;mode='nav';go(target);$('#card [data-script]').open=true;}}
+  function jump(id){const target=phases.findIndex(p=>p.id===id);if(target>=0){branchFrom=index;mode='nav';practice.view='nav';go(target);$('#card [data-script]').open=true;}}
   document.addEventListener('click',e=>{const b=e.target.closest('[data-jump]');if(b)jump(Number(b.dataset.jump));});
   $('#card').addEventListener('change',e=>{if(e.target.dataset.check){practice.checks[e.target.dataset.check]=e.target.checked;persist();}});
   $('#branchButtons').innerHTML=branchTargets.map(([label,id])=>'<button data-jump="'+id+'">'+label+'</button>').join('');
   $('#returnBranch').onclick=()=>{const i=branchFrom;branchFrom=null;go(i);};
   $('#mastered').onchange=e=>{practice.done[getPhase().id]=e.target.checked;persist();$('#progress').textContent=phases.filter(p=>practice.done[p.id]).length+' / '+phases.length+' 暗記済み';};
   $('#memo').oninput=e=>{practice.notes[getPhase().id]=e.target.value;persist();};
-  $('#memoryMode').onclick=()=>{mode='memory';render();};$('#navMode').onclick=()=>{mode='nav';render();};
+  function setMode(next){stopSpeech();mode=next;practice.view=next;persist();render();$('#card').scrollIntoView({block:'start'});}
+  $('#memoryMode').onclick=()=>setMode('memory');$('#navMode').onclick=()=>setMode('nav');$('#fullMode').onclick=()=>setMode('full');
   function move(dir){let n=index+dir;while(review&&n>=0&&n<phases.length&&practice.done[phases[n].id])n+=dir;if(n>=0&&n<phases.length)go(n);else status('この方向に未暗記のフェーズはありません');}
   $('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);
   $('#review').onclick=()=>{review=!review;const n=phases.findIndex(p=>!practice.done[p.id]);if(review&&n<0){review=false;status('全フェーズが暗記済みです');}else if(review)go(n);render();};
-  $('#toc').onclick=()=>{openDialog('フェーズを選ぶ', '<p>全'+phases.length+'フェーズ</p>'+phases.filter(p=>!review||!practice.done[p.id]).map(p=>'<button class="toc-item" data-phase="'+p.id+'">'+(practice.done[p.id]?'✓ ':'')+p.id+'｜'+esc(p.title)+'</button>').join(''));$('#dialogBody').onclick=e=>{const b=e.target.closest('[data-phase]');if(b){closeDialog();go(phases.findIndex(p=>p.id===Number(b.dataset.phase)));}};};
+  $('#toc').onclick=()=>{openDialog('フェーズを選ぶ', '<p>全'+phases.length+'フェーズ</p>'+phases.filter(p=>!review||!practice.done[p.id]).map(p=>'<button class="toc-item" data-phase="'+p.id+'">'+(practice.done[p.id]?'✓ ':'')+p.id+'｜'+esc(p.title)+'</button>').join(''));$('#dialogBody').onclick=e=>{const b=e.target.closest('[data-phase]');if(!b)return;const id=Number(b.dataset.phase);closeDialog();if(mode==='full'){const target=$('#phase-'+id);if(target)target.scrollIntoView({block:'start'});}else go(phases.findIndex(p=>p.id===id));};};
   $('#references').onclick=()=>{openDialog('基準資料', '<p>正本：WorkOS「緒方版｜杉山さんロープレ ラポール重視版」（2026年9月24日）。想定回答より本人の発言を優先し、全質問を順番に読み切りません。</p><div class="notice">浅く聞く → 趣味で会話 → 許可 → フックへ戻って縦掘り<br>目標 → 現状 → 障害 → 認識合わせ → 必要な支援だけ提案</div><h3>価格前の確認</h3><p>内容面の疑問を確認し、本人が役立つ部分を説明できてから総額と正式条件を案内します。収益は保証しません。</p><details><summary>共通の進め方</summary>'+renderMarkdown(md.slice(0,md.indexOf('# 1｜')))+'</details>');};
   async function api(path,options={}){const r=await fetch('/api/riala/script/'+path+'?edition=sugiyama',{...options,signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json'}});const d=await r.json();if(!r.ok){const err=new Error(d.error||'接続できません');err.status=r.status;throw err;}return d;}
   function localDraft(){try{localStorage.setItem(draftKey,JSON.stringify({md,revision,at:new Date().toISOString()}));return true;}catch{return false;}}

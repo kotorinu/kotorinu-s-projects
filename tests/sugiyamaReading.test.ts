@@ -45,8 +45,11 @@ test('safety conditions and customer-added dialogue are not removed', () => {
 });
 
 test('app loads projection first and removes repeated generic navigation accordion', () => {
-  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=4'));
+  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=5'));
   const js = readFileSync('public/sugiyama.js', 'utf8');
+  assert.ok(sugiyamaPage.includes('id="fullMode"'));
+  assert.ok(js.includes("matchMedia('(min-width: 900px)')"));
+  assert.ok(js.includes('function renderFull()'));
   assert.ok(js.includes('トークを開く'));
   assert.ok(js.includes('clean(SugiyamaReading.text(getPhase().raw))'));
   assert.ok(!js.includes('復唱・意味づけ・深掘り・NG・接続'));
