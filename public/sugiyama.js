@@ -1,4 +1,4 @@
-/* 2026-09-25 master source; navigation notes remain separate from dialogue. */
+/* 2026-09-26 master source; navigation notes remain separate from dialogue. */
 (() => {
   'use strict';
   const $ = s => document.querySelector(s);
