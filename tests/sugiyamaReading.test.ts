@@ -48,7 +48,7 @@ test('app loads projection first and removes repeated generic navigation accordi
   assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=5'));
   const js = readFileSync('public/sugiyama.js', 'utf8');
   assert.ok(sugiyamaPage.includes('id="fullMode"'));
-  assert.ok(js.includes("matchMedia('(min-width: 900px)')"));
+  assert.ok(js.includes("matchMedia('(pointer: fine)')"));
   assert.ok(js.includes('function renderFull()'));
   assert.ok(js.includes('トークを開く'));
   assert.ok(js.includes('clean(SugiyamaReading.text(getPhase().raw))'));

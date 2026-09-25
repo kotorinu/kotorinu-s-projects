@@ -9,7 +9,7 @@
   const draftKey = 'sugiyama-2026-09-24-draft';
   let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null};
   try { Object.assign(practice, JSON.parse(localStorage.getItem(key) || '{}')); } catch { /* reading still works */ }
-  let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = ['nav','memory','full'].includes(practice.view) ? practice.view : (window.matchMedia('(min-width: 900px)').matches ? 'full' : 'nav'), review = false, branchFrom = null, editor = null, speech = null;
+  let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = ['nav','memory','full'].includes(practice.view) ? practice.view : (window.matchMedia('(pointer: fine)').matches ? 'full' : 'nav'), review = false, branchFrom = null, editor = null, speech = null;
   let phases = [], index = 0;
   const hints = `場の安心を作る|自己紹介と時間確認が済む
 文章経験とAI使用を確認|文章力が主な課題か仮判断できる
