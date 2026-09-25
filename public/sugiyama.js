@@ -101,7 +101,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   function renderMarkdown(text, memory=false){
     text=SugiyamaReading.text(text).replace(/^# \d+｜[^\n]*\n?/, '');
     let html='',buf=[],speaker='';
-    function flush(){if(!buf.length)return;const body=buf.join('\n').trim();buf=[];if(!body)return;const content=body.split(/\n\s*\n/).map(p=>{const value=p.replace(/^> ?/gm,'');const cls=/^\s*「|→\s*「/.test(value)?'':' class="stage-note"';return '<p'+cls+'>'+inline(value)+'</p>';}).join('');const cls=speaker.includes('杉山')?'client':'mine';
+    function flush(){if(!buf.length)return;const body=buf.join('\n').trim();buf=[];if(!body)return;let inQuote=false;const content=body.split(/\n\s*\n/).map(p=>{const value=p.replace(/^> ?/gm,'');const dialogue=inQuote||/^\s*「|→\s*「/.test(value);for(const char of value){if(char==='「')inQuote=true;else if(char==='」')inQuote=false;}const cls=dialogue?'':' class="stage-note"';return '<p'+cls+'>'+inline(value)+'</p>';}).join('');const cls=speaker.includes('杉山')?'client':'mine';
       if(speaker){html+='<section class="speech '+cls+'"><span class="speaker">'+esc(speaker)+'</span>'+(memory&&cls==='mine'?'<details><summary>タップして緒方のセリフを表示</summary><div class="md">'+content+'</div></details>':'<div class="md">'+content+'</div>')+'</section>';}else html+='<div class="md">'+content+'</div>';}
     for(const line of text.split(/\r?\n/)){const h=line.match(/^(#{1,3}) (.*)$/);if(h){flush();if(/^緒方$|^杉山さん/.test(h[2])){speaker=h[2];}else{speaker='';html+='<h3>'+inline(h[2])+'</h3>';}}else if(line==='---'){flush();speaker='';}else buf.push(line);}flush();return html;
   }
