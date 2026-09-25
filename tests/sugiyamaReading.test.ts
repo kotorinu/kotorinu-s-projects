@@ -35,6 +35,12 @@ test('phase 2 treats the required videos as context and the appendix keeps train
   }
 });
 
+test('opening builds quick rapport before returning to the 200-character assignment', () => {
+  assert.ok(latestSugiyamaMarkdown.includes('ちなみに今日は、お仕事はお休みだったんですか？'));
+  assert.ok(latestSugiyamaMarkdown.includes('200文字の課題についても少し聞いていいですか？'));
+  assert.ok(latestSugiyamaMarkdown.includes('さっき【仕事内容】と伺いましたけど'));
+});
+
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
   const body = sugiyamaMarkdown.slice(sugiyamaMarkdown.indexOf('# 1｜'), sugiyamaMarkdown.indexOf('## このV5で変えた重要点'));
   const quotes = [...body.matchAll(/^(?:> )?「[\s\S]*?」/gm)].map(m=>m[0]);
@@ -54,11 +60,13 @@ test('safety conditions and customer-added dialogue are not removed', () => {
 });
 
 test('app loads projection first and removes repeated generic navigation accordion', () => {
-  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=5'));
+  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=6'));
   const js = readFileSync('public/sugiyama.js', 'utf8');
   assert.ok(sugiyamaPage.includes('id="fullMode"'));
   assert.ok(js.includes("matchMedia('(pointer: fine)')"));
   assert.ok(js.includes('function renderFull()'));
+  assert.ok(sugiyamaPage.includes('id="notesToggle"'));
+  assert.ok(js.includes('class="stage-note"'));
   assert.ok(js.includes('トークを開く'));
   assert.ok(js.includes('clean(SugiyamaReading.text(getPhase().raw))'));
   assert.ok(!js.includes('復唱・意味づけ・深掘り・NG・接続'));

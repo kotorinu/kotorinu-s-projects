@@ -7,7 +7,7 @@
   const source = JSON.parse($('#seed').textContent);
   const key = 'sugiyama-2026-09-24-practice';
   const draftKey = 'sugiyama-2026-09-24-draft';
-  let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null};
+  let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null, showNotes:false};
   try { Object.assign(practice, JSON.parse(localStorage.getItem(key) || '{}')); } catch { /* reading still works */ }
   let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = ['nav','memory','full'].includes(practice.view) ? practice.view : (window.matchMedia('(pointer: fine)').matches ? 'full' : 'nav'), review = false, branchFrom = null, editor = null, speech = null;
   let phases = [], index = 0;
@@ -101,7 +101,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   function renderMarkdown(text, memory=false){
     text=SugiyamaReading.text(text).replace(/^# \d+｜[^\n]*\n?/, '');
     let html='',buf=[],speaker='';
-    function flush(){if(!buf.length)return;const body=buf.join('\n').trim();buf=[];if(!body)return;const content=body.split(/\n\s*\n/).map(p=>'<p>'+inline(p.replace(/^> ?/gm,''))+'</p>').join('');const cls=speaker.includes('杉山')?'client':'mine';
+    function flush(){if(!buf.length)return;const body=buf.join('\n').trim();buf=[];if(!body)return;const content=body.split(/\n\s*\n/).map(p=>{const value=p.replace(/^> ?/gm,'');const cls=/^\s*「|→\s*「/.test(value)?'':' class="stage-note"';return '<p'+cls+'>'+inline(value)+'</p>';}).join('');const cls=speaker.includes('杉山')?'client':'mine';
       if(speaker){html+='<section class="speech '+cls+'"><span class="speaker">'+esc(speaker)+'</span>'+(memory&&cls==='mine'?'<details><summary>タップして緒方のセリフを表示</summary><div class="md">'+content+'</div></details>':'<div class="md">'+content+'</div>')+'</section>';}else html+='<div class="md">'+content+'</div>';}
     for(const line of text.split(/\r?\n/)){const h=line.match(/^(#{1,3}) (.*)$/);if(h){flush();if(/^緒方$|^杉山さん/.test(h[2])){speaker=h[2];}else{speaker='';html+='<h3>'+inline(h[2])+'</h3>';}}else if(line==='---'){flush();speaker='';}else buf.push(line);}flush();return html;
   }
@@ -116,6 +116,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   function render(){
     const p=getPhase();if(!p){$('#card').innerHTML='<p>番号付きフェーズが見つかりません。全文編集で原文を確認してください。</p>';return;}
     document.body.classList.toggle('full-mode',mode==='full');
+    document.body.classList.toggle('show-notes',!!practice.showNotes);$('#notesToggle').setAttribute('aria-pressed',String(!!practice.showNotes));$('#notesToggle').textContent=practice.showNotes?'補足を隠す':'補足を表示';
     $('#navMode').setAttribute('aria-pressed',String(mode==='nav'));$('#memoryMode').setAttribute('aria-pressed',String(mode==='memory'));$('#fullMode').setAttribute('aria-pressed',String(mode==='full'));
     if(mode==='full'){renderFull();return;}
     const s=summary(p);$('#position').textContent='現在地：'+p.id+' / '+phases.length;$('#goal').textContent='今のゴール：'+s.goal;
@@ -145,6 +146,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   $('#memo').oninput=e=>{practice.notes[getPhase().id]=e.target.value;persist();};
   function setMode(next){stopSpeech();mode=next;practice.view=next;persist();render();$('#card').scrollIntoView({block:'start'});}
   $('#memoryMode').onclick=()=>setMode('memory');$('#navMode').onclick=()=>setMode('nav');$('#fullMode').onclick=()=>setMode('full');
+  $('#notesToggle').onclick=()=>{practice.showNotes=!practice.showNotes;persist();render();};
   function move(dir){let n=index+dir;while(review&&n>=0&&n<phases.length&&practice.done[phases[n].id])n+=dir;if(n>=0&&n<phases.length)go(n);else status('この方向に未暗記のフェーズはありません');}
   $('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);
   $('#review').onclick=()=>{review=!review;const n=phases.findIndex(p=>!practice.done[p.id]);if(review&&n<0){review=false;status('全フェーズが暗記済みです');}else if(review)go(n);render();};

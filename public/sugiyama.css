@@ -8,4 +8,6 @@ body.full-mode footer,body.full-mode #branches,body.full-mode #practiceCard,body
 .full-script .full-phase{scroll-margin-top:160px}
 .full-script .full-phase h2{margin-bottom:20px}
 .full-script .speech{margin-bottom:16px}
+.stage-note{display:none;color:var(--muted);font-size:15px;border-left:3px solid var(--line);padding-left:12px}
+body.show-notes .stage-note{display:block}
 @media(max-width:520px){.modes button{font-size:14px;padding-inline:8px}.full-script{gap:12px}}
