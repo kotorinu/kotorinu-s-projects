@@ -7,7 +7,7 @@ export type ScriptState = { version: number; content: string; versions: ScriptVe
 export function initialScript(edition = 'mogi'): ScriptState { return { version: 0, content: edition === 'sugiyama' ? sugiyamaMarkdown : completeMarkdown, versions: [] }; }
 export function scriptStore(edition = 'mogi') {
   const c = redisCredentials();
-  return c ? new RedisJsonStore<ScriptState>(c.url, c.token, edition === 'sugiyama' ? 'sales-script:sugiyama:2026-09-24' : 'sales-script:document:v1', raw => raw ? JSON.parse(raw) as ScriptState : initialScript(edition)) : null;
+  return c ? new RedisJsonStore<ScriptState>(c.url, c.token, edition === 'sugiyama' ? 'sales-script:sugiyama:2026-09-25' : 'sales-script:document:v1', raw => raw ? JSON.parse(raw) as ScriptState : initialScript(edition)) : null;
 }
 export function updateScript(state: ScriptState, content: string, revision: number, note: string) {
   if (state.version !== revision) throw new Error('conflict');
