@@ -8,7 +8,7 @@ markdown = markdown.replace(/^## ([1-9]\d*)｜/gm, '# $1｜');
 const ids = [...markdown.matchAll(/^# (\d+)｜/gm)].map((match) => Number(match[1]));
 const expected = Array.from({ length: 78 }, (_, index) => index + 1);
 if (JSON.stringify(ids) !== JSON.stringify(expected)) throw new Error(`Expected phases 1-78, received: ${ids.join(', ')}`);
-if (!markdown.includes('## 6A｜') || !markdown.includes('## 6B｜')) throw new Error('The 6A/6B bridge is missing');
+if (!markdown.includes('## 6A｜価値観から副業と未来へつなぐ')) throw new Error('The values-to-future bridge is missing');
 
 const banner = '// Generated from the WorkOS 2026-09-24 rapport-first master script.\n// Do not edit this generated file directly.\n';
 writeFileSync(resolve(root, 'lib/sales-script/sugiyama-latest.ts'), `${banner}export const latestSugiyamaMarkdown = ${JSON.stringify(markdown)};\n`, 'utf8');

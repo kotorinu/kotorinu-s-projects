@@ -5,6 +5,13 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const inline = s => esc(s).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   const source = JSON.parse($('#seed').textContent);
+  function displayText(text){
+    const start=text.indexOf('## 21A｜課題別・質問と解説の問題集');
+    if(start<0)return text;
+    const ends=[text.indexOf('\n# 22｜PFへ',start),text.indexOf('\n## 22｜PFへ',start)].filter(x=>x>start);
+    if(!ends.length)return text;
+    return text.slice(0,start)+'## 21A｜課題別問題集は専用ページで使う\n\n40問の分岐は全文台本から分離しています。商談中は「課題別問題集」を開き、相手の言葉から検索します。\n\n'+text.slice(Math.min(...ends));
+  }
   const key = 'sugiyama-2026-09-24-practice';
   const draftKey = 'sugiyama-2026-09-24-draft';
   let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null, showNotes:false};
@@ -151,13 +158,13 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   $('#prev').onclick=()=>move(-1);$('#next').onclick=()=>move(1);
   $('#review').onclick=()=>{review=!review;const n=phases.findIndex(p=>!practice.done[p.id]);if(review&&n<0){review=false;status('全フェーズが暗記済みです');}else if(review)go(n);render();};
   $('#toc').onclick=()=>{openDialog('フェーズを選ぶ', '<p>全'+phases.length+'フェーズ</p>'+phases.filter(p=>!review||!practice.done[p.id]).map(p=>'<button class="toc-item" data-phase="'+p.id+'">'+(practice.done[p.id]?'✓ ':'')+p.id+'｜'+esc(p.title)+'</button>').join(''));$('#dialogBody').onclick=e=>{const b=e.target.closest('[data-phase]');if(!b)return;const id=Number(b.dataset.phase);closeDialog();if(mode==='full'){const target=$('#phase-'+id);if(target)target.scrollIntoView({block:'start'});}else go(phases.findIndex(p=>p.id===id));};};
-  $('#references').onclick=()=>{openDialog('基準資料', '<p>正本：WorkOS「緒方版｜杉山さんロープレ ラポール重視版」（2026年9月24日）。想定回答より本人の発言を優先し、全質問を順番に読み切りません。</p><div class="notice">浅く聞く → 趣味で会話 → 許可 → フックへ戻って縦掘り<br>目標 → 現状 → 障害 → 認識合わせ → 必要な支援だけ提案</div><h3>価格前の確認</h3><p>内容面の疑問を確認し、本人が役立つ部分を説明できてから総額と正式条件を案内します。収益は保証しません。</p><details><summary>共通の進め方</summary>'+renderMarkdown(md.slice(0,md.indexOf('# 1｜')))+'</details>');};
+  $('#references').onclick=()=>{openDialog('基準資料', '<p>正本：WorkOS「緒方版｜杉山さんロープレ ラポール重視版」（2026年9月24日）。想定回答より本人の発言を優先し、全質問を順番に読み切りません。</p><div class="notice">日常・趣味 → 価値観 → 未来 → 1年後 → 直近目標<br>現状 → 障害 → 認識合わせ → 必要な支援だけ提案</div><h3>価格前の確認</h3><p>内容面の疑問を確認し、本人が役立つ部分を説明できてから総額と正式条件を案内します。収益は保証しません。</p><details><summary>共通の進め方</summary>'+renderMarkdown(md.slice(0,md.indexOf('# 1｜')))+'</details>');};
   async function api(path,options={}){const r=await fetch('/api/riala/script/'+path+'?edition=sugiyama',{...options,signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json'}});const d=await r.json();if(!r.ok){const err=new Error(d.error||'接続できません');err.status=r.status;throw err;}return d;}
   function localDraft(){try{localStorage.setItem(draftKey,JSON.stringify({md,revision,at:new Date().toISOString()}));return true;}catch{return false;}}
   async function save(manual=false){if(!dirty||saving)return;if(!canEdit||revision===null){status('未同期：この端末の下書きのみ。接続後にクラウド保存してください');return;}saving=true;const sent=md;status('保存中…');try{const d=await api('document',{method:'PUT',body:JSON.stringify({content:sent,revision,note:manual?'手動保存':'自動保存'})});revision=d.revision;if(md===sent){dirty=false;try{localStorage.removeItem(draftKey);}catch{ /* retain safe state */ }status('クラウド保存済み');}else{localDraft();status('未保存の変更あり');clearTimeout(timer);timer=setTimeout(()=>save(),1200);}}catch(e){if(e.status===409){canEdit=false;status('競合：自動保存を停止しました。書き出してから再読み込みしてください');}else status('未同期：'+e.message+'。下書きを書き出せます');}finally{saving=false;}}
   function changed(value){md=value;dirty=true;const stored=localDraft();status(stored?'未保存・端末に一時保存済み':'未保存：端末保存不可。書き出してください');clearTimeout(timer);timer=setTimeout(()=>save(),1200);}
   function exportMd(){const url=URL.createObjectURL(new Blob([md],{type:'text/markdown;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='緒方版_ラポール重視_2026-09-24.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  function applyPreview(){phases=parse(md);index=Math.min(index,Math.max(0,phases.length-1));render();}
+  function applyPreview(){phases=parse(displayText(md));index=Math.min(index,Math.max(0,phases.length-1));render();}
   $('#tools').onclick=()=>{
     const syncNotice=canEdit
       ? '<div class="notice"><strong>全端末共通</strong><br>クラウド保存すると、PCとスマホで同じ内容を表示します。</div>'
@@ -174,6 +181,6 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});window.addEventListener('pagehide',stopSpeech);
   if('serviceWorker' in navigator)navigator.serviceWorker.register('/sales-script/sw.js').catch(()=>{});
   document.documentElement.style.setProperty('--fs',Math.max(16,Math.min(26,practice.font))+'px');document.body.classList.toggle('dark',!!practice.dark);
-  phases=parse(md);index=Math.min(Math.max(0,Number(practice.index)||0),phases.length-1);render();
+  phases=parse(displayText(md));index=Math.min(Math.max(0,Number(practice.index)||0),phases.length-1);render();
   api('document').then(d=>{revision=d.revision;canEdit=d.canEdit;let draft;try{draft=JSON.parse(localStorage.getItem(draftKey)||'null');}catch{ /* ignore invalid local data */ }if(dirty)return;if(draft&&typeof draft.md==='string'&&draft.md!==d.content){md=draft.md;dirty=true;canEdit=canEdit&&draft.revision===revision;status(canEdit?'未保存：端末下書きを復元しました。保存ボタンで同期できます':'端末に未同期の下書きがあります。書き出してクラウドと照合してください');}else{md=d.content;status(d.persistent?'クラウド読込済み'+(canEdit?'・編集可能':'・編集は端末下書き'):'クラウド未接続・添付正本を表示');}applyPreview();}).catch(()=>{try{const d=JSON.parse(localStorage.getItem(draftKey)||'null');if(d&&typeof d.md==='string'&&!dirty){md=d.md;dirty=true;applyPreview();}}catch{ /* invalid cache */ }status(dirty?'接続失敗：端末の未同期下書きを表示':'オフライン／接続失敗：添付正本を表示しています');});
 })();

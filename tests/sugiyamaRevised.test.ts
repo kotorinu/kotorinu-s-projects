@@ -24,8 +24,8 @@ test('feedback and missing source details are present without assumed surfing du
 
 test('2026-09-24 app source contains every phase and the rapport bridge', () => {
   assert.deepEqual([...latest.matchAll(/^# (\d+)｜/gm)].map(match => Number(match[1])), Array.from({ length: 78 }, (_, index) => index + 1));
-  assert.ok(latest.includes('## 6A｜本ヒアリングへ切り替える許可'));
-  assert.ok(latest.includes('## 6B｜最初に保存したフックへ戻る'));
+  assert.ok(latest.includes('## 6A｜価値観から副業と未来へつなぐ'));
+  assert.ok(!latest.includes('## 6B｜'));
   assert.ok(latest.includes('浅く聞く→趣味で会話→許可→フックへ戻って縦掘り'));
   assert.ok(latest.includes('一旦、金額の話は置いて、内容について伺ってもいいですか？'));
   assert.ok(latest.includes('**79,800円**'));

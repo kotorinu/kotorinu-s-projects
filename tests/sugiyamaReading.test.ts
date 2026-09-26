@@ -20,11 +20,12 @@ test('reading removes author/source noise but keeps all 78 phases and subphases'
   assert.ok(sugiyamaMarkdown.includes(':chatgpt-content-reference{index="0"}'));
 });
 
-test('latest app script keeps 78 phases and the 6A/6B discovery bridge', () => {
+test('latest app script keeps 78 phases and a single values-to-future bridge', () => {
   const latestCleaned = reading.text(latestSugiyamaMarkdown);
   assert.deepEqual([...latestCleaned.matchAll(/^# (\d+)｜/gm)].map(m=>Number(m[1])), Array.from({length:78}, (_,i)=>i+1));
-  assert.ok(latestCleaned.includes('## 6A｜本ヒアリングへ切り替える許可'));
-  assert.ok(latestCleaned.includes('## 6B｜最初に保存したフックへ戻る'));
+  assert.ok(latestCleaned.includes('## 6A｜価値観から副業と未来へつなぐ'));
+  assert.ok(!latestCleaned.includes('## 6B｜'));
+  assert.ok(latestCleaned.includes('周りの人がまだやっていないことに挑戦されている時点で'));
 });
 
 test('phase 2 treats the required videos as context and the appendix keeps training principles', () => {
