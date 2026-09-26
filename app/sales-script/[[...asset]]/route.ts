@@ -1,9 +1,11 @@
 import { page } from "../../../lib/sales-script/page";
 import { sugiyamaPage } from "../../../lib/sales-script/sugiyama-page";
+import { questionBankPage } from "../../../lib/sales-script/question-bank-page";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const path = new URL(request.url).pathname;
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+  if (/\/sales-script\/questions\/?$/.test(path)) return new Response(questionBankPage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
   if (/\/sales-script\/?$/.test(path)) {
     const mogi = new URL(request.url).searchParams.get('edition') === 'mogi';
     const legacy = page.replace('<div class="app">', '<div class="app"><nav style="padding:16px;background:white"><a href="/sales-script">← ラポール重視版 2026-09-24</a> ／ 茂木さん版</nav>').replace('</body>', '<script src="/script-speech.js" defer></script></body>');

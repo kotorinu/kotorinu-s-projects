@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import { sugiyamaMarkdown } from '../lib/sales-script/sugiyama-seed';
 import { latestSugiyamaMarkdown } from '../lib/sales-script/sugiyama-latest';
 import { sugiyamaPage } from '../lib/sales-script/sugiyama-page';
+import { questionBankPage } from '../lib/sales-script/question-bank-page';
 
 const context: {SugiyamaReading?: {text: (s: string)=>string; title: (s: string)=>string}} = {};
 runInNewContext(readFileSync('public/sugiyama-reading.js', 'utf8'), context);
@@ -56,6 +57,14 @@ test('issue pattern workbook keeps diagnosis conversational before portfolio adv
   ]) assert.ok(latestSugiyamaMarkdown.includes(text), text);
   assert.ok(latestSugiyamaMarkdown.includes('AIを使うこと自体より'));
   assert.ok(latestSugiyamaMarkdown.includes('ポートフォリオが関係する場合だけ22へ進む'));
+});
+
+test('question bank has a dedicated searchable page linked from the full script', () => {
+  assert.ok(sugiyamaPage.includes('/sales-script/questions'));
+  assert.ok(questionBankPage.includes('課題別・ポートフォリオ説明問題集'));
+  assert.ok(questionBankPage.includes('AIを使って書いている'));
+  assert.ok(questionBankPage.includes('実績がないからポートフォリオを作れない'));
+  assert.ok(questionBankPage.includes('id="search"'));
 });
 
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
