@@ -23,8 +23,11 @@ test('Mogi remains default for existing API clients; Sugiyama is isolated', () =
   assert.throws(()=>updateScript(state,'古い版からの保存テスト',0,'自動保存'),/conflict/);
   assert.equal(initialScript().content,completeMarkdown);
 });
-test('Embedded JSON recovers the exact source without HTML interpolation', () => {
+test('Embedded JSON keeps the flow while moving the long question bank to its own page', () => {
   const json=sugiyamaPage.match(/<script type="application\/json" id="seed">([\s\S]*?)<\/script>/)![1];
-  assert.equal(JSON.parse(json),latestSugiyamaMarkdown);
+  const displayed=JSON.parse(json);
+  assert.ok(displayed.includes('## 21A｜課題別問題集は専用ページで使う'));
+  assert.ok(!displayed.includes('### 問題40｜'));
+  assert.deepEqual([...displayed.matchAll(/^# (\d+)｜/gm)].map((m:RegExpMatchArray)=>Number(m[1])),Array.from({length:78},(_,i)=>i+1));
   assert.ok(sugiyamaPage.includes('?edition=mogi'));
 });
