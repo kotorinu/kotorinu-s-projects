@@ -8,7 +8,7 @@
   function displayText(text){
     const start=text.indexOf('## 21A｜課題別・質問と解説の問題集');
     if(start<0)return text;
-    const ends=[text.indexOf('\n# 22｜PFへ',start),text.indexOf('\n## 22｜PFへ',start)].filter(x=>x>start);
+    const ends=[text.indexOf('\n# 22｜',start),text.indexOf('\n## 22｜',start)].filter(x=>x>start);
     if(!ends.length)return text;
     return text.slice(0,start)+'## 21A｜課題別問題集は専用ページで使う\n\n40問の分岐は全文台本から分離しています。商談中は「課題別問題集」を開き、相手の言葉から検索します。\n\n'+text.slice(Math.min(...ends));
   }
@@ -16,19 +16,25 @@
   const draftKey = 'sugiyama-2026-09-24-draft';
   let practice = {done:{}, checks:{}, notes:{}, index:0, font:18, dark:false, view:null, showNotes:false};
   try { Object.assign(practice, JSON.parse(localStorage.getItem(key) || '{}')); } catch { /* reading still works */ }
+  if(practice.layout!=='future-first-v1'){
+    try{localStorage.setItem(key+'-before-future-first',JSON.stringify(practice));}catch{/* original storage is retained */}
+    const moved={3:9,4:10,5:3,6:4,7:5,8:6,9:7,10:8};
+    practice.notes=Object.fromEntries(Object.entries(practice.notes).map(([id,note])=>[moved[id]||id,note]));
+    practice.done={};practice.checks={};practice.index=0;practice.layout='future-first-v1';
+  }
   let md = source, revision = null, canEdit = false, dirty = false, saving = false, timer, mode = ['nav','memory','full'].includes(practice.view) ? practice.view : (window.matchMedia('(pointer: fine)').matches ? 'full' : 'nav'), review = false, branchFrom = null, editor = null, speech = null;
   let phases = [], index = 0;
   const hints = `場の安心を作る|自己紹介と時間確認が済む
-文章経験とAI使用を確認|文章力が主な課題か仮判断できる
-副業の動機を聞く|収入の柱を持ちたい理由を本人に確認
-副業選びの条件を知る|本業との両立と継続の条件を確認
-本業の働き方を知る|仕事内容と勤務時間が分かる
-守りたい生活と上達経験を聞く|趣味の価値と教わった経験を確認
-理想の収入を聞く|本人の目標額が分かる
-目標額の理由を聞く|今と将来に使う意味を本人に確認
-未来の感情を具体化|本人の言葉で気持ちが出る
-目指す時期を聞く|期間とその理由を確認
-理想の未来をすり合わせ|まとめへの本人の同意が取れる
+課題への工夫を聞く|具体的なフィードバックを返せる
+本業から本人を知る|仕事内容と本人の考え方が分かる
+休日や趣味を広げる|本人が大切にする価値観を聞ける
+未来を情景にする|本人が望む生活を具体的に話せる
+未来の感情と意味を聞く|その未来が大切な理由が分かる
+1年後を具体化する|本人の中期目標が分かる
+直近の一歩を決める|1〜2か月の目標と意味を確認できる
+未来と副業の理由をつなぐ|こちらの解釈が合っているか確認できる
+ライティングを選んだ理由を聞く|本人が手段を選ぶ条件が分かる
+未来と手段をすり合わせる|本人が訂正・補足できる
 応募と獲得の現在地を知る|開始時期・応募・返信・獲得状況を確認
 相談者の傾向を共有|質問だけの流れを止め共通課題を伝える
 使える時間を確かめる|週の稼働時間を本人に確認
@@ -39,10 +45,10 @@
 すでに持つ強みを確認|目標・時間・行動・書く力を確認
 必要なものを2段階に分ける|取るための2つと継続の2つを伝える
 2＋2の理解を確認|見せるもの・実績／進め方・環境を整理
-PFの有無を確認|今持っているか分かる
-北本動画を回収|動画の記憶とPFのイメージを確認
-PFを履歴書として説明|企業に自分を見せる役割を伝える
-PFを早めに作る意義を伝える|原文の約8倍を資料上の説明として伝える
+企業が判断する材料を考える|必要な情報を本人も挙げられる
+PFのイメージを確認|分からない部分が分かる
+PFの役割を短く説明|経歴・強み・記事が判断材料になると共有できる
+必要性を本人と確認|必要と感じた部分や疑問を聞ける
 発注者側の見方を伝える|PFで判断しやすくなる理由を伝える
 作り方の疑問を共有|北本PFを見る同意を取る
 PFの第一印象を聞く|画面が見え感想を聞ける
@@ -96,7 +102,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
 決済手続きを案内|本人がリンクを開けるか確認
 決済確認とSlack案内|実際の決済確認後に案内
 未来を回収して締める|最初の行動と相談先を再確認`.split('\n').map(x => x.split('|'));
-  const checkpoints = {23:['北本動画を回収した'],24:['PF＝履歴書を説明した'],25:['資料上の約8倍を伝えた'],26:['NEXBOの何百件の発注者視点を伝えた'],38:['「作ったことあります？」を聞いた'],40:['外注相場を見せた'],44:['2回修正を伝えた'],45:['編集権限を伝えた'],46:['案件保証3件を伝えた'],47:['3案件すべてFBを伝えた','良い点の言語化を伝えた','問題＋解決策を伝えた','具体的リライト例を伝えた'],51:['Slackの相談相手を伝えた'],53:['基礎動画を伝えた'],54:['アフター面談を伝えた'],55:['返金保証条件を省略せず伝えた'],57:['実績者3名と結果保証ではない旨を伝えた']};
+  const checkpoints = {23:['本人のイメージを確認した'],24:['PFの役割を本人の課題につなげた'],25:['必要と感じた部分と疑問を聞いた'],26:['判断材料の見せ方を確認した'],35:['本人の必要性と作りたい意向を聞いた'],38:['制作経験を確認した'],40:['確認できる比較条件だけ伝えた'],42:['有料提案の許可を取った'],44:['正式な修正条件を伝えた'],45:['編集権限を伝えた'],46:['案件提供条件を伝えた'],47:['FBの内容と本人の悩みをつなげた'],51:['相談先と相談できる期間を伝えた'],53:['基礎動画を伝えた'],54:['アフター面談の条件を伝えた'],55:['正式な保証条件を省略せず伝えた'],57:['本人に関係する確認済み事例だけ使った']};
   const branchTargets = [['高い',62],['考えたい',67],['お金がない',64],['自分にできるか不安',71],['家族に相談',69],['時間がない',70]];
   function status(s){$('#status').textContent=s;const e=$('#editStatus');if(e)e.textContent=s;}
   function persist(){try{localStorage.setItem(key,JSON.stringify(practice));}catch{status('このブラウザにはチェックを保存できません');}}
@@ -129,7 +135,7 @@ FBの中身を具体化|全3件・良い点・問題と解決策・リライト�
     const s=summary(p);$('#position').textContent='現在地：'+p.id+' / '+phases.length;$('#goal').textContent='今のゴール：'+s.goal;
     $('#card').className='card phase-heading';
     let html='<h2>'+p.id+'｜'+esc(p.title)+'</h2><p><strong>目的：</strong>'+esc(s.goal)+'</p><p><strong>完了：</strong>'+esc(s.done)+'</p>';
-    if([6,52,65].includes(p.id))html+='<details><summary>🏄 後半回収フラグ</summary><p>誰と始めた？／どう上達した？／誰かに教わった？／今も一緒に行く？</p><p>「教わって上達した」が実際に出た場合だけ、自信・相談環境の話へ。独学なら決めつけない。</p><button data-jump="52">相談環境の回収へ</button><button data-jump="65">自信の分岐へ</button></details>';
+    if([4,52,65].includes(p.id))html+='<details><summary>🏄 後半回収フラグ</summary><p>誰と始めた？／どう上達した？／誰かに教わった？／今も一緒に行く？</p><p>「教わって上達した」が実際に出た場合だけ、自信・相談環境の話へ。独学なら決めつけない。</p><button data-jump="52">相談環境の回収へ</button><button data-jump="65">自信の分岐へ</button></details>';
     if(p.id>=60&&p.id<=66)html+='<div class="notice"><strong class="price">79,800円</strong><br>24分割：約3,500円〜（手数料等は決済時確認）<br>資料上の比較：個人デザイナー 約15万円／デザイン会社 約20万円</div>';
     if(p.id===66)html+='<p class="notice">承認状況は未確認。原文の値引き例は正式価格ではありません。4,980円を有効な提案・決済価格としては使用しません。</p>';
     html+='<details data-script '+(mode==='memory'?'open':'')+'><summary>トークを開く</summary>'+renderMarkdown(p.raw,mode==='memory')+'</details>';

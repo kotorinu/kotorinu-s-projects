@@ -23,9 +23,9 @@ test('reading removes author/source noise but keeps all 78 phases and subphases'
 test('latest app script keeps 78 phases and a single values-to-future bridge', () => {
   const latestCleaned = reading.text(latestSugiyamaMarkdown);
   assert.deepEqual([...latestCleaned.matchAll(/^# (\d+)｜/gm)].map(m=>Number(m[1])), Array.from({length:78}, (_,i)=>i+1));
-  assert.ok(latestCleaned.includes('## 6A｜価値観から副業と未来へつなぐ'));
+  assert.ok(latestCleaned.includes('# 9｜未来と副業を本人の言葉でつなぐ'));
   assert.ok(!latestCleaned.includes('## 6B｜'));
-  assert.ok(latestCleaned.includes('周りの人がまだやっていないことに挑戦されている時点で'));
+  assert.ok(latestCleaned.includes('実際に一歩踏み出されているのが素敵'));
 });
 
 test('phase 2 treats the required videos as context and the appendix keeps training principles', () => {
@@ -70,6 +70,14 @@ test('question bank has a dedicated searchable page linked from the full script'
   assert.ok(questionBankPage.includes('id="search"'));
 });
 
+test('portfolio need is confirmed in the customer own words before showing the example', () => {
+  const need = latestSugiyamaMarkdown.indexOf('ポートフォリオと実績がちゃんと揃ったら、今より案件獲得って進みそうですか？');
+  const change = latestSugiyamaMarkdown.indexOf('どういうところが変わりそうです？');
+  const show = latestSugiyamaMarkdown.indexOf('実際にどういうものなのか、サクッと見てみましょうか？');
+  assert.ok(need > 0 && need < change && change < show);
+  assert.ok(latestSugiyamaMarkdown.includes('具体的な内容をご紹介してもよろしいですか？'));
+});
+
 test('all dialogue quotes survive verbatim, excluding three non-dialogue annotations', () => {
   const body = sugiyamaMarkdown.slice(sugiyamaMarkdown.indexOf('# 1｜'), sugiyamaMarkdown.indexOf('## このV5で変えた重要点'));
   const quotes = [...body.matchAll(/^(?:> )?「[\s\S]*?」/gm)].map(m=>m[0]);
@@ -89,7 +97,7 @@ test('safety conditions and customer-added dialogue are not removed', () => {
 });
 
 test('app loads projection first and removes repeated generic navigation accordion', () => {
-  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=7'));
+  assert.ok(sugiyamaPage.indexOf('/sugiyama-reading.js?v=2') < sugiyamaPage.indexOf('/sugiyama.js?v=8'));
   const js = readFileSync('public/sugiyama.js', 'utf8');
   assert.ok(sugiyamaPage.includes('id="fullMode"'));
   assert.ok(js.includes("matchMedia('(pointer: fine)')"));
