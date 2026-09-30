@@ -3,7 +3,9 @@ import { useState } from "react";
 import { useWork } from "@/lib/work/client";
 import type { Goal, Task } from "@/lib/types";
 import StudioDialog from "./StudioDialog";
-export default function StudioEditor({ kind, task, goal, onClose }: { kind: "task" | "goal" | "login"; task?: Task; goal?: Goal; onClose: () => void }) {
+/** 新規作成のときの初期値（目標からタスクを洗い出す・次の目標を作るとき）。 */
+export interface EditorPreset { title?: string; description?: string; criteria?: string; date?: string; parent?: string; horizon?: string }
+export default function StudioEditor({ kind, task, goal, preset, onClose }: { kind: "task" | "goal" | "login"; task?: Task; goal?: Goal; preset?: EditorPreset; onClose: () => void }) {
   const work = useWork(); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const title = kind === "login" ? "ワークスペースに接続" : kind === "task" ? task ? "タスクを編集" : "タスクを追加" : goal ? "目標を編集" : "目標を追加";
   return <StudioDialog title={title} onClose={onClose}><form className="studio-form" onSubmit={async e => {
@@ -24,13 +26,13 @@ export default function StudioEditor({ kind, task, goal, onClose }: { kind: "tas
     } catch(err) {setError(err instanceof Error ? err.message : "保存できませんでした。");} finally {setBusy(false);}
   }}>
     {kind === "login" ? <><p className="text-sm leading-7 text-slate-600">保存した目標とタスクを読み込みます。</p><label>操作キー<input name="secret" type="password" autoComplete="current-password" required /></label></> : <>
-      <label>{kind === "task" ? "やること" : "目標"}<input name="title" defaultValue={task?.title ?? goal?.title} required maxLength={200} placeholder={kind === "task" ? "具体的な行動をひとつ" : "どうなっていたい？"} /></label>
-      <label>{kind === "task" ? "作業の説明" : "達成したい状態"}<textarea name="description" rows={3} defaultValue={task?.description ?? goal?.desiredState} required={kind === "goal"} /></label>
-      <label>{kind === "task" ? "完了条件" : "達成基準"}<textarea name="criteria" rows={3} defaultValue={task?.definitionOfDone.join("\n") ?? goal?.achievementCriteria} required placeholder="何ができたら終わりか" /></label>
-      <label>{kind === "task" ? "期限" : "目標日"}<input name="date" type="date" defaultValue={task?.deadline ?? goal?.targetDate ?? ""} /><span className="text-[14px] font-normal text-slate-500">決まっていなければ空欄で大丈夫です。</span></label>
+      <label>{kind === "task" ? "やること" : "目標"}<input name="title" defaultValue={task?.title ?? goal?.title ?? preset?.title} required maxLength={200} placeholder={kind === "task" ? "具体的な行動をひとつ" : "どうなっていたい？"} /></label>
+      <label>{kind === "task" ? "作業の説明" : "達成したい状態"}<textarea name="description" rows={3} defaultValue={task?.description ?? goal?.desiredState ?? preset?.description} required={kind === "goal"} /></label>
+      <label>{kind === "task" ? "完了条件" : "達成基準"}<textarea name="criteria" rows={3} defaultValue={task?.definitionOfDone.join("\n") ?? goal?.achievementCriteria ?? preset?.criteria} required placeholder="何ができたら終わりか" /></label>
+      <label>{kind === "task" ? "期限" : "目標日"}<input name="date" type="date" defaultValue={task?.deadline ?? goal?.targetDate ?? preset?.date ?? ""} /><span className="text-[14px] font-normal text-slate-500">決まっていなければ空欄で大丈夫です。</span></label>
       {kind === "task" && !task && <div className="grid grid-cols-2 gap-3"><label>領域<select name="area">{["営業代行","RIALA","GENESIS","その他"].map(a=><option key={a}>{a}</option>)}</select></label><label>担当<select name="owner"><option value="HUMAN">自分</option><option value="AI_DRAFT">AIで下書き</option><option value="AI_EXECUTE">AIで実行</option><option value="HYBRID">AIと自分</option><option value="DECISION">自分が判断</option></select></label></div>}
-      {kind === "goal" && !goal && <label>期間<select name="horizon">{[{v:"1M",l:"1か月"},{v:"3M",l:"3か月"},{v:"6M",l:"半年"},{v:"1Y",l:"1年"},{v:"3Y",l:"3年"},{v:"5Y",l:"5年"},{v:"PHILOSOPHY",l:"人生の目的・価値観"},{v:"AREA",l:"仕事の目標"}].map(x=><option key={x.v} value={x.v}>{x.l}</option>)}</select></label>}
-      {(kind === "task" || !goal) && <label>{kind === "task" ? "つながる目標" : "親の目標"}<select name="parent" defaultValue={task?.goalId ?? ""}><option value="">未設定</option>{work.goals.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
+      {kind === "goal" && !goal && <label>期間<select name="horizon" defaultValue={preset?.horizon}>{[{v:"1M",l:"1か月"},{v:"3M",l:"3か月"},{v:"6M",l:"半年"},{v:"1Y",l:"1年"},{v:"3Y",l:"3年"},{v:"5Y",l:"5年"},{v:"PHILOSOPHY",l:"人生の目的・価値観"},{v:"AREA",l:"仕事の目標"}].map(x=><option key={x.v} value={x.v}>{x.l}</option>)}</select></label>}
+      {(kind === "task" || !goal) && <label>{kind === "task" ? "つながる目標" : "親の目標"}<select name="parent" defaultValue={task?.goalId ?? preset?.parent ?? ""}><option value="">未設定</option>{work.goals.map(g=><option key={g.id} value={g.id}>{g.title}</option>)}</select></label>}
       {(task || goal) && <label>状態<select name="status" defaultValue={task?.status ?? goal?.status}>{(task ? ["未着手","進行中","待ち","完了","Archive"] : ["進行中","達成","一時停止","未達成"]).map(s=><option key={s}>{s}</option>)}</select></label>}
     </>}
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}

@@ -49,19 +49,21 @@ export function createTask(input: Record<string, unknown>, id: string, now: stri
   if (estimate !== null && (typeof estimate !== "number" || !Number.isInteger(estimate) || estimate < 1 || estimate > 1440)) throw new WorkInputError("所要時間を確認してください");
   const dod = Array.isArray(input.definitionOfDone) ? input.definitionOfDone.map(x => text(x, 500)) : [];
   if (dod.length > 20) throw new WorkInputError("完了条件が多すぎます");
+  // Calendarの予定から作ったタスクは、元の予定IDを持つ（同じ予定を二重に取り込まないため）。
+  const calendarEventId = typeof input.calendarEventId === "string" && input.calendarEventId ? text(input.calendarEventId, 300) : null;
   return { id, title, area: area as Task["area"], description: typeof input.description === "string" ? text(input.description, 6000) : "",
-    why: "", deadline: ymd(input.deadline), workDate: null, estimateMinutes: estimate as number | null,
+    why: "", deadline: ymd(input.deadline), workDate: ymd(input.workDate), estimateMinutes: estimate as number | null,
     actualMinutes: null, startedAt: null, completedAt: null, importance: "中", urgency: "中",
     aiCapability: aiCapability as Task["aiCapability"], aiStatus: aiCapability === "HUMAN" ? null : "未着手", blockedOn: null,
     status: "未着手", definitionOfDone: dod, steps: [], overrunReason: null, nextImprovement: null,
     goalId: typeof input.goalId === "string" ? input.goalId : null, outcomeId: null, outputType: null, outputDestination: null,
     deliveryChannel: null, deliveryStatus: null, automationCandidate: false, automationType: null,
     linkedSalesMaster: false, parentOperationId: null, workflowId: null, requiredInputs: [], notes: null,
-    preparationForTaskId: null, recommendedTiming: null, contextTags: [], varianceMinutes: null, estimateGroupId: null,
+    preparationForTaskId: null, recommendedTiming: null, contextTags: calendarEventId ? [`calendar:${calendarEventId}`] : [], varianceMinutes: null, estimateGroupId: null,
     variancePercent: null, varianceReason: null, nextEstimateMinutes: null, workContext: null,
     seriesId: null, seriesTitle: null, sequenceNumber: null, totalSteps: null, totalPages: null, pageFrom: null,
     pageTo: null, currentPage: null, requiredEnvironment: null, activityType: null, lifecycle: "BACKLOG",
-    lifecycleReason: "実行日時は未設定", replacedByTaskId: null, whyBreakdown: null, sourceLinks: [], blockedOnInfo: null,
+    lifecycleReason: calendarEventId ? "Google Calendarの予定から作成" : "実行日時は未設定", replacedByTaskId: null, whyBreakdown: null, sourceLinks: [], blockedOnInfo: null,
     source: "USER", createdAt: now, updatedAt: now };
 }
 
@@ -80,6 +82,8 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
   if (command === "initialize") { /* Seed only existing approved data. */ }
   else if (command === "createTask") {
     const task = createTask(body, id, now);
+    const tag = task.contextTags.find(t => t.startsWith("calendar:"));
+    if (tag && l.tasks.some(t => t.contextTags?.includes(tag))) throw new WorkConflict("この予定はすでにタスクになっています");
     if (task.goalId && !l.goals.some(g => g.id === task.goalId)) throw new WorkInputError("Goalがありません");
     l.tasks.push(task);
     if (["AI_EXECUTE", "AI_DRAFT", "HYBRID", "DECISION"].includes(task.aiCapability)) {
@@ -129,6 +133,34 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
       goal.status = body.status as Goal["status"];
     }
     goal.updatedAt = now;
+  } else if (command === "createTasks") {
+    // Calendarの予定などから複数のタスクを1回で作る (2026-10-01)。全件作るか、1件も作らない。
+    if (!Array.isArray(body.tasks) || body.tasks.length === 0 || body.tasks.length > 30) throw new WorkInputError("作るタスクを1〜30件選んでください");
+    const created: Task[] = [];
+    (body.tasks as unknown[]).forEach((input, i) => {
+      if (!input || typeof input !== "object" || Array.isArray(input)) throw new WorkInputError("タスクの形式を確認してください");
+      const t = createTask(input as Record<string, unknown>, `${id}:${i}`, now);
+      if (t.goalId && !l.goals.some(g => g.id === t.goalId)) throw new WorkInputError("Goalがありません");
+      const tag = t.contextTags.find(x => x.startsWith("calendar:"));
+      if (tag && [...l.tasks, ...created].some(x => x.contextTags?.includes(tag))) throw new WorkConflict("この予定はすでにタスクになっています");
+      created.push(t);
+    });
+    l.tasks.push(...created);
+    l.audit.push({ at: now, operation: "createTasks", id: String(created.length) });
+  } else if (command === "completeTasks") {
+    // まとめて完了 (2026-10-01, 本人の依頼)。本人の申告で「完了」にする。
+    // 選んだ全件が未完了のときだけ実行し、1件でも状態が変わっていれば止める。
+    // AIの成果物確認が済んでいないタスクは、ここでは完了にしない（個別に確認する）。
+    if (!Array.isArray(body.ids) || body.ids.length === 0 || body.ids.length > 500 || !body.ids.every(x => typeof x === "string")) throw new WorkInputError("完了にするタスクを選んでください");
+    const ids = [...new Set(body.ids as string[])];
+    const targets = ids.map(tid => l.tasks.find(t => t.id === tid));
+    if (targets.some(t => !t || ["完了", "Archive"].includes(t.status) || !["ACTIVE", "BACKLOG"].includes(t.lifecycle))) throw new WorkConflict("タスクの状態が変わりました。再読み込みしてからもう一度選んでください");
+    for (const t of targets as Task[]) {
+      const latestRun = l.runs.filter(r => r.taskId === t.id).at(-1);
+      if (latestRun && latestRun.status !== "ACCEPTED") throw new WorkInputError(`「${t.title}」はAIの成果物確認が必要です`);
+    }
+    for (const t of targets as Task[]) { t.status = "完了"; t.completedAt = now; t.notes = [t.notes, `${now.slice(0, 10)} 本人の申告でまとめて完了`].filter(Boolean).join("\n"); t.updatedAt = now; }
+    l.audit.push({ at: now, operation: "completeTasks", id: String(targets.length) });
   } else if (command === "archiveOpenTasks") {
     // 一括整理 (2026-09-30, 本人の依頼)。削除ではなくアーカイブ: 一覧から外れるが、
     // 履歴・実績・AIの成果物は残り、1件ずつ戻せる。画面で見た件数と一致しない

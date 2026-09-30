@@ -13,6 +13,7 @@ import {
 } from "@/lib/goalReview";
 import type { Goal } from "@/lib/types";
 import ConnectPrompt from "./ConnectPrompt";
+import StudioEditor from "./StudioEditor";
 
 // 目標の期限の振り返り。達成基準を1行ずつ判定し、事実と理由を残す。
 // 判定するのは本人。「達成」に事実が無ければ知らせる（根拠の無い達成を作らない）。
@@ -25,13 +26,20 @@ const TONE: Record<CriterionResult, string> = {
 };
 const field = "w-full rounded-xl border border-[#e4dfeb] p-3 text-sm leading-7";
 
+/** 同じ日付の翌月（10/1 → 11/1）。月末は翌月末に丸める。 */
+function nextMonth(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m, Math.min(d, last))).toISOString().slice(0, 10);
+}
 function md(date: string | null) { return date ? Number(date.slice(5, 7)) + "/" + Number(date.slice(8, 10)) : "期限なし"; }
 
 export default function GoalReviewCard({ goal }: { goal: Goal }) {
   const work = useWork(); const store = useTodayExecution();
   const saved = store.goalReviews[goal.id];
   const [draft, setDraft] = useState<GoalReview>(() => startGoalReview(goal, saved, new Date().toISOString()));
-  const [statusMsg, setStatusMsg] = useState("");
+  const [statusMsg, setStatusMsg] = useState(""); const [nextGoal, setNextGoal] = useState(false);
+  const nextDate = goal.targetDate ? nextMonth(goal.targetDate) : undefined;
   const dirty = JSON.stringify({ ...draft, savedAt: "" }) !== JSON.stringify({ ...startGoalReview(goal, saved, ""), savedAt: "" });
   const sum = summarizeGoalReview(draft);
   const suggestion = suggestedGoalStatus(sum);
@@ -85,5 +93,10 @@ export default function GoalReviewCard({ goal }: { goal: Goal }) {
       </div>
     </div>}
     {statusMsg && <p role="status" className="mt-3 text-sm leading-7 text-[#4c405f]">{statusMsg}</p>}
+    {saved && !dirty && work.connected && goal.horizon === "1M" && <div className="mt-5 border-t border-[#eeeaf3] pt-4">
+      <p className="mb-3 text-sm leading-7">振り返りをもとに、次の1か月（〜{md(nextDate ?? null)}）の目標を作ります。「次の1か月で変えること」が下書きに入ります。</p>
+      <button type="button" className="studio-primary" onClick={() => setNextGoal(true)}>次の1か月の目標を作る</button>
+    </div>}
+    {nextGoal && <StudioEditor kind="goal" preset={{ title: `1か月後（${md(nextDate ?? null)}）`, description: draft.next, date: nextDate, parent: goal.parentId ?? "", horizon: goal.horizon }} onClose={() => setNextGoal(false)} />}
   </section>;
 }
