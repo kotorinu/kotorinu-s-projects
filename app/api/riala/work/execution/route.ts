@@ -1,4 +1,4 @@
-import { deviceAuthenticated } from '../../../../../lib/server/deviceSession';
+import { deviceAuthenticated, withRenewedDevice } from '../../../../../lib/server/deviceSession';
 import { authenticated, sameOrigin } from "../../../../../lib/riala-planner/security";
 import { redisCredentials } from "../../../../../lib/server/redisClient";
 import { RedisJsonStore } from "../../../../../lib/server/redisJsonStore";
@@ -9,7 +9,7 @@ const json = (value: unknown, status = 200) => Response.json(value, { status, he
 function store() { const c = redisCredentials(); return c ? new RedisJsonStore(c.url, c.token, "work:execution:v1", decodeExecution) : null; }
 export async function GET(request: Request) {
   if (!authenticated(request) && !deviceAuthenticated(request)) return json({ error: "認証が必要です" }, 401);
-  try { const s = store(); return s ? json(await s.read()) : json({ error: "中央保存先が未設定です" }, 503); }
+  try { const s = store(); return s ? withRenewedDevice(request, json(await s.read())) : json({ error: "中央保存先が未設定です" }, 503); }
   catch { return json({ error: "実績を取得できません" }, 503); }
 }
 export async function POST(request: Request) {

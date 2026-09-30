@@ -42,3 +42,30 @@ test("Work API: separate external and Worker credentials; CAS writes survive sep
     Object.assign(process.env, before);
   }
 });
+
+test("Work API: 本人の端末は開くたびに延長、外部AIのBearerでは延長しない (2026-09-30)", async () => {
+  const before = { ...process.env }; const originalFetch = globalThis.fetch;
+  const secret = "s".repeat(48);
+  Object.assign(process.env, { VERCEL: "1", RIALA_APP_ORIGIN: origin, RIALA_OPERATOR_SECRET: secret, WORK_OS_API_SECRET: "a".repeat(64),
+    RIALA_REDIS_REST_URL: "https://redis.example.test", RIALA_REDIS_REST_TOKEN: "fixture" });
+  delete process.env.KV_REST_API_URL; delete process.env.KV_REST_API_TOKEN;
+  globalThis.fetch = async () => Response.json({ result: null });
+  try {
+    const { session } = await import("../lib/riala-planner/security");
+    const { deviceSession } = await import("../lib/server/deviceSession");
+    const get = (headers: Record<string, string>) => GET(new Request(`${origin}/api/riala/work`, { headers }));
+    const operator = await get({ cookie: `riala_operator=${session(secret)}` });
+    assert.equal(operator.status, 200);
+    assert.deepEqual(operator.headers.getSetCookie().map(c => c.split("=")[0]), ["work_os_device", "calendar_reader"]);
+    const old = await get({ cookie: `work_os_device=${deviceSession(secret, Date.now() - 5 * 86400000)}` });
+    assert.equal(old.status, 200); assert.equal(old.headers.getSetCookie().length, 2);
+    const fresh = await get({ cookie: `work_os_device=${deviceSession(secret)}` });
+    assert.equal(fresh.status, 200); assert.equal(fresh.headers.getSetCookie().length, 0);
+    const bearer = await get({ Authorization: `Bearer ${"a".repeat(64)}` });
+    assert.equal(bearer.status, 200); assert.equal(bearer.headers.getSetCookie().length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in before)) delete process.env[key];
+    Object.assign(process.env, before);
+  }
+});
