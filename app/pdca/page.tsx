@@ -10,6 +10,7 @@ import StudioHeader from "@/components/StudioHeader";
 import StudioConnection from "@/components/StudioConnection";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import CalendarReviewCard from "@/components/CalendarReviewCard";
+import PdcaRhythmPanel from "@/components/PdcaRhythmPanel";
 import CalendarWeekReview from "@/components/CalendarWeekReview";
 import { useCalendarDay } from "@/lib/useCalendarDay";
 export default function ReviewPage() {
@@ -23,6 +24,7 @@ export default function ReviewPage() {
   const suggestions=weekly.groups.filter(g=>g.samples.length>=3 && g.averageDriftMinutes!==null && Math.abs(g.averageDriftMinutes)>=15).slice(0,3);
   const selected=work.tasks.find(t=>t.id===selectedId);
   return <div className="studio"><StudioHeader title="ひと息、振り返り" subtitle="カレンダーの予定に○△×、明日ひとつ変えることを1行。" kind="review" action={<Link href="/today" className="studio-secondary">今日の作業へ →</Link>} />
+    <div className="mb-6"><PdcaRhythmPanel /></div>
     <div className="studio-toolbar"><div className="studio-tabs" aria-label="振り返り期間">{["1日","7日間"].map(x=><button key={x} aria-pressed={period===x} onClick={()=>setPeriod(x)}>{x}</button>)}</div><label className="flex items-center gap-3 text-sm text-[#756b85]">{period==="1日"?"日付":"終了日"}<input aria-label="振り返る日" type="date" className="rounded-xl border border-[#e4dfed] bg-white px-3 py-2" max={store.currentDate} value={date} onChange={e=>setChosenDate(e.target.value)} /></label><span className="text-[14px] text-[#877e94]">{formatMd(from)}{from!==date && "〜"+formatMd(date)}</span></div>
     <div className="mb-6">{period==="1日"?<CalendarReviewCard date={date} calendar={calendar} />:<CalendarWeekReview from={from} to={date} />}</div>
     <details className="studio-disclosure mb-6"><summary>アプリで開始・完了したタスクの記録</summary><div className="pt-4">

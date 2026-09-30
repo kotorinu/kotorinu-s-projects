@@ -10,6 +10,7 @@ import type AdvancedView from "./AdvancedTaskDetailSheet";
 import StudioDialog from "./StudioDialog";
 import StudioEditor from "./StudioEditor";
 import TaskWorkActions from "./TaskWorkActions";
+import TaskCalendarLink from "./TaskCalendarLink";
 import ManualActualEntry from "./ManualActualEntry";
 import TaskAgentWork from "./TaskAgentWork";
 
@@ -40,6 +41,9 @@ export default function TaskDetailSheet(props: ComponentProps<typeof AdvancedVie
     <div className="space-y-4"><div className="grid grid-cols-2 gap-4 rounded-2xl bg-[#f8f7fb] p-4 text-sm"><div><p className="mb-2 text-[14px] text-slate-500">作業する日時</p><p className="leading-7">{next?next.date.replaceAll("-","/")+" "+next.startTime+"〜"+next.endTime:"未設定"}</p>{next && <p className="mt-1 text-[14px] leading-6 text-slate-500">アプリ内の計画です。Calendarで照合できます。</p>}</div><div><p className="mb-2 text-[14px] text-slate-500">見積り / 記録した時間</p><p className="leading-7">{task.estimateMinutes===null?"未設定":task.estimateMinutes+"分"} / {actual===null?"未入力":actual+"分"}</p></div></div>
     {work.connected && store.executionReady && <ManualActualEntry task={task} actualMinutes={actual} isManual={store.manualActualTaskIds.has(task.id)} onSave={m=>store.setManualActualMinutes(task.id,m)} onClear={()=>store.setManualActualMinutes(task.id,null)} />}</div>
     <TaskWorkActions task={task} />
+    {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- The script reader requires a full document navigation, not an RSC transition. */}
+    {task.area==="営業代行" && <a className="flex items-center justify-between rounded-xl border border-[#e4dfeb] p-4 text-sm font-semibold text-accent-dark" href="/sales-script">営業スクリプトを開く（読む・覚える・編集）<span aria-hidden="true">→</span></a>}
+    {!done && !next && !(task.contextTags??[]).some(t=>t.startsWith("calendar:")) && <TaskCalendarLink task={task} today={store.currentDate} />}
     {goal && <Link className="block rounded-xl border border-[#eee9f6] p-4 text-sm leading-7 text-accent-dark" href={"/goals?focus="+encodeURIComponent(goal.id)}>つながる目標：{goal.title} →</Link>}
     <TaskAgentWork key={task.id} task={task} />
     <div className="flex flex-wrap gap-3 border-t border-[#eee9f6] pt-5">{work.connected && <button className="studio-secondary" onClick={()=>setView("edit")}>内容を編集</button>}<button className="studio-secondary" onClick={()=>setView("advanced")}>手順・履歴・詳細設定</button></div>
