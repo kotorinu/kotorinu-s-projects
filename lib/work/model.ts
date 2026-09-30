@@ -105,6 +105,8 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
       task.status = body.status as Task["status"];
       task.completedAt = body.status === "完了" ? now : null;
       if (body.status === "Archive") { task.lifecycle = "ARCHIVED"; task.lifecycleReason = "ユーザーがArchive"; }
+      // アーカイブから戻したら、日時未定のタスクとして一覧へ戻す。
+      else if (task.lifecycle === "ARCHIVED") { task.lifecycle = "BACKLOG"; task.lifecycleReason = "アーカイブから戻した"; }
     }
     task.updatedAt = now;
   } else if (command === "createGoal") {
@@ -127,6 +129,15 @@ export function mutateWork(l: WorkLedger, body: Record<string, unknown>, now: st
       goal.status = body.status as Goal["status"];
     }
     goal.updatedAt = now;
+  } else if (command === "archiveOpenTasks") {
+    // 一括整理 (2026-09-30, 本人の依頼)。削除ではなくアーカイブ: 一覧から外れるが、
+    // 履歴・実績・AIの成果物は残り、1件ずつ戻せる。画面で見た件数と一致しない
+    // ときは、他の端末やAIが先に変えたので止める。
+    const open = l.tasks.filter(t => !["完了", "Archive"].includes(t.status) && ["ACTIVE", "BACKLOG"].includes(t.lifecycle));
+    if (body.expectedCount !== open.length) throw new WorkConflict("タスクの件数が変わりました。再読み込みしてからもう一度確認してください");
+    const reason = `${now.slice(0, 10)} 一括整理（本人の依頼）`;
+    for (const t of open) { t.status = "Archive"; t.lifecycle = "ARCHIVED"; t.lifecycleReason = reason; t.updatedAt = now; }
+    l.audit.push({ at: now, operation: "archiveOpenTasks", id: String(open.length) });
   } else if (command === "enqueue" && task) {
     if (!["AI_EXECUTE", "AI_DRAFT", "HYBRID", "DECISION"].includes(task.aiCapability)) throw new WorkInputError("AI受付の対象ではありません");
     if (finishedTaskIds.includes(task.id) || ["完了", "Archive"].includes(task.status) || !["ACTIVE", "BACKLOG"].includes(task.lifecycle)) throw new WorkInputError("終了または整理済みの作業は実行できません");

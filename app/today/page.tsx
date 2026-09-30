@@ -20,7 +20,9 @@ import StudioEditor from "@/components/StudioEditor";
 import TodayShortcuts from "@/components/TodayShortcuts";
 import DailyChecks from "@/components/DailyChecks";
 import CalendarHealthPanel from "@/components/CalendarHealthPanel";
+import ConnectPrompt from "@/components/ConnectPrompt";
 import { carriedChange, countResults, reviewableEvents } from "@/lib/calendarReview";
+import { goalsDueForReview } from "@/lib/goalReview";
 import { addCalendarDays, validCalendarDate } from "@/lib/calendarTime";
 import type { Task } from "@/lib/types";
 
@@ -45,7 +47,9 @@ export default function TodayPage() {
   // are context, and repeating "not connected" three times before the first
   // task is what made the page feel like a warning screen.
   return <div className="studio"><StudioHeader title={title} subtitle="いまの一歩を、ひとつずつ。" kind="tasks" action={<button className="studio-secondary" onClick={()=>setAdding(true)}>＋ やることを追加</button>} />
+    <ConnectPrompt where="page" />
     <TodayShortcuts />
+    {validCalendarDate(date) && goalsDueForReview(work.goals,store.goalReviews,date).map(g=><Link key={g.id} href={"/goals?focus="+encodeURIComponent(g.id)} className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm leading-7"><span><span className="block font-semibold text-rose-900">{g.title}の目標は {Number(g.targetDate!.slice(5,7))}/{Number(g.targetDate!.slice(8,10))} が期限です</span><span className="text-rose-800">達成基準を1つずつ判定して、事実と理由を記録する</span></span><span aria-hidden="true" className="text-rose-400">→</span></Link>)}
     {carried && <section className="mb-6 rounded-2xl border border-[#e4dcf1] bg-[#f5f1fb] p-5" aria-label="昨日決めた改善"><p className="text-[14px] leading-6 text-[#756b85]">昨日の振り返りで決めた、今日ひとつ変えること</p><p className="mt-1 text-base font-semibold leading-8 text-[#3b334b]">{carried}</p></section>}
     {clock.clockReady && clock.nowHmValue>="18:00" && reviewTargets>0 && reviewed<reviewTargets && <Link href="/pdca" className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-[#e4dfeb] bg-white p-5 text-sm leading-7"><span><span className="block font-semibold text-[#3b334b]">今日の予定を振り返る（3分）</span><span className="text-[#877e94]">{reviewed?"記録 "+reviewed+"/"+reviewTargets+"件":"予定 "+reviewTargets+"件に ○△× を付けて、明日ひとつ変えることを決める"}</span></span><span aria-hidden="true" className="text-[#a599ba]">→</span></Link>}
     <p className="mb-6 text-base leading-8 text-slate-600">時間の確認はカレンダー。ここでは作業を進めて、AIの成果物を確認します。</p>

@@ -13,6 +13,7 @@ import { __setClockOverrideForTesting, todayStr } from "./date";
 import { bankedMinutesFor, endWorkOn, startWorkOn } from "./workSession";
 import { validSnapshot, executionReadDecision, type ExecutionAcknowledgement } from "./work/execution";
 import type { CalendarDayReview } from "./calendarReview";
+import type { GoalReview } from "./goalReview";
 import type {
   CarryoverDisposition,
   CarryoverRecord,
@@ -97,6 +98,8 @@ interface RolloverState {
   nextEstimates: Record<string, number>;
   // カレンダーで回すPDCA (2026-09-30): 日付ごとの ○△× と「明日ひとつ変えること」。
   calendarReviews: Record<string, CalendarDayReview>;
+  // 目標の期限の振り返り (2026-09-30)。key: goalId
+  goalReviews: Record<string, GoalReview>;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   // 自分版 (§5): the three own-version fields per Sales phase. The fixture is
   // immutable, so what the user writes lives here; coverage is always derived
@@ -165,6 +168,7 @@ function emptyRolloverState(): RolloverState {
     manualActualTaskIds: [],
     nextEstimates: {},
     calendarReviews: {},
+    goalReviews: {},
     phaseOwnVersions: {},
     replanFlags: {},
     timeBlockOverrides: {},
@@ -281,6 +285,8 @@ interface TodayExecutionApi {
   calendarReviews: Record<string, CalendarDayReview>;
   /** その日の振り返りを丸ごと置き換える。中央保存は他の実績と同じ経路。 */
   saveCalendarReview: (review: CalendarDayReview) => void;
+  goalReviews: Record<string, GoalReview>;
+  saveGoalReview: (review: GoalReview) => void;
   manualActualTaskIds: Set<string>;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
@@ -333,6 +339,7 @@ interface PersistedShape {
   manualActualTaskIds: string[];
   nextEstimates: Record<string, number>;
   calendarReviews?: Record<string, CalendarDayReview>;
+  goalReviews?: Record<string, GoalReview>;
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
   replanFlags: Record<string, ReplanFlag>;
   timeBlockOverrides: Record<string, TimeBlockOverride>;
@@ -362,6 +369,7 @@ function toPersisted(state: RolloverState): PersistedShape {
     manualActualTaskIds: state.manualActualTaskIds,
     nextEstimates: state.nextEstimates,
     calendarReviews: state.calendarReviews,
+    goalReviews: state.goalReviews,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -394,6 +402,7 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     manualActualTaskIds: parsed.manualActualTaskIds ?? [],
     nextEstimates: parsed.nextEstimates ?? {},
     calendarReviews: parsed.calendarReviews ?? {},
+    goalReviews: parsed.goalReviews ?? {},
     phaseOwnVersions: parsed.phaseOwnVersions ?? {},
     replanFlags: parsed.replanFlags ?? {},
     timeBlockOverrides: parsed.timeBlockOverrides ?? {},
@@ -589,6 +598,7 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     manualActualTaskIds: new Set(state.manualActualTaskIds),
     nextEstimates: state.nextEstimates,
     calendarReviews: state.calendarReviews,
+    goalReviews: state.goalReviews,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -782,6 +792,8 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
           completions,
         };
       }),
+    saveGoalReview: (review) =>
+      setState((s) => ({ ...s, goalReviews: { ...s.goalReviews, [review.goalId]: review } })),
     saveCalendarReview: (review) =>
       setState((s) => ({ ...s, calendarReviews: { ...s.calendarReviews, [review.date]: review } })),
     setNextEstimate: (taskId, minutes) =>
