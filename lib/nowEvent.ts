@@ -42,3 +42,20 @@ export function nowAndNext(events: CalendarEventDTO[], date: string, nowHm: stri
 export function isSalesEvent(e: CalendarEventDTO): boolean {
   return e.colorId === "9" || /営業|ロープレ|商談|スクリプト/.test(e.summary);
 }
+
+export interface EventAction { label: string; href: string; external?: boolean; fullNavigation?: boolean }
+
+/**
+ * 予定の種類ごとに、その時間に開く画面 (2026-10-01)。
+ * 固定枠（日報・週次・月次・RIALA・営業）の説明にある手順は、どれもアプリのどこかで行う。
+ * 予定の時間になったら、TODAYからボタン1つでそこへ行けるようにする。
+ */
+export function eventActions(e: CalendarEventDTO): EventAction[] {
+  const s = e.summary;
+  if (/月次|月の振り返り|目標を再設計/.test(s)) return [{ label: "目標画面で振り返る", href: "/goals" }, { label: "PDCAの点検", href: "/pdca" }];
+  if (/週次|週の振り返り|来週の計画/.test(s)) return [{ label: "7日間の振り返りを開く", href: "/pdca?period=week" }, { label: "Google カレンダーを開く", href: "https://calendar.google.com/calendar/r/week", external: true }];
+  if (/日報|1日の振り返り/.test(s)) return [{ label: "振り返り画面を開く（○△×・明日変えること）", href: "/pdca" }];
+  if (isSalesEvent(e)) return [{ label: "営業スクリプトを開く", href: "/sales-script", fullNavigation: true }];
+  if (/RIALA/.test(s)) return [{ label: "RIALAのページを開く", href: "/area/riala" }];
+  return [];
+}

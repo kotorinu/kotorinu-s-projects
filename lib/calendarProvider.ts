@@ -23,6 +23,8 @@ export interface CalendarEventDTO {
   allDay: boolean;
   /** Calendarの説明文。あれば表示に使えるが、DoDとしては扱わない (§4)。 */
   description: string | null;
+  /** Gmailの予約メールなどからGoogleが自動で作った予定（本人が入れた予定と重複しやすい）。 */
+  fromGmail?: boolean;
 }
 
 /**

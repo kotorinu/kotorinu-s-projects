@@ -74,3 +74,9 @@ test("【予定なし】のような空き枠は、夜の予定として数え�
   const issues = calendarHealth({ ...range, events: [ev("2026-10-01", "18:00", "24:00", "【予定なし】土曜18時〜日曜終日"), ev("2026-10-02", "00:00", "24:00", "【予定なし】土曜18時〜日曜終日")] });
   assert.deepEqual(issues, []);
 });
+
+test("Gmailの予約メールから自動で作られた予定との重なりは数えない（Calendarから消せないため）", () => {
+  const own = ev("2026-10-01", "18:30", "21:00", "18:30 品川マグロ");
+  const auto = { ...ev("2026-10-01", "18:30", "19:30", "Reservation at マグロ"), fromGmail: true };
+  assert.deepEqual(calendarHealth({ ...range, events: [own, auto] }), []);
+});

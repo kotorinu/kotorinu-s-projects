@@ -83,6 +83,9 @@ function overlapIssues(date: string, day: Timed[]): CalendarHealthIssue[] {
     for (let j = i + 1; j < day.length; j++) {
       const a = day[i], b = day[j];
       if (b.start >= a.end) continue; // 隣接（終了=開始）は重なりではない
+      // Gmailの予約メールからGoogleが自動で作った予定は、本人が入れた予定と重なって当然で、
+      // Calendarからは消せない。直す対象ではないので数えない。
+      if (a.event.fromGmail || b.event.fromGmail) continue;
       const span = (t: Timed) => `${t.event.summary}（${hm(t.start)}-${hm(t.end)}）`;
       if (a.start === b.start) {
         issues.push({ kind: "DUPLICATE", date, eventIds: [a.event.id, b.event.id], contained: false,

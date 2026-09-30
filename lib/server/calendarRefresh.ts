@@ -25,7 +25,7 @@ export const emptyCalendarState = (): CalendarState => ({ schemaVersion: 1, vers
 function validateSnapshot(s: CalendarSnapshotRecord) {
   calendarBounds(s.coverageStart, s.coverageEnd);
   if (s.sourceMode !== "LIVE" || !Number.isFinite(Date.parse(s.readAt)) || !Array.isArray(s.events) || s.events.length > 5000 ||
-    s.events.some(e => !e || typeof e.id !== "string" || !e.id || typeof e.summary !== "string" || !validCalendarDate(e.date) || typeof e.allDay !== "boolean" || e.date < s.coverageStart || e.date > s.coverageEnd ||
+    s.events.some(e => !e || typeof e.id !== "string" || !e.id || typeof e.summary !== "string" || !(e.description == null || (typeof e.description === "string" && e.description.length <= 1500)) || !validCalendarDate(e.date) || typeof e.allDay !== "boolean" || e.date < s.coverageStart || e.date > s.coverageEnd ||
       (e.allDay ? e.startTime !== null || e.endTime !== null : !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.startTime ?? "") || !/^(?:([01]\d|2[0-3]):[0-5]\d|24:00)$/.test(e.endTime ?? "") || e.endTime! <= e.startTime!)) ||
     new Set(s.events.map(e => `${e.id}:${e.date}`)).size !== s.events.length) throw new Error("Calendar保存データが不正です");
 }

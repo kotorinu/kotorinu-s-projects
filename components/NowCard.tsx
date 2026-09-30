@@ -1,8 +1,7 @@
 "use client";
-/* eslint-disable @next/next/no-html-link-for-pages -- The script reader requires a full document navigation, not an RSC transition. */
 import Link from "next/link";
 import type { NowEntry } from "@/lib/nowEvent";
-import { isSalesEvent } from "@/lib/nowEvent";
+import { eventActions } from "@/lib/nowEvent";
 import type { Task } from "@/lib/types";
 import TaskWorkActions from "./TaskWorkActions";
 
@@ -27,7 +26,9 @@ export default function NowCard({ current, next, started, reviewPending, totalTo
       {main.criteria.length > 0 ? <div className="mb-4 rounded-xl bg-[#f5f1fb] p-4 text-sm leading-7 text-[#4c405f]"><p className="font-semibold">ここまでできたら完了</p><ul className="mt-1 list-disc pl-5">{main.criteria.map(c => <li key={c}>{c}</li>)}</ul></div>
         : <p className="mb-4 text-[14px] leading-6 text-[#877e94]">この予定には完了条件が書かれていません。Google Calendarの説明に「完了条件：〜」と書くと、ここに出ます。</p>}
       <div className="flex flex-wrap gap-3">
-        {isSalesEvent(main.event) && <a className="studio-primary" href="/sales-script">営業スクリプトを開く</a>}
+        {eventActions(main.event).map((a, i) => a.external ? <a key={a.href} className={i === 0 ? "studio-primary" : "studio-secondary"} href={a.href} target="_blank" rel="noreferrer">{a.label}</a>
+          : a.fullNavigation ? <a key={a.href} className={i === 0 ? "studio-primary" : "studio-secondary"} href={a.href}>{a.label}</a>
+          : <Link key={a.href} className={i === 0 ? "studio-primary" : "studio-secondary"} href={a.href}>{a.label}</Link>)}
         {main.task && !started && <button className="studio-secondary" onClick={() => onOpenTask(main.task!.id)}>タスクを開く（開始・完了）</button>}
       </div>
       {current && next && <p className="mt-4 border-t border-[#eeeaf3] pt-3 text-[14px] leading-6 text-[#877e94]">次: {next.event.startTime} {next.event.summary}</p>}

@@ -14,7 +14,14 @@ export interface CalendarSnapshotRecord {
 export interface CalendarReader {
   read(start: string, end: string): Promise<CalendarSnapshotRecord>;
 }
-type GoogleEvent = { id?: string; status?: string; summary?: string; colorId?: string; start?: { date?: string; dateTime?: string }; end?: { date?: string; dateTime?: string } };
+type GoogleEvent = { id?: string; status?: string; summary?: string; colorId?: string; description?: string; eventType?: string; start?: { date?: string; dateTime?: string }; end?: { date?: string; dateTime?: string } };
+/**
+ * 説明文は読む (2026-10-01 変更)。本人がCalendarの説明に書いた「完了条件：」を、
+ * TODAYの「ここまでできたら完了」とタスクの完了条件に使うため。参加者・メール
+ * アドレス・添付は今も読まない。保存量を抑えるため、1件と全体に上限を置く。
+ */
+export const DESCRIPTION_MAX = 1500;
+export const DESCRIPTION_BUDGET = 300_000;
 const fail = () => new Error("Calendarの完全な読み取りを確認できません");
 
 /** Split spanning events into JST day segments while retaining the original Google ID for OS links. */
@@ -24,7 +31,10 @@ export function normalizeGoogleEvent(event: GoogleEvent, start: string, end: str
   if (typeof event.id !== "string" || !event.id || event.id.length > 1024 || !event.start || !event.end ||
     event.summary != null && (typeof event.summary !== "string" || event.summary.length > 10000) ||
     event.colorId != null && (typeof event.colorId !== "string" || !/^\d{1,2}$/.test(event.colorId))) throw fail();
-  const base = { id: event.id, summary: event.summary || "（タイトルなし）", colorId: event.colorId ?? null, description: null };
+  if (event.description != null && typeof event.description !== "string") throw fail();
+  const description = event.description ? event.description.slice(0, DESCRIPTION_MAX) : null;
+  const base = { id: event.id, summary: event.summary || "（タイトルなし）", colorId: event.colorId ?? null, description,
+    ...(event.eventType === "fromGmail" ? { fromGmail: true } : {}) };
   const result: CalendarEventDTO[] = [];
   if (event.start.date && event.end.date) {
     if (!validCalendarDate(event.start.date) || !validCalendarDate(event.end.date) || event.end.date <= event.start.date) throw fail();
@@ -67,7 +77,7 @@ export class LiveGoogleCalendarProvider implements CalendarReader {
     for (let count = 0; count < 20; count++) {
       const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(e.GOOGLE_CALENDAR_ID || "primary")}/events`);
       for (const [key, value] of Object.entries({ ...bounds, timeZone: CALENDAR_TIME_ZONE, singleEvents: "true", orderBy: "startTime", maxResults: "250",
-        fields: "items(id,status,summary,colorId,start,end),nextPageToken" })) url.searchParams.set(key, value);
+        fields: "items(id,status,summary,colorId,description,eventType,start,end),nextPageToken" })) url.searchParams.set(key, value);
       if (page) url.searchParams.set("pageToken", page);
       const response = await this.http(url, { headers: { Authorization: `Bearer ${token.access_token}` }, cache: "no-store", redirect: "error", signal });
       if (!response.ok || Number(response.headers.get("content-length")) > 2000000) throw fail();
@@ -81,10 +91,19 @@ export class LiveGoogleCalendarProvider implements CalendarReader {
       }
       if (events.length > 5000) throw fail();
       page = body.nextPageToken;
-      if (!page) return { sourceMode: "LIVE", readAt: new Date(this.clock()).toISOString(), coverageStart: start, coverageEnd: end, events };
+      if (!page) return { sourceMode: "LIVE", readAt: new Date(this.clock()).toISOString(), coverageStart: start, coverageEnd: end, events: withinDescriptionBudget(events) };
       if (seenPages.has(page)) throw fail();
       seenPages.add(page);
     }
     throw fail(); // Never publish the first N pages as complete.
   }
+}
+
+/** 説明文の合計が上限を超えたら、日付の遠い予定から説明文を落とす（予定そのものは残す）。 */
+export function withinDescriptionBudget(events: CalendarEventDTO[], budget = DESCRIPTION_BUDGET): CalendarEventDTO[] {
+  let used = 0;
+  const order = events.map((e, i) => ({ e, i })).sort((a, b) => (a.e.date + (a.e.startTime ?? "")).localeCompare(b.e.date + (b.e.startTime ?? "")));
+  const keep = new Set<number>();
+  for (const { e, i } of order) { const n = e.description?.length ?? 0; if (n && used + n <= budget) { used += n; keep.add(i); } }
+  return events.map((e, i) => e.description && !keep.has(i) ? { ...e, description: null } : e);
 }
