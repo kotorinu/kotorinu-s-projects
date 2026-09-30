@@ -13,6 +13,8 @@ import StudioConnection from "@/components/StudioConnection";
 import StudioEditor from "@/components/StudioEditor";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
 import ArchiveAllTasks from "@/components/ArchiveAllTasks";
+import BulkCompleteTasks from "@/components/BulkCompleteTasks";
+import CalendarToTasks from "@/components/CalendarToTasks";
 import type { Task } from "@/lib/types";
 const tabs = ["未完了", "進行中", "AI担当", "終了", "すべて"];
 export default function TasksPage() { return <Suspense fallback={<StudioSkeleton rows={4} />}><TasksContent /></Suspense>; }
@@ -38,6 +40,7 @@ function TasksContent() {
   // the rest of the filters fold away. The list has to start inside the first
   // screen — three rows of controls above it meant no task was ever visible.
   return <div className="studio"><StudioHeader title="やること" subtitle="探して、ひとつ進める。" kind="tasks" action={<button className="studio-secondary" onClick={()=>setAdding(true)}>＋ タスクを追加</button>} />
+    {work.connected && <div className="mb-5 flex flex-wrap items-center gap-3"><BulkCompleteTasks /><CalendarToTasks /></div>}
     <div className="mb-4"><label className="sr-only" htmlFor="task-search">タスクを検索</label><input id="task-search" type="search" className="studio-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="タスク名やキーワードで検索" /></div>
     <div className="studio-toolbar"><div className="studio-tabs" aria-label="タスクの状態">{tabs.map(x=><button key={x} aria-pressed={tab===x} onClick={()=>setTab(x)}>{x}</button>)}</div></div>
     <details className="studio-disclosure mb-5"><summary>絞り込みと並び順{area!=="すべての領域"||month||sort!=="期限が近い順"?"（設定中）":""}</summary><div className="studio-toolbar mt-3 mb-0"><select aria-label="領域で絞り込む" value={area} onChange={e=>setArea(e.target.value)}>{["すべての領域","営業代行","RIALA","GENESIS","Skill Plus","その他"].map(x=><option key={x}>{x}</option>)}</select><select aria-label="期限の月" value={month} onChange={e=>setMonth(e.target.value)}><option value="">すべての月・期限未定</option>{months.map(x=><option key={x} value={x}>{x.replace("-","年")}月</option>)}</select><select aria-label="並び順" value={sort} onChange={e=>setSort(e.target.value)}>{["期限が近い順","名前順"].map(x=><option key={x}>{x}</option>)}</select></div></details>
