@@ -46,3 +46,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# invoices: personal data and generated PDFs stay out of Git
+/invoices/

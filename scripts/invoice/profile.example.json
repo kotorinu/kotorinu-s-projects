@@ -1,0 +1,28 @@
+{
+  "invoice_number_suffix": "OGATA",
+  "item_label": "{month}月分　業務委託料",
+  "unit_price": 30000,
+  "quantity": 1,
+  "tax_rate": 10,
+  "filename": "{yyyymm}_請求書_{issuer}.pdf",
+  "client": {
+    "name": "株式会社〇〇",
+    "postal_code": "000-0000",
+    "address_lines": ["東京都〇〇区〇〇1-2-3", "〇〇ビル101"],
+    "contact": "代表取締役　〇〇　様"
+  },
+  "issuer": {
+    "name": "緒方琴音",
+    "postal_code": "000-0000",
+    "address_lines": ["東京都〇〇区〇〇1-2-3", "〇〇205"]
+  },
+  "bank": {
+    "bank_name": "〇〇銀行",
+    "branch": "〇〇支店（000）",
+    "account_type": "普通",
+    "account_number": "0000000",
+    "account_holder": "オガタ　コトネ（緒方　琴音）"
+  },
+  "note": "※恐れ入りますが、振込手数料は貴社にてご負担いただけますと幸いです。",
+  "send_to": "billing@example.com"
+}

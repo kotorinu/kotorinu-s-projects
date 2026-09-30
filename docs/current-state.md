@@ -15,6 +15,7 @@
 | RIALA候補生成 | Welcome、7日前・3日前の副作用なし判定を実装 | `lib/riala-planner/recurring.ts` |
 | RIALA実画面テスト | 2026-09-17〜23に投稿・イベント・DM・Learningを確認 | `operations/riala-test-runs/` |
 | 営業支援 | 商談台本、質問集、保存履歴、練習UIを実装 | `app/sales-script` と関連テスト |
+| 月次請求書 | 毎月26日に当月分の請求書PDF（文字選択可）を作成。個人情報はGit外のプロファイル | `scripts/invoice/`、`docs/monthly-invoice.md` |
 | UI改善 | TODAY、TASKS、GOALS、PDCA、各領域の階層と可読性を改善 | 2026-09後半のmain履歴 |
 
 ## 完成していないもの
