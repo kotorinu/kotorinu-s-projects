@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import StudioSkeleton from "@/components/StudioSkeleton";
 import Link from "next/link";
 import { useWork } from "@/lib/work/client";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
@@ -13,8 +15,10 @@ import CalendarReviewCard from "@/components/CalendarReviewCard";
 import PdcaRhythmPanel from "@/components/PdcaRhythmPanel";
 import CalendarWeekReview from "@/components/CalendarWeekReview";
 import { useCalendarDay } from "@/lib/useCalendarDay";
-export default function ReviewPage() {
-  const work=useWork(); const store=useTodayExecution(); const [period,setPeriod]=useState("1日"); const [chosenDate,setChosenDate]=useState(""); const [selectedId,setSelectedId]=useState<string|null>(null);
+export default function ReviewPage() { return <Suspense fallback={<StudioSkeleton rows={3} />}><ReviewContent /></Suspense>; }
+function ReviewContent() {
+  const params=useSearchParams();
+  const work=useWork(); const store=useTodayExecution(); const [period,setPeriod]=useState(params.get("period")==="week"?"7日間":"1日"); const [chosenDate,setChosenDate]=useState(""); const [selectedId,setSelectedId]=useState<string|null>(null);
   const date=chosenDate || store.currentDate; const from=period==="1日"?date:addDaysToYmd(date,-6); const calendar=useCalendarDay(date,date);
   const daily=buildDailyReview({date,tasks:work.tasks,allTasks:work.tasks,completions:store.completions,varianceReasons:store.varianceReasonByTaskId,replanFlags:store.replanFlags,dispositions:store.dispositions});
   const weekly=buildWeeklyReview(from,date,work.tasks,store.completions,store.varianceReasonByTaskId,store.replanFlags);

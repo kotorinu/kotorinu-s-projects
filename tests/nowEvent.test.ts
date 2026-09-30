@@ -34,3 +34,14 @@ test("営業代行の予定を見分ける（色9・予定名）", () => {
   assert.equal(isSalesEvent(ev("r", "08:00", "09:00", "ロープレ本番", "11")), true);
   assert.equal(isSalesEvent(events[0]), false);
 });
+
+test("予定の種類ごとに、その時間に開く画面を返す", async () => {
+  const { eventActions } = await import("../lib/nowEvent");
+  const hrefs = (summary: string, colorId: string | null = null) => eventActions(ev("x", "22:00", "22:30", summary, colorId)).map(a => a.href);
+  assert.deepEqual(hrefs("【日報】1日の振り返り→明日やること（30分）"), ["/pdca"]);
+  assert.deepEqual(hrefs("【週次】今週の振り返り→来週の計画をCalendarへ（1時間）")[0], "/pdca?period=week");
+  assert.deepEqual(hrefs("【月次】今月の振り返り→来月の目標を再設計（3時間）")[0], "/goals");
+  assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script"]);
+  assert.deepEqual(hrefs("【RIALA】21:30 状況確認", "10"), ["/area/riala"]);
+  assert.deepEqual(hrefs("【読書｜昼30分】鬼速PDCA", "5"), []);
+});

@@ -84,7 +84,10 @@ test("Calendar real adapter exhausts pagination before returning LIVE and uses o
     assert.equal(u.searchParams.get("timeMin"), "2026-09-08T00:00:00+09:00");
     assert.equal(u.searchParams.get("timeMax"), "2026-09-17T00:00:00+09:00");
     assert.equal(u.searchParams.get("timeZone"), "Asia/Tokyo"); assert.equal(u.searchParams.get("singleEvents"), "true");
-    assert.equal(u.searchParams.get("fields")!.includes("description"), false);
+    // 2026-10-01: 説明文（完了条件）とeventTypeは読む。参加者・メール・添付は読まない。
+    const fields = u.searchParams.get("fields")!;
+    assert.equal(fields.includes("description"), true);
+    for (const banned of ["attendees", "creator", "organizer", "attachments"]) assert.equal(fields.includes(banned), false);
     pages++;
     return Response.json({ items: [timed(`event-${pages}`)], ...(pages === 1 ? { nextPageToken: "p2" } : {}) });
   };
@@ -236,4 +239,16 @@ test("Calendar HTTP path: cron -> Google read -> Redis CAS -> independent reques
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
     Object.assign(process.env, originalEnv);
   }
+});
+
+test("説明文は1件1500字まで・全体の上限を超えたら遠い日付から説明文だけ落とす。予約メール由来は目印を付ける", async () => {
+  const { normalizeGoogleEvent, withinDescriptionBudget } = await import("../lib/server/liveGoogleCalendar");
+  const [e] = normalizeGoogleEvent({ id: "a", summary: "x", description: "完了条件：" + "y".repeat(3000), eventType: "fromGmail",
+    start: { dateTime: "2026-10-01T19:00:00+09:00" }, end: { dateTime: "2026-10-01T20:00:00+09:00" } }, "2026-10-01", "2026-10-01");
+  assert.equal(e.description!.length, 1500); assert.equal(e.fromGmail, true);
+  const mk = (id: string, date: string) => ({ id, summary: id, date, startTime: "10:00", endTime: "11:00", colorId: null, allDay: false, description: "z".repeat(100) });
+  const kept = withinDescriptionBudget([mk("far", "2026-10-09"), mk("near", "2026-10-01")], 150);
+  assert.equal(kept.find(x => x.id === "near")!.description!.length, 100);
+  assert.equal(kept.find(x => x.id === "far")!.description, null);
+  assert.equal(kept.length, 2);
 });
