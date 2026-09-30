@@ -1,3 +1,7 @@
+# Git management update — 2026-09-30
+
+Repository navigation and the current implementation/backlog summary now live in [current-state.md](current-state.md). Git, Google Drive, local-PC, secret, and operational-log responsibilities are defined in [git-operations.md](git-operations.md). This historical verification record remains as detailed evidence and is not the top-level current status.
+
 # Work OS completion status — 2026-09-17
 
 The requested scope is the entire Work OS: daily task management, central durable

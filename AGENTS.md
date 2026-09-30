@@ -38,4 +38,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Cover high/medium/low identity, evidence-backed welcome drafts, already-sent exclusion, event duplicate prevention, no-match content, stale sources, approval mismatch, unknown send result, and readback.
 - A feature is complete only when read → decide → evidence → approval → action → readback → durable state is connected, and unavailable integrations are visibly stopped.
 - Keep operational notes in `docs/product-north-star.md`, `docs/source-of-truth.md`, `docs/riala-operations.md`, `docs/agent-permissions.md`, and `docs/postmortems.md`.
+## Gitを運用の正本にする
 
+- 共有可能なコード、仕様、運用手順、未完了事項、検証結果はこのリポジトリの `main` で管理する。
+- このPCでは `G:/マイドライブ/WorkOS/02_プロジェクト/workspace/ai-work-os` を編集正本とする。別PCでは同じクラウドフォルダの接続先を確認し、固定のドライブ文字を前提にしない。
+- 作業開始時は `README.md`、`docs/current-state.md`、`docs/git-operations.md` を読み、終了時は実装と現状記録の食い違いを直してからコミット・pushする。
+- RIALAなど外部サービスの検証は、個人情報やDM本文を除いた要約を `operations/` に残す。送信・公開の成否は外部履歴の再確認を根拠にする。
+- 認証キー、トークン、Cookie、`.env`、ブラウザセッション、個人情報をGitへ入れない。必要な設定項目と確認手順だけを文書化する。
+- `C:/Users/jupit/workspace/ai-work-os` は旧コピーとして扱い、内容照合と参照先変更が済むまで削除しない。新規編集は行わない。
