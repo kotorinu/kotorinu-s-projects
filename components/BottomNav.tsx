@@ -6,15 +6,15 @@ import NavIcon from "./NavIcon";
 import { useState } from "react";
 import StudioDialog from "./StudioDialog";
 const menuLinks = [
-  { href: "/ai", label: "AIの作業", note: "依頼・確認待ちの成果物" },
-  { href: "/notes", label: "noteを書く", note: "材料・下書き・保存" },
   { href: "/sales-script", label: "営業スクリプト", note: "読む・覚える・編集する" },
-  { href: "/overview", label: "全体を見る", note: "仕事と学びの状況" },
-  { href: "/pdca", label: "振り返り", note: "実績を確認して次につなげる" },
-  { href: "/today/planning", label: "予定を組み直す", note: "計画・持ち越し" },
+  { href: "/pdca", label: "振り返り・PDCAの点検", note: "○△×・明日変えること・時間が入っているか" },
   { href: "/area/sales", label: "営業代行", note: "商談の準備と実行" },
   { href: "/area/riala", label: "RIALA", note: "会員・コミュニティ運営" },
   { href: "/area/genesis", label: "GENESIS", note: "学びと練習" },
+  { href: "/notes", label: "noteを書く", note: "材料・下書き・保存" },
+  { href: "/ai", label: "AIの作業", note: "依頼・確認待ちの成果物" },
+  { href: "/overview", label: "全体を見る", note: "仕事と学びの状況" },
+  { href: "/today/planning", label: "予定を組み直す", note: "計画・持ち越し" },
   { href: "/system", label: "接続・設定", note: "保存先と連携の状態" },
 ];
 export default function BottomNav() {

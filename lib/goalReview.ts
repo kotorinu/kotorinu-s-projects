@@ -13,6 +13,29 @@ export type CriterionResult = "MET" | "PARTIAL" | "NOT_MET";
 
 export const CRITERION_LABEL: Record<CriterionResult, string> = { MET: "達成", PARTIAL: "一部", NOT_MET: "未達" };
 
+/**
+ * 届かなかった原因の分類。次の目標の「どこを変えるか」が原因ごとに違うので、
+ * 自由記述の理由とは別に1つ選ぶ。
+ */
+export type MissCause = "NO_TIME" | "NO_METHOD" | "WAITING" | "TOO_BIG" | "PRIORITY" | "ENERGY";
+export const MISS_CAUSE_LABEL: Record<MissCause, string> = {
+  NO_TIME: "時間をCalendarに入れていなかった",
+  NO_METHOD: "やり方・次の一手が決まっていなかった",
+  WAITING: "相手・情報待ちで止まった",
+  TOO_BIG: "1か月で届く大きさではなかった",
+  PRIORITY: "途中で優先順位が変わった",
+  ENERGY: "疲れ・体調で実行できなかった",
+};
+/** 原因ごとの、次の1か月の計画での変え方。 */
+export const MISS_CAUSE_FIX: Record<MissCause, string> = {
+  NO_TIME: "目標を作ったその場で、基準ごとの時間を毎週Calendarに先に入れる（週の計画60分で確認）",
+  NO_METHOD: "基準ごとに「最初の一手」と完了条件を先に書き、最初の週に「やり方を決める」枠を入れる",
+  WAITING: "待ちが発生した日に相手へ期限つきで確認し、待ちの間に進める別の一手を決めておく",
+  TOO_BIG: "基準を「1か月で自分の行動だけで達成できる大きさ」に分ける（成果は3か月目標へ）",
+  PRIORITY: "優先順位を変えた日に、目標の基準も同時に書き換える（変えた理由を残す）",
+  ENERGY: "頭を使う作業を朝へ、夜は30分以内にし、休息6時間を下回る日を作らない",
+};
+
 export interface CriterionReview {
   text: string;
   result: CriterionResult | null;
@@ -20,6 +43,8 @@ export interface CriterionReview {
   fact: string;
   /** 一部・未達のときの理由。 */
   reason: string;
+  /** 一部・未達のときの原因の分類（任意）。 */
+  cause?: MissCause | null;
 }
 
 export interface GoalReview {
@@ -89,6 +114,20 @@ export function validGoalReview(value: unknown): value is GoalReview {
   return v.criteria.every(c => {
     const x = c as Record<string, unknown>;
     return !!x && typeof x.text === "string" && typeof x.fact === "string" && typeof x.reason === "string"
-      && (x.result === null || ["MET", "PARTIAL", "NOT_MET"].includes(String(x.result)));
+      && (x.result === null || ["MET", "PARTIAL", "NOT_MET"].includes(String(x.result)))
+      && (x.cause === undefined || x.cause === null || Object.keys(MISS_CAUSE_LABEL).includes(String(x.cause)));
   });
+}
+
+/** 未達・一部の原因を多い順に。次の目標の設計に使う。 */
+export function missCauses(review: GoalReview): { cause: MissCause; count: number }[] {
+  const count = new Map<MissCause, number>();
+  for (const c of review.criteria) if (c.result && c.result !== "MET" && c.cause) count.set(c.cause, (count.get(c.cause) ?? 0) + 1);
+  return [...count.entries()].map(([cause, n]) => ({ cause, count: n })).sort((a, b) => b.count - a.count);
+}
+
+/** 次の目標の下書きに入れる「今回の学びから変えること」。 */
+export function nextGoalNotes(review: GoalReview): string {
+  const lines = missCauses(review).map(c => `・${MISS_CAUSE_FIX[c.cause]}（前回: ${MISS_CAUSE_LABEL[c.cause]} ${c.count}件）`);
+  return [review.next.trim(), lines.length ? "【前回の原因から変えること】\n" + lines.join("\n") : ""].filter(Boolean).join("\n\n");
 }

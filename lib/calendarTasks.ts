@@ -15,7 +15,7 @@ const ROUTINE = /日報|Catch-up|深思考|【RIALA】21:30|睡眠|休憩|予定
 
 const AREA_BY_COLOR: Record<string, Area> = { "9": "営業代行", "10": "RIALA", "3": "GENESIS" };
 /** 色で決まらないとき（ロープレの赤など）は予定名で決める。 */
-function areaOf(e: CalendarEventDTO): Area {
+export function areaOf(e: CalendarEventDTO): Area {
   const byColor = AREA_BY_COLOR[e.colorId ?? ""]; if (byColor) return byColor;
   if (/営業|ロープレ|商談/.test(e.summary)) return "営業代行";
   if (/RIALA/.test(e.summary)) return "RIALA";

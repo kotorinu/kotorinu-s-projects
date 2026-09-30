@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMemo } from "react";
 import Link from "next/link";
 import SalesResources from "@/components/SalesResources";
+import AreaLiveBlock from "@/components/AreaLiveBlock";
 import { allGapItems, blockers, capabilities, monthEndStates, outcomeMilestones, salesVideoLibrary, salesPhases, weeklyReadings } from "@/lib/dummy-data";
 import BlockerPanel from "@/components/BlockerPanel";
 import CapabilityMap from "@/components/CapabilityMap";
@@ -144,7 +145,9 @@ export default function AreaHomeView({ slug }: { slug: string }) {
         )}
       </header>
 
+      <AreaLiveBlock area={profile.area} />
       {profile.area === "営業代行" && <div className="px-5 pb-4"><SalesResources /></div>}
+      {outcomeDaysLeft !== null && outcomeDaysLeft < -7 && <p className="mx-5 mb-3 rounded-xl bg-stone-100 px-3 py-2 text-[13px] leading-6 text-stone-600">この下は{data.outcome?.deadline ? formatMd(data.outcome.deadline) : ""}期限で作った計画（参考）です。今月の目標は目標画面、今週の予定は上のCalendarが正です。</p>}
 
       <div className="lg:grid lg:grid-cols-[1fr_340px] lg:gap-5 lg:px-5">
         <div className="flex flex-col gap-2.5 px-5 lg:px-0">
@@ -189,7 +192,7 @@ export default function AreaHomeView({ slug }: { slug: string }) {
           {/* いま必達 */}
           <section className="rounded-3xl bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-[13px] font-black tracking-widest text-accent-dark">いま必達</p>
+              <p className="text-[13px] font-black tracking-widest text-accent-dark">{outcomeDaysLeft !== null && outcomeDaysLeft < 0 ? "期限切れ（見直しが必要）" : "いま必達"}</p>
               {data.outcome?.deadline && (
                 <span className="shrink-0 text-[13px] font-black text-accent-dark">
                   〜{formatMd(data.outcome.deadline)}
