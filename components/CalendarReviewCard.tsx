@@ -16,6 +16,7 @@ import {
 } from "@/lib/calendarReview";
 import { calendarFreshnessLabel, type CalendarFetchResult } from "@/lib/calendarProvider";
 import { useTodayExecution } from "@/lib/todayExecutionStore";
+import ConnectPrompt from "./ConnectPrompt";
 
 // 夜の3分振り返り。Calendarの今日の予定に ○△× を付け、明日ひとつ変えることを書く。
 // 押した瞬間に実績データとして保存され、中央保存は他の実績と同じ経路で行われる。
@@ -53,6 +54,7 @@ export default function CalendarReviewCard({ date, calendar }: { date: string; c
     </div>
     <p className="mb-4 text-[14px] leading-6 text-[#877e94]">Google Calendarの予定に、できた○・一部△・できなかった× を付けるだけです。印を付けない予定は数えません。{inCoverage ? calendarFreshnessLabel(calendar) : "この日はCalendarの読取範囲外なので、記録済みの分だけ表示します。"}</p>
 
+    <ConnectPrompt where="page" />
     {inCoverage && events.length === 0 && <p className="py-3 text-sm leading-7 text-[#877e94]">{calendar.stale && !calendar.liveBacked ? "Calendarを読めていません。TODAYの「予定を再確認」かCalendar接続を確認してください。" : "振り返る予定はありません（睡眠・休憩・終日の予定は除いています）。"}</p>}
     <ul>{events.map(e => {
       const mark = review?.blocks[e.id];

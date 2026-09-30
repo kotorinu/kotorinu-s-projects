@@ -12,6 +12,7 @@ import StudioSkeleton from "@/components/StudioSkeleton";
 import StudioConnection from "@/components/StudioConnection";
 import StudioEditor from "@/components/StudioEditor";
 import TaskDetailSheet from "@/components/TaskDetailSheet";
+import ArchiveAllTasks from "@/components/ArchiveAllTasks";
 import type { Task } from "@/lib/types";
 const tabs = ["未完了", "進行中", "AI担当", "終了", "すべて"];
 export default function TasksPage() { return <Suspense fallback={<StudioSkeleton rows={4} />}><TasksContent /></Suspense>; }
@@ -47,7 +48,7 @@ function TasksContent() {
       return <article key={t.id} className="group flex items-center gap-3 border-b border-[#eeeaf3] px-4 py-4 last:border-0 sm:gap-4 sm:px-6"><button className="min-w-0 flex-1 text-left" onClick={()=>setSelectedId(t.id)}><div className="flex items-start gap-3"><span aria-hidden="true" className={"mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border " + (done?"border-[#bbdacc] bg-[#e9f5ee] text-[#56866c]":"border-[#ddd5e9] bg-[#faf8fd] text-[#877896]")}>{done?"✓":state==="進行中"?"•":""}</span><div className="min-w-0"><h2 className={"text-sm font-semibold leading-7 sm:text-[15px] " + (done?"text-slate-500":"text-[#3b334b]")}>{t.title}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="studio-tag" style={theme?{background:theme.soft,color:theme.text}:undefined}>{t.area}</span><span className="text-[14px] text-[#877e94]">{state}</span><span className={"text-[14px] " + (overdue?"text-[#b45d64]":"text-[#877e94]")}>{deadline?"期限 "+formatMd(deadline):"期限未定"}</span>{t.estimateMinutes!==null && <span className="text-[14px] text-[#877e94]">{t.estimateMinutes}分</span>}{t.aiCapability!=="HUMAN" && <span className="studio-tag">{t.aiCapability==="DECISION"?"自分が判断":"AIと進める"}</span>}</div></div></div></button>{work.connected && <button className="studio-icon-button" aria-label={t.title+"を編集"} onClick={()=>setEditTask(t)}>⋯</button>}<span aria-hidden="true" className="hidden text-[#b1a7c0] sm:block">↗</span></article>;
     })}</div>
     <p className="mt-5 text-sm leading-7 text-slate-500">完了・整理した記録も「すべて」から確認できます。</p>
-    <div className="mt-8 space-y-4 border-t border-[#eeeaf3] pt-6"><Link className="studio-secondary" href="/tasks/planning">計画・工程を見る</Link><StudioConnection /></div>
+    <div className="mt-8 space-y-4 border-t border-[#eeeaf3] pt-6"><ArchiveAllTasks /><Link className="studio-secondary" href="/tasks/planning">計画・工程を見る</Link><StudioConnection /></div>
     {selected && <TaskDetailSheet key={selected.id} task={selected} onClose={()=>setSelectedId(null)} onNavigateToTask={setSelectedId} />}
     {(adding || editTask) && <StudioEditor kind="task" task={editTask} onClose={()=>{setAdding(false);setEditTask(undefined);}} />}
   </div>;
