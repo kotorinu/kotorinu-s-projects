@@ -14,7 +14,7 @@
 | 外部AI接続 | スコープ付きWork APIを実装 | `docs/work-api.md` |
 | RIALA候補生成 | Welcome、7日前・3日前の副作用なし判定を実装 | `lib/riala-planner/recurring.ts` |
 | RIALA実画面テスト | 2026-09-17〜23に投稿・イベント・DM・Learningを確認 | `operations/riala-test-runs/` |
-| 営業支援 | 商談台本、質問集、保存履歴、練習UIを実装 | `app/sales-script` と関連テスト |
+| 営業支援 | 商談台本、質問集、保存履歴、練習UIを実装。Git正本3版と明示保存時のGitHub同期を追加 | Private `workos-sales-scripts`、`app/sales-script` と関連テスト |
 | UI改善 | TODAY、TASKS、GOALS、PDCA、各領域の階層と可読性を改善 | 2026-09後半のmain履歴 |
 
 ## 完成していないもの
@@ -77,3 +77,5 @@
 - APIや画面が存在するだけでは完成扱いにしない。外部結果の読み戻しまで必要。
 
 より詳しい実装履歴は [completion-status.md](completion-status.md)、全体の不足は [whole-work-os-audit.md](whole-work-os-audit.md) を参照。
+
+- 営業台本のGit自動反映は実装済み。実運用にはVercelへGitHub書き込み用の最小権限トークンを設定し、実コミットと再読込を検証する必要がある。
