@@ -123,12 +123,12 @@ test("RIALA security: logout clears all device sessions without store or valid c
       const result = await POST(request({ command: "logout" }, `${COOKIE}=expired`));
       assert.equal(result.status, 200);
       const cookies = result.headers.getSetCookie();
-      assert.equal(cookies.length, 3);
-      for (const name of [COOKIE, "calendar_reader", "gmail_reader"]) {
+      assert.equal(cookies.length, 4);
+      for (const name of [COOKIE, "calendar_reader", "gmail_reader", "work_os_device"]) {
         const cookie = cookies.find(value => value.startsWith(`${name}=`));
         assert.ok(cookie);
         for (const flag of ["Max-Age=0", "HttpOnly", "Secure"]) assert.ok(cookie.includes(flag));
-        assert.ok(cookie.includes(name === COOKIE ? "SameSite=Strict" : "SameSite=Lax"));
+        assert.ok(cookie.includes(name === COOKIE || name === "work_os_device" ? "SameSite=Strict" : "SameSite=Lax"));
       }
       assert.equal((await POST(request({ command: "logout" }, undefined, "https://other.example.test"))).status, 403);
       assert.equal(calls, 0);

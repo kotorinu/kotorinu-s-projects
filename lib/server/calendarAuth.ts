@@ -16,7 +16,7 @@ export function calendarSessionToken(request: Request) { return readerSessionTok
 export function calendarAuthenticated(request: Request, secret = process.env.RIALA_OPERATOR_SECRET ?? "", now = Date.now()) {
   return readerAuthenticated(request, CALENDAR_COOKIE, PURPOSE, secret, now);
 }
-export function calendarCookie(request: Request, clear = false) {
-  return readerCookie(request, CALENDAR_COOKIE, PURPOSE, PATH, clear);
+export function calendarCookie(request: Request, clear = false, secret?: string) {
+  return readerCookie(request, CALENDAR_COOKIE, PURPOSE, PATH, clear, secret);
 }
 export { cronAuthenticated } from "./readerSession";

@@ -52,8 +52,8 @@ export function readerAuthenticated(request: Request, cookieName: string, purpos
  * the compare-and-swap that reads it. A forged callback has no usable state.
  * The RIALA operator cookie stays Strict — nothing redirects into it.
  */
-export function readerCookie(request: Request, cookieName: string, purpose: string, path: string, clear = false) {
-  const value = clear ? "" : readerSession(purpose, process.env.RIALA_OPERATOR_SECRET!);
+export function readerCookie(request: Request, cookieName: string, purpose: string, path: string, clear = false, secret = process.env.RIALA_OPERATOR_SECRET!) {
+  const value = clear ? "" : readerSession(purpose, secret);
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
   return `${cookieName}=${value}; HttpOnly; SameSite=Lax; Path=${path}; Max-Age=${clear ? 0 : READER_SESSION_MS / 1000}${secure}`;
 }

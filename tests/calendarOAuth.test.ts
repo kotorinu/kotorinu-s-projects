@@ -246,7 +246,8 @@ test("Calendar reader cookie is SameSite=Lax so the Google callback receives it;
     const routeSource = readFileSync("app/api/riala/route.ts", "utf8");
     // Every operator Set-Cookie is identified by its own path, and must stay Strict.
     const operatorCookies = routeSource.match(/[^`]*Path=\/api\/riala[^`]*/g) ?? [];
-    assert.equal(operatorCookies.length, 2, "login and logout both set the operator cookie");
+    // login/logout of the operator cookie, plus logout clearing the Work OS device cookie (2026-09-30).
+    assert.equal(operatorCookies.length, 3, "login and logout set the operator cookie; logout also clears the device cookie");
     for (const line of operatorCookies) {
       assert.match(line, /SameSite=Strict/);
       assert.doesNotMatch(line, /SameSite=Lax|SameSite=None/);

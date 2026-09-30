@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { deviceAuthenticated } from '../../../../lib/server/deviceSession';
+import { deviceAuthenticated, withRenewedDevice } from '../../../../lib/server/deviceSession';
 import { authenticated, equalSecret, sameOrigin } from "../../../../lib/riala-planner/security";
 import { mutateWork, WorkConflict, WorkInputError } from "../../../../lib/work/model";
 import { workStore, executionStore } from "../../../../lib/work/store";
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   try { const store = workStore(); if (!store) return json({ error: "中央保存先が未設定です" }, 503);
     const ledger = await store.read();
     const execution = await executionStore()?.read();
-    return json({ ...ledger, execution });
+    return withRenewedDevice(request, json({ ...ledger, execution }));
   } catch { return json({ error: "中央データを取得できません" }, 503); }
 }
 export async function POST(request: Request) {
