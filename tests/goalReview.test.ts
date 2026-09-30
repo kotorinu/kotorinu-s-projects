@@ -52,3 +52,19 @@ test("中央保存の検証: goalReviews は goalId キーと中身が一致す�
   assert.equal(validSnapshot({ currentDate: "2026-09-30", goalReviews: { other: r } }), false);
   assert.equal(validSnapshot({ currentDate: "2026-09-30", goalReviews: { "g-1month": { ...r, criteria: [{ text: "x", result: "YES", fact: "", reason: "" }] } } }), false);
 });
+
+test("届かなかった原因を集計し、次の目標の下書きに変え方を入れる", async () => {
+  const { missCauses, nextGoalNotes } = await import("../lib/goalReview");
+  const r = startGoalReview(month, undefined, T);
+  r.criteria[0].result = "NOT_MET"; r.criteria[0].cause = "NO_TIME";
+  r.criteria[1].result = "NOT_MET"; r.criteria[1].cause = "WAITING";
+  r.criteria[2].result = "PARTIAL"; r.criteria[2].cause = "NO_TIME";
+  r.criteria[3].result = "MET"; r.criteria[3].cause = "ENERGY"; // 達成は数えない
+  r.next = "営業の枠を毎週先に取る";
+  assert.deepEqual(missCauses(r), [{ cause: "NO_TIME", count: 2 }, { cause: "WAITING", count: 1 }]);
+  const notes = nextGoalNotes(r);
+  assert.match(notes, /^営業の枠を毎週先に取る/);
+  assert.match(notes, /時間を毎週Calendarに先に入れる.*前回: 時間をCalendarに入れていなかった 2件/);
+  assert.equal(validGoalReview(r), true);
+  assert.equal(validGoalReview({ ...r, criteria: [{ ...r.criteria[0], cause: "LAZY" }] }), false);
+});
