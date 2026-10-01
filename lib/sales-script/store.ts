@@ -11,7 +11,7 @@ export function scriptStore(edition = 'mogi') {
 }
 export function updateScript(state: ScriptState, content: string, revision: number, note: string) {
   if (state.version !== revision) throw new Error('conflict');
-  if (typeof content !== 'string' || content.trim().length < 10 || Buffer.byteLength(content) > 120000) throw new Error('invalid');
+  if (typeof content !== 'string' || content.trim().length < 10 || Buffer.byteLength(content) > 180000) throw new Error('invalid');
   if (!state.versions.length) state.versions.push({ id: 0, content: state.content, note: '初期正本', created_at: new Date().toISOString() });
   state.content = content;
   state.versions.push({ id: state.version + 1, content, note, created_at: new Date().toISOString() });
