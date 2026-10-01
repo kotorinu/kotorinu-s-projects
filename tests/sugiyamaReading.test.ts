@@ -7,6 +7,7 @@ import { latestSugiyamaMarkdown } from '../lib/sales-script/sugiyama-latest';
 import { sugiyamaPage } from '../lib/sales-script/sugiyama-page';
 import { questionBankPage } from '../lib/sales-script/question-bank-page';
 import { deepDivePage } from '../lib/sales-script/deep-dive-page';
+import { conversationFlowPage } from '../lib/sales-script/conversation-flow-page';
 
 const context: {SugiyamaReading?: {text: (s: string)=>string; title: (s: string)=>string}} = {};
 runInNewContext(readFileSync('public/sugiyama-reading.js', 'utf8'), context);
@@ -77,6 +78,11 @@ test('deep-dive cheat sheet exposes trigger chains and recognition checks', () =
   for (const text of ['今の仕事が忙しい','月5万円欲しい','案件が取れない','月5〜10万円稼ぎたい','子どもが欲しい','以前サービスを見たがやらなかった']) assert.ok(deepDivePage.includes(text), text);
   assert.ok(deepDivePage.includes('id="search"'));
   assert.ok(deepDivePage.includes('次へ進んでいい条件'));
+});
+
+test('single conversation page connects rapport, planned incongruity, and portfolio presentation', () => {
+  for (const text of ['一本の会話','最初の約10分','なぜ今','未来を映像化','予定不調和','発注者目線','課題認識','対話でPF','必要な支援だけ提案']) assert.ok(conversationFlowPage.includes(text), text);
+  assert.ok(sugiyamaPage.includes('/sales-script/flow'));
 });
 
 test('portfolio need is confirmed in the customer own words before showing the example', () => {
