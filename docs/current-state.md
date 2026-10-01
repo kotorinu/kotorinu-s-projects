@@ -1,6 +1,6 @@
 # AI Work OS 現在地
 
-更新: 2026-09-30
+更新: 2026-10-02
 
 ## 稼働しているもの
 
@@ -14,7 +14,7 @@
 | 外部AI接続 | スコープ付きWork APIを実装 | `docs/work-api.md` |
 | RIALA候補生成 | Welcome、7日前・3日前の副作用なし判定を実装 | `lib/riala-planner/recurring.ts` |
 | RIALA実画面テスト | 2026-09-17〜23に投稿・イベント・DM・Learningを確認 | `operations/riala-test-runs/` |
-| 営業支援 | 商談台本、質問集、保存履歴、練習UIを実装。Git正本3版と明示保存時のGitHub同期を追加 | Private `workos-sales-scripts`、`app/sales-script` と関連テスト |
+| 営業支援 | 商談台本、答え問題集、縦深掘りカンペ、保存履歴、練習UIを実装。トリガーワードから3段階の質問・認識合わせ・後半回収を確認できる。Git正本3版と明示保存時のGitHub同期を追加 | Private `workos-sales-scripts`、`app/sales-script` と関連テスト |
 | UI改善 | TODAY、TASKS、GOALS、PDCA、各領域の階層と可読性を改善 | 2026-09後半のmain履歴 |
 
 ## 完成していないもの
