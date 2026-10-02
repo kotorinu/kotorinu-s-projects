@@ -122,13 +122,20 @@ const scenes: Scene[] = [
     '「PFの枠と、そこへ載せられる仕事実績の両方があったら進めやすそうですか？」'
   ],checkpoint:'自作できる相手には無理に支援へ誘導しない。'},
   {title:'16｜予定不調和：デザイナー紹介へ',purpose:'必要性と自作難度が揃った後、その場で生まれた案のように提案する。',lines:[
-    '「なるほど。だったら、ちょっと一つ案があるんですけど。」',
-    '「私たちの会社に、ライターさん向けのPFを作っているデザイナーさんがいるんですよ。」',
-    '「以前は外部へお願いしていて、仕様によって15万〜20万円くらいかかることもあったんですけど、今は社内で制作できる体制があります。」',
-    '「もし希望されるなら、今案内できる枠と正式な条件を確認できます。」',
-    '「PFだけ作って終わりではなくて、実績として載せられる案件、記事へのフィードバック、その後に迷った時の相談まで含めた形もあります。」',
-    '「ここまで一緒に整えられるなら、具体的な内容を聞いてみたいです？」',
-    '「かなりラフに言うと、ここまで必要なら、もう作っちゃいます？」'
+    '「一回ここまで整理すると、○○さんの場合は【本人の強み】も【使える時間】も【行動量】もある。一方で、企業さんにそれを見せるPFと、掲載できる仕事実績がまだない。ここが今のボトルネックという認識で合っています？」',
+    '「このPFと実績が整ったら、今より企業案件へ進みやすそうですか？」',
+    '「どういうところが一番変わりそうです？」',
+    '「なるほど。だったら、ちょっと一つ案があるんですけど、聞いてみます？」',
+    '「私たちのところに、ライターさん向けのPFを作っているデザイナーさんがいるんですよ。」',
+    '「ただ見た目を作るだけじゃなくて、○○さんの経歴・強み・得意分野を、企業さんが判断しやすい形に一緒に整理して作る形です。」',
+    '「デザイナーさんだけにお願いすると、デザインは作れても、企業さんがライターへ何を求めているかや、その後どう案件へつなげるかまでは分からない場合があります。」',
+    '「私たちの場合は、ライティングの会社として内容も一緒に見ながら、PFを作った後に動けるところまでつなげます。」',
+    '「それと、今の○○さんは実績欄へ載せるものがまだ少ないと思うので、掲載できる案件と、書いた内容へのフィードバックまで含めて整える形があります。」',
+    '「デザイナーさんをご紹介して終わりではなくて、PF作成中や案件に取り組む中で分からないことを相談できる環境もあります。」',
+    '「今話してくださった【本人の不安】まで含めると、この形は役立ちそうですか？」',
+    '「特に、PF・実績・フィードバック・相談環境の中だと、どこが一番必要だと感じます？」',
+    '「もし具体的に検討したいということであれば、現在案内できる内容・制作体制・価格・支払条件を正式資料で確認してご説明できます。内容を聞いてみたいですか？」',
+    '「かなりラフに言うと、ここまで必要なら、一緒に作っていきます？」'
   ],checkpoint:'原文の空き確認・関係性・値引き交渉は分析用として保持。実商談では現在確認できる正式条件だけを案内する。'},
   {title:'17｜内容を本人の課題へ戻す',purpose:'機能を並べず、本人が話した不足と支援内容を対応させる。',lines:[
     '「○○さんの場合、企業さんへ見せる材料には専用PF、仕事実績には掲載できる案件、書き方の不安にはフィードバックが対応します。」',
@@ -140,8 +147,22 @@ const scenes: Scene[] = [
 ];
 
 const esc=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+
+const memoGroups = [
+  ['1｜人物・ラポール','名前／呼び方','今日の状況（休み・仕事終わり・合間）','本業・勤続年数・働き方','相手固有の話題','具体的に褒められる行動・経験','後で戻る本人の言葉／フック'],
+  ['2｜価値観・未来','大切にしている価値観','最終的に作りたい生活・情景','その時の感情','なぜそれを望むのか','いつまでに叶えたいか','その未来に必要な月収・理由'],
+  ['3｜副業を始めた理由','なぜ今動いたのか','なぜ副業なのか','なぜライティングなのか','直近1〜2か月の目標額','週に使える時間'],
+  ['4｜現在地の数字','開始時期','使っている媒体','応募数','返信数','テスト数','受注数','継続数','現在の単価','合計収入','1週間の作業時間'],
+  ['5｜案件獲得の材料','応募先・案件の種類','応募文','プロフィール','PFの有無・中身','仕事実績の有無','得意分野・本業経験','AIを使う工程と本人が直す部分'],
+  ['6｜障害・課題合意','本人が考える取れない理由','一番止まる場面','今の方法を続けた時の見通し','こちらから見えた課題候補A','課題候補B','本人が同意した本当の課題'],
+  ['7｜PFを見せた反応','第一印象','本人が必要だと思った項目','PF＋実績で何が変わると思うか','自作できそうか','自作で難しそうな部分'],
+  ['8｜提案との接続','本人の課題 ↔ 支援内容','一番欲しい支援','内容として役立ちそうか','内容面の疑問','残る不安・守りたいこと','正式条件確認後の判断材料']
+] as const;
+
+const memoHtml=memoGroups.map(([title,...items])=>`<section class="memo-group"><h3>${esc(title)}</h3>${items.map(x=>`<label><span class="box">□</span><b>${esc(x)}</b><i></i></label>`).join('')}</section>`).join('');
+
 const cards=scenes.map((s,i)=>`<details ${i<2?'open':''}><summary>${esc(s.title)}<span>${esc(s.purpose)}</span></summary><div class="body"><h3>杉山さん型スクリプト</h3>${s.lines.map(x=>`<p class="talk">${esc(x)}</p>`).join('')}<p class="check"><b>使う時の確認：</b>${esc(s.checkpoint)}</p></div></details>`).join('');
 
 export const sugiyamaAScriptPage=`<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>杉山さんA＋B 統合スクリプト</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f5f3ed;color:#263029;font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI",sans-serif}header{position:sticky;top:0;z-index:4;background:#fffdf8f0;backdrop-filter:blur(9px);border-bottom:1px solid #ddd7c8;padding:12px 16px;display:flex;gap:14px;overflow:auto;white-space:nowrap}a{color:#315d49;text-decoration:none}nav{display:flex;gap:14px}main{max-width:960px;margin:auto;padding:28px 16px 80px}h1{font-size:clamp(28px,6vw,50px);line-height:1.2;margin:0 0 10px}.lead{font-size:18px}.notice{background:#fff3cf;border:1px solid #dec67c;border-radius:15px;padding:14px 16px;margin:18px 0}.spine{background:#e5f0e8;border:1px solid #bfd2c5;border-radius:15px;padding:14px 16px;margin:18px 0}details{background:#fff;border:1px solid #ddd9ce;border-radius:15px;margin:11px 0;overflow:hidden}summary{cursor:pointer;font-weight:800;padding:16px;list-style:none}summary span{display:block;color:#6a746d;font-size:13px;font-weight:400;margin-top:3px}.body{border-top:1px solid #eee9dc;padding:10px 16px 18px}.body h3{font-size:13px;color:#627069}.talk{background:#f7f8f5;border-left:3px solid #709681;border-radius:8px;padding:10px 12px;margin:8px 0}.check{background:#fff5dc;border-radius:10px;padding:11px 13px;margin-top:13px}@media(max-width:600px){header{font-size:13px}main{padding-top:20px}.lead{font-size:16px}summary{padding:14px}}
-</style></head><body><header><a href="/today">← WorkOS</a><nav><a href="/sales-script">全文台本</a><a href="/sales-script/flow">一本の会話</a><a href="/sales-script/sugiyama-a"><strong>杉山さんA＋B</strong></a><a href="/sales-script/deep-dive">深掘り</a><a href="/sales-script/questions">答え問題集</a></nav></header><main><h1>杉山さんA＋B<br>統合スクリプト</h1><p class="lead">Aの企業目線・慣れの再定義・提案構成に、Bの自然な入り方・短い反応・フック回収・本人固有の強み化を肉付けした統合版です。</p><div class="spine"><b>楽に話せる自己紹介 → 休日・本業・相手固有の話 → フック回収 → 始めた理由 → 強み化 → 二本柱 → AI・学習 → 理想・期限 → 現在地 → 慣れを再定義 → 企業案件 → 問題提起 → 発注者目線 → PF → 自作難度 → 予定不調和 → 正式提案</b></div><div class="notice"><b>使い方</b><br>全文を順番に読み上げず、その場面に合う質問を一つ選びます。Bの良さである短い相づちと「さっき○○と話していましたよね」を使い、相手の言葉を本線へ戻します。原文全文はGドライブの非公開正本に保存。実商談で空き・関係性・価格・権限を話す時は、その時点の正式条件を確認します。</div>${cards}</main></body></html>`;
+*{box-sizing:border-box}body{margin:0;background:#f5f3ed;color:#263029;font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI",sans-serif}header{position:sticky;top:0;z-index:4;background:#fffdf8f0;backdrop-filter:blur(9px);border-bottom:1px solid #ddd7c8;padding:12px 16px;display:flex;gap:14px;overflow:auto;white-space:nowrap}a{color:#315d49;text-decoration:none}nav{display:flex;gap:14px}main{max-width:960px;margin:auto;padding:28px 16px 80px}h1{font-size:clamp(28px,6vw,50px);line-height:1.2;margin:0 0 10px}.lead{font-size:18px}.notice{background:#fff3cf;border:1px solid #dec67c;border-radius:15px;padding:14px 16px;margin:18px 0}.spine{background:#e5f0e8;border:1px solid #bfd2c5;border-radius:15px;padding:14px 16px;margin:18px 0}details{background:#fff;border:1px solid #ddd9ce;border-radius:15px;margin:11px 0;overflow:hidden}summary{cursor:pointer;font-weight:800;padding:16px;list-style:none}summary span{display:block;color:#6a746d;font-size:13px;font-weight:400;margin-top:3px}.body{border-top:1px solid #eee9dc;padding:10px 16px 18px}.body h3{font-size:13px;color:#627069}.talk{background:#f7f8f5;border-left:3px solid #709681;border-radius:8px;padding:10px 12px;margin:8px 0}.check{background:#fff5dc;border-radius:10px;padding:11px 13px;margin-top:13px}.memo-intro{margin-top:26px}.memo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.memo-group{background:#fff;border:1px solid #d9d5c9;border-radius:14px;padding:14px}.memo-group h3{margin:0 0 8px;color:#315d49;font-size:16px}.memo-group label{display:grid;grid-template-columns:22px auto 1fr;gap:5px;align-items:end;margin:7px 0;font-size:13px}.memo-group .box{font-size:16px}.memo-group i{display:block;border-bottom:1px solid #bbb7ac;min-width:30px;height:18px}@media(max-width:600px){header{font-size:13px}main{padding-top:20px}.lead{font-size:16px}summary{padding:14px}.memo{grid-template-columns:1fr}}
+</style></head><body><header><a href="/today">← WorkOS</a><nav><a href="/sales-script">全文台本</a><a href="/sales-script/flow">一本の会話</a><a href="/sales-script/sugiyama-a"><strong>杉山さんA＋B</strong></a><a href="/sales-script/deep-dive">深掘り</a><a href="/sales-script/questions">答え問題集</a></nav></header><main><h1>杉山さんA＋B<br>統合スクリプト</h1><p class="lead">Aの企業目線・慣れの再定義・提案構成に、Bの自然な入り方・短い反応・フック回収・本人固有の強み化を肉付けした統合版です。</p><div class="spine"><b>楽に話せる自己紹介 → 休日・本業・相手固有の話 → フック回収 → 始めた理由 → 強み化 → 二本柱 → AI・学習 → 理想・期限 → 現在地 → 慣れを再定義 → 企業案件 → 問題提起 → 発注者目線 → PF → 自作難度 → 予定不調和 → 正式提案</b></div><div class="notice"><b>使い方</b><br>全文を順番に読み上げず、その場面に合う質問を一つ選びます。Bの良さである短い相づちと「さっき○○と話していましたよね」を使い、相手の言葉を本線へ戻します。原文全文はGドライブの非公開正本に保存。実商談で空き・関係性・価格・権限を話す時は、その時点の正式条件を確認します。</div><div class="memo-intro"><h2>手元で上から埋める商談メモ</h2><p>空欄だけを聞きます。全部の質問を読む必要はありません。<b>6の課題合意が埋まるまでは商品説明へ進まず、8の内容YESが取れてから正式価格へ進みます。</b></p></div><div class="memo">${memoHtml}</div><h2>場面別・全文スクリプト</h2>${cards}</main></body></html>`;
