@@ -4,12 +4,14 @@ import { questionBankPage } from "../../../lib/sales-script/question-bank-page";
 import { deepDivePage } from "../../../lib/sales-script/deep-dive-page";
 import { conversationFlowPage } from "../../../lib/sales-script/conversation-flow-page";
 import { sugiyamaAScriptPage } from "../../../lib/sales-script/sugiyama-a-script-page";
+import { sugiyamaPhrasesPage } from "../../../lib/sales-script/sugiyama-phrases-page";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const path = new URL(request.url).pathname;
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   if (/\/sales-script\/flow\/?$/.test(path)) return new Response(conversationFlowPage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
   if (/\/sales-script\/sugiyama-a\/?$/.test(path)) return new Response(sugiyamaAScriptPage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+  if (/\/sales-script\/phrases\/?$/.test(path)) return new Response(sugiyamaPhrasesPage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
   if (/\/sales-script\/deep-dive\/?$/.test(path)) return new Response(deepDivePage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
   if (/\/sales-script\/questions\/?$/.test(path)) return new Response(questionBankPage, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
   if (/\/sales-script\/?$/.test(path)) {
