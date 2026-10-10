@@ -52,7 +52,7 @@ test("予定の種類ごとに、その時間に開く画面を返す", async ()
 
 test("杉山さんTTP台本は全場面に自分のセリフがあり、できていない3つに印がある", async () => {
   const { ttpScenes, ttpPage, hearingGoal, pfWords, pastFeedback, factMap } = await import("../lib/sales-script/ttp-page");
-  assert.ok(ttpPage.includes("当てはめない") && ttpPage.includes("訴求ポイントのサイン") && ttpPage.includes("ダメ元で確認してみましょうね"));
+  assert.ok(ttpPage.includes("当てはめない") && ttpPage.includes("訴求ポイントのサイン") && ttpPage.includes("ダメ元で確認してみましょうね") && ttpPage.includes("反応ドリル"));
   assert.deepEqual(factMap.map(f => f.n), [1, 2, 3, 4, 5, 6, 7]);
   assert.ok(pfWords.length >= 30 && pastFeedback.length >= 10);
   assert.ok(!/(っす|んすよ|なんすか)/.test(ttpPage));
