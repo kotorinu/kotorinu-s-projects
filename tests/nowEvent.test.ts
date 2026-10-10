@@ -62,7 +62,7 @@ test("杉山さんTTP台本は全場面に自分のセリフがあり、でき�
   assert.ok(ttpScenes.length >= 15);
   for (const s of ttpScenes) assert.ok(s.items.some(i => i.k === "m"), s.title);
   const weak = ttpScenes.filter(s => s.weak).map(s => s.n);
-  for (const n of [2, 3, 4, 6, 8, 9, 12, 15]) assert.ok(weak.includes(n), `scene ${n}`);
+  for (const n of [2, 3, 4, 6, 8, 9, 13, 14]) assert.ok(weak.includes(n), `scene ${n}`);
   assert.ok(ttpPage.includes("今なんで取れてないのかなっていうのが、逆に疑問ですね"));
   assert.ok(!/<\/script/i.test(JSON.stringify(ttpScenes).replace(/</g, "\\u003c")));
 });
