@@ -34,6 +34,14 @@ test("60日チャレンジは11/9からの累計（11/1〜11/8の契約は含め
   assert.equal(st.find(s => s.milestone.id === "nov")!.achieved, 596000);
 });
 
+test("2027年3月に月50万円（契約250万円）までの月ごとの到達基準", async () => {
+  const { SALES_MILESTONES } = await import("../lib/salesProgress");
+  const months = SALES_MILESTONES.filter(m => ["dec", "jan", "feb", "mar"].includes(m.id)).map(m => [m.due, reward(m.target)]);
+  assert.deepEqual(months, [["2026-12-31", 100000], ["2027-01-31", 200000], ["2027-02-28", 350000], ["2027-03-31", 500000]]);
+  const st = milestoneStatuses([], "2027-02-10");
+  assert.equal(currentMilestone(st)?.milestone.id, "feb");
+});
+
 test("残りを何件で埋められるかの目安", () => {
   const opts = fillOptions(500000);
   assert.deepEqual(opts.map(o => [o.label, o.count]), [["アップセル1件（50万円以上の価格で）", 1], ["アップセル（29.8万円）", 2], ["ポートフォリオ最高額（7.98万円）", 7], ["ポートフォリオ平均5万円", 10]]);
