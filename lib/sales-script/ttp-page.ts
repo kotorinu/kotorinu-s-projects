@@ -369,6 +369,17 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <li><b>使い道のある質問だけ掘る</b>：「この答えは、PFかお金の話で使う？」使うなら掘る、使わないなら「そうなんですね」で次へ。一番深く掘るのは「なぜ副業？ → 何を変えたい？ → それっていくら？」。</li>
 <li><b>最後は相手の言葉でまとめて確認</b>：「〜って感じですかね？」「〜っていうことなんですか？」違ったら直してもらう。<span class="src">①24:52／②17:55</span></li>
 </ol></div>
+<div class="box" id="drill"><h2>反応ドリル：よく出る7つ（そうですよね → 質問）</h2>
+<p><small>反論には説得で返さない。一回乗ってから、相手に考えてもらう質問を1つ。電車では、相手のセリフを見て返しを頭の中で言う。</small></p>
+<ol class="five">
+<li><b>「慣れてからにしたい」</b><br>「慣れるのは大事ですよね。ちなみに、何件やったら慣れたことになりそうです？」<span class="src">①22:52–23:32</span></li>
+<li><b>「自信がない」</b><br>「そうですよね、最初は。自信って、どうなったらつきそうですか？」<span class="tag">補助</span><br><small>→「誰かに見てもらえたら」が出たら、場面12のフィードバックで使う。</small></li>
+<li><b>「時間がない」</b><br>「お仕事もありますもんね。一番時間がかかってるのって、どこですか？」<span class="tag">補助</span><br><small>× 計算して「十分ありますよ」と言わない。</small></li>
+<li><b>「実績を作ってから」</b><br>「そう思いますよね。ただ、割と逆になってる人が多くて。履歴書ない状態で応募しても、実績って作りづらいんですよ。」<span class="src">②21:58</span></li>
+<li><b>「自分で作れそう」</b><br>「いいですね。ただ、独学で作ったけどオファーが全然来ないっていう人も、割といるんですよ。」<span class="src">①39:04</span></li>
+<li><b>「考えます」「大丈夫です」</b><br>「ちなみに、どの部分で不安はないですか？」→「もしそこが解消されたら、やってみたいと思いますか？」<span class="src">実践者FB</span></li>
+<li><b>「家族に相談します」</b><br>「ぜひ相談してください。ちなみに、ご家族には何て伝えます？」→ 魅力に感じたところ・なぜ今か・家族にとってのメリットを一緒に整理 →「今日何時頃に相談できそうですか？」<span class="src">実践者FB</span></li>
+</ol></div>
 <div class="box" id="lost"><h2>迷子になった時・訴求ポイントの見つけ方</h2>
 <p><b>売ろうとしない</b>。相手の関心ごとを聞いて、役に立てるところが見つかったら、そこだけ深く掘る。</p>
 <p><b>訴求ポイントのサイン</b>（ここで止まって掘る）</p><ul><li>声が上がる・笑う・ため息（熱量）</li><li>「どうしても」「絶対」「しんどい」「やばい」</li><li>何度も出てくる言葉</li><li>お金がかかる話（趣味・家族・生活）</li></ul>
@@ -407,7 +418,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <details class="box ng"><summary><b>言わない言葉 → 杉山さんの言い方</b></summary><ul id="ng"></ul></details>
 <details class="box" id="pfbox"><summary><b>PFを欲しいと思わせる杉山さんの言葉（全部）</b></summary><p><small>理解用。商談では場面9の8行だけ使い、相手がピンときていない時にここから1つ足す。</small></p><ul id="pflist"></ul></details>
 <details class="box" id="fb"><summary><b>今までに言われてきたこと（FB）と対応</b></summary><ul id="fblist"></ul></details>
-<details class="box"><summary><b>練習の順番</b></summary><ol><li>①地図と②5つを、見ずに言えるようにする</li><li>「★できていない所だけ」＋暗記モードで、場面2・3・4・6 → 8・9 → 13・14</li><li>③着地点の3つ（生活・理由・差）を見ずに言う</li><li>台本を通しで → 画面を見ずに</li></ol></details>
+<details class="box"><summary><b>練習の順番</b></summary><ol><li>①地図と②5つを、見ずに言えるようにする</li><li>反応ドリル7つを、相手のセリフを見て返せるようにする</li><li>「★できていない所だけ」＋暗記モードで、場面2・3・4・6 → 8・9 → 13・14</li><li>③着地点の3つ（生活・理由・差）を見ずに言う</li><li>台本を通しで → 画面を見ずに</li></ol></details>
 <p class="note">暗記モード：自分のセリフがぼかされます。言ってからタップして答え合わせ。設定はこの端末だけに残ります。<br>関係性（仲がいい等）と特別価格は、実際にそうなっている時・確認した時だけ言います。金額は最新の正式条件で。</p></main>
 <script type="application/json" id="data">${data}</script>
 <script>
