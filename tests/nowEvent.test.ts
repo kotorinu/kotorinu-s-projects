@@ -51,7 +51,8 @@ test("予定の種類ごとに、その時間に開く画面を返す", async ()
 });
 
 test("杉山さんTTP台本は全場面に自分のセリフがあり、できていない3つに印がある", async () => {
-  const { ttpScenes, ttpPage, hearingGoal } = await import("../lib/sales-script/ttp-page");
+  const { ttpScenes, ttpPage, hearingGoal, pfWords, pastFeedback } = await import("../lib/sales-script/ttp-page");
+  assert.ok(pfWords.length >= 30 && pastFeedback.length >= 10);
   assert.ok(!/(っす|んすよ|なんすか)/.test(ttpPage));
   assert.ok(hearingGoal.some(g => g.item.includes("家族")) && hearingGoal.some(g => g.item.includes("お金")));
   assert.ok(!ttpPage.includes("将来的に目標を達成するために"));

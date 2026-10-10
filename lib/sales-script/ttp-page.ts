@@ -217,7 +217,63 @@ const scenes: Scene[] = [
 
 export const ttpScenes = scenes;
 
-const data = JSON.stringify({ scenes, hearingGoal, askPatterns, ngWords, visualize }).replace(/</g, "\\u003c");
+/** これまでに受けたFBと、この台本のどこで直しているか。 */
+export const pastFeedback: { fb: string; fix: string }[] = [
+  { fb: "ヒアリングで、一つひとつの回答をさらに深掘りする（「なぜですか？」「もう少し詳しく」）", fix: "縦掘りの型・場面2〜4・6" },
+  { fb: "背景まで聞く：お金（支払い・予算・今後の負担）、生活（普段の生活・家族構成・仕事・生活リズム）、なぜ今相談したのか、理想、何を重視して決めるか", fix: "ヒアリングの着地点" },
+  { fb: "聞いた内容を整理して「つまり〇〇で合っていますか？」と確認する。理解したつもりで決めつけない", fix: "場面4の最後・場面7の最後（〜って感じですかね？）" },
+  { fb: "質問を頭に入れておき、スクリプトを追わずに会話の中で自然に聞く", fix: "着地点と聞き方5つを先に覚える" },
+  { fb: "「PFを売らなきゃ」ではなく「この人をもっと知りたい」から始める", fix: "場面2〜6はPFの話をしない" },
+  { fb: "PFの説明を入れすぎると営業されている感じが出る。資料は見せずに提案まで、PFはサクッと見せる", fix: "場面9は8行だけ" },
+  { fb: "まずPFを欲しいと思わせ、そこから案件・FB・金額交渉につなげる", fix: "場面9 → 13 → 14 → 15" },
+  { fb: "「PF大事かなーと思いましたか？」をもっと強く、自然に。相手に気づかせる", fix: "「多分ここが一番今ボトルネックじゃないですか」と言い切る（場面9）" },
+  { fb: "32分ごろのPFへの移りが弱い。期待と違う答えで慌てない", fix: "場面8「逆に疑問ですね」・場面10の「もし」" },
+  { fb: "提案するつもり感を出さずに成約まで → 予定不調和を使う", fix: "場面12・15" },
+  { fb: "「サポートさせて欲しいです」は相手目線で「ん？」となる／「作らせていただきたい」→「作っちゃいます？」", fix: "言わない言葉" },
+  { fb: "価格は自信を持って。売りたい感を出さない。「お金をかけたくない」気持ちに合わせて提示・交渉する", fix: "場面11・14・15" },
+  { fb: "クロージングで、お客様の感情に寄り添った訴求を入れる", fix: "場面15「生活状況とかもあって…」「本気でやっていきたい気持ちは伝わってきたので」" },
+  { fb: "（良かった点）PFの理解が上がった／共感と丁寧さが上がった／収益化までのルートを説明できている", fix: "そのまま続ける" },
+];
+
+/** PFを欲しいと思わせるために杉山さんが言っている言葉（2本から全部）。商談では場面9の8行だけ使い、ここは理解用。 */
+export const pfWords: { t: string; src: string }[] = [
+  { t: "今なんで取れてないのかなっていうのが、逆に疑問ですね。", src: "①29:42" },
+  { t: "企業さんが最初に案件を振りたいと思う人って、ポートフォリオを活用してるかしないか、っていうところもあるんですけど、そういったものって今現状使ったりします？", src: "①29:51" },
+  { t: "企業さんが見てるのって、人柄っていうか、どういう人なのかってところが1番気になるんですよ。", src: "①33:01" },
+  { t: "クラウドワークスのプロフィールって、全員が使えるプロフィールになるので、あんまり差がなくなっちゃうんですよ。", src: "①33:22" },
+  { t: "ポートフォリオで1番伝えた方がいいのは、内面的な、どういう人なのかってところなんですよね。", src: "①33:32" },
+  { t: "結局、どういう人なのか話してみようかなってなったら、文面のポートフォリオの内面的なところを見るしかないんですよ。", src: "①33:49" },
+  { t: "成果物を作ってからポートフォリオってよりかは、ポートフォリオを作って内面的な部分をお伝えしたら、そもそも向こうからオファーが来るような状態を作ってた方がいいよね、って感じなんですよ。", src: "①34:03" },
+  { t: "始めたてのライターさんだと、この認識が分からない人も結構いるので。", src: "①34:17" },
+  { t: "デザイン性がある方が、しっかりやってるって感じするじゃないですか。それがあって、そこからやっとプロフィールとか、その人の内面的なところを見ようって感じになるんですよ、企業さんって。", src: "①34:51" },
+  { t: "1件のところに150件とか応募が集まる中で、プロフィールだけ使ってる人は弾かれて、しっかり活動されてるなっていう人のポートフォリオがあるところから、まず連絡いくんですよ。", src: "①35:08" },
+  { t: "企業さんが特に重要視してるのは、その人の人柄とか、しっかり守れますとか、記事を書く上でどういった思いで書いていきますよとか。仕事をお願いしたいんだけど、どういう人か分からないから、ポートフォリオ持ってない人は弾いちゃいますっていう企業さんもいたりするので、ここが今どれだけ伝わってるか、って感じなんですよ。", src: "①35:33" },
+  { t: "制作実績を載せると、その人が今までどういうことをやってきたかが分かって、得意ジャンル、対応可能業務、スキル、料金も載せていて。クラウドワークスだと、多分見られてないんですよ、現状。", src: "①36:01" },
+  { t: "もったいないなと思って、すごく。だって【相手の経験】で知識も学ばれて、自分から応募したら返ってくるぐらい、求められる人だと思うんですよ。", src: "①36:18" },
+  { t: "最後にお問い合わせを置いておくと、『○○さん興味あったので、お仕事お願いしてもいいですか』『継続的にお願いしたいんですけどいいですか』って、割と高額な案件が回ってくるみたいなイメージなので。この認識が、結構今大きいんじゃないかなって。", src: "①36:40" },
+  { t: "自分たちからしたら、もう履歴書持たずに応募してるようなものなので。履歴書ない人に仕事が回ってくるわけがなくないですか、みたいなところなんですよ。", src: "①37:12" },
+  { t: "誠実さとか、そういったところもつながってくるじゃないですか。だから継続関係につながりにくかったり、頼まれても低額なものになってしまったり。その人にお願いしたいっていう思いは企業さんにもあるんですけど、どういう人か分からないっていうところなので。", src: "①37:30" },
+  { t: "ここ作ってから動いた方が1番いいかなっていうのが今の感覚で、多分ここが一番今ボトルネックじゃないですか、多分。", src: "①37:54" },
+  { t: "自分たちからしたら、ほぼもう履歴書なので、あれって。もう名刺を渡してるようなものなんですよ、ポートフォリオっていうのは。", src: "②19:45" },
+  { t: "そこを持たないで案件を取りに行っても、それこそ10件中3件しか返ってこないとか、そういったケースになってしまうので。企業さんが気にしてるのは、実績の欄もそうなんですけど、どういった人なのかってところなんですよ。", src: "②19:52" },
+  { t: "企業さんと話すと、本気でやろうと思ってるのかが分からない、ってすごく言われるんですよ。", src: "②20:09" },
+  { t: "良さそうな人に連絡を取ってみるんだけど、納期を守ってくれなかったり、応募してくれたから連絡を返したのに、逆に連絡が返ってこないとかっていうケースもあるんですよ。", src: "②20:29" },
+  { t: "優先的に連絡する基準に、ポートフォリオを持ってるか持ってないか、っていう企業さんもいたんですよ。そもそも持ってなかったら連絡返せないよっていう人もいるっていうのは、認識しておいた方がいいかなと思ってて。", src: "②21:29" },
+  { t: "ここのポートフォリオを作ってから、案件の受注率とか、仕事の依頼をもらって、それを実績につなげていくっていう流れが1番いいかなと思ってて。", src: "②21:49" },
+  { t: "割と逆になってる人いるんですよ。実績ないからポートフォリオ作れないよね、って。いや、逆でしょう、みたいな。履歴書ない状態で応募しても、実績なんか作れないでしょっていう状態なので。", src: "②21:58" },
+  { t: "これ見た時に、あ、しっかりやってきてるなって感じしないですか？ なので、まず履歴書を見てもらう、っていう段階に至って欲しいんですよ。", src: "②23:08" },
+  { t: "経歴とか強みのところで、本業の経験も結構強みになると思いますし、納期をしっかり守って提出していきますよ、っていう誠意っていうか、その人の人柄が本当に気になる部分なので、ここはすごく載せていいのかなって。", src: "②23:35" },
+  { t: "制作実績も、実際にお仕事をもらってから実績欄に付け加えていくことで、不信感は割と払拭できる部分にもなってくるので。載せた方が、企業さんから連絡が来るケースが高くなるので。", src: "②24:01" },
+  { t: "その人しか書けない記事とかジャンルだと、結構企業さんも求めてきたりもするので、そういった形で得意ジャンルを載せていただければ。", src: "②25:01" },
+  { t: "1番怖いのは、プロフィールをすごく充実させて、資格もしっかり書いたから大丈夫でしょう、っていう人。みんな同じように使えるプロフィールになっちゃうので、そもそも見られてないですよ、っていうのは言っておいた方がいいかなと思って。", src: "②26:23" },
+  { t: "本当に【相手の名前】さんと仕事がしたいって思うような企業さんは、絶対に回ってこないですよ。何も知らないので。ここのプロフィール画面を見てくれる＝【相手の名前】さんにもちょっと興味がある人なんですよ。", src: "②26:43" },
+  { t: "ここで150%を出していただいて、最後に、ここまで知ってくれた方で、もし自分とお仕事したいよっていう人がいたら、お問い合わせを載せていただく形にすると、企業さんからオファーが来るような状態なんですよ。", src: "②27:13" },
+  { t: "なんで稼げてる人と稼げない人が極端に分かれてるのかって言うと、そこのオファーなしに、クラウドワークスで低単価のものをバンバン送っても、月数千円しかいかないんですよ。", src: "②27:24" },
+  { t: "企業さんから連絡が来て、その案件に対して、これやりたいからやってみますってなると、継続になったり、高額案件につながってくるので。", src: "②27:45" },
+  { t: "なので、これは作ってから稼働するのがいいかなと思うので。", src: "②28:10" },
+];
+
+const data = JSON.stringify({ scenes, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
 
 export const ttpPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>杉山さんTTP台本｜緒方 Sales Script</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f5f0;color:#24302a;font:17px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
@@ -227,7 +283,7 @@ header .row{display:flex;gap:12px;align-items:center;overflow:auto;white-space:n
 main{max-width:760px;margin:auto;padding:20px 16px 90px}h1{font-size:26px;line-height:1.4;margin:0 0 6px}.lead{color:#5f6b63;margin:0 0 14px;font-size:15px}
 .box{background:#fff;border:1px solid #dcdcd2;border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:15px}.box h2{font-size:17px;margin:0 0 8px}.box ol,.box ul{margin:0;padding-left:20px}.box li{margin:6px 0}.box small{color:#6b766f}
 .weak-box{background:#fff4e5;border-color:#f0cf9c}.weak-box h2{color:#8a4b00}
-.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
+.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
 .ng s{color:#a33}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}.toc a{background:#fff;border:1px solid #dcdcd2;border-radius:999px;padding:4px 10px;font-size:13px;color:#24302a}.toc a.weak{border-color:#f0cf9c;background:#fff4e5}
 section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;padding:16px;margin:0 0 16px}section.scene h2{font-size:19px;line-height:1.5;margin:0 0 4px}
 .goal{font-size:14px;color:#5f6b63;margin:0 0 10px}.tag{display:inline-block;font-size:12px;font-weight:700;color:#8a4b00;background:#fff4e5;border:1px solid #f0cf9c;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:middle}.gets{display:inline-block;font-size:12px;color:#2f5f8a;background:#eef3fb;border-radius:6px;padding:0 6px;margin-left:6px}
@@ -243,10 +299,21 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script">全文台本</a><a href="/sales-script/sugiyama-a">杉山さんA＋B</a><a href="/sales-script/phrases">言葉集</a></div>
 <div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="weak" aria-pressed="false">★できていない所だけ</button><button id="mine" aria-pressed="false">自分のセリフだけ</button></div></header>
 <main><h1>杉山さんTTP台本</h1><p class="lead">杉山さんの商談2本から、杉山さんの言葉をそのまま並べました。自分の色は入れていません（くだけた言葉づかいだけ丁寧にしています）。上から順に覚えれば、ロープレ1本を通しで話せます。目標は、画面を見ずに言えること。【 】は相手の言葉を入れる場所、右の小さい数字は文字起こしの位置です。</p>
+<div class="box" id="ready"><h2>ロープレ合格の準備（この台本で揃っているもの）</h2><ol>
+<li><a href="#goalbox">ヒアリングの最終ゴール（着地点）</a></li>
+<li><a href="#fb">今までに言われてきたこと（FB）と、どこで直しているか</a></li>
+<li><a href="#visbox">PFにつながる未来を思い描いてもらうために、聞くこと・話すこと</a></li>
+<li><a href="#pfbox">PFを欲しいと思わせる杉山さんの言葉（全部）</a></li>
+<li><a href="#s2">ゴールに導く質問（時間・お金・生活をどう聞くか）：場面2〜7</a></li>
+<li><a href="#s9">訴求文（PFを欲しいと思わせる）：場面8〜11</a></li>
+<li><a href="#s12">予定不調和（デザイナーさんに聞いてみる）：場面12・15</a></li>
+</ol><p><small>あとは覚えるだけ。①★だけを暗記モードで → ②着地点8つを見ずに言う → ③全体を通しで → ④画面を見ずに。</small></p></div>
 <div class="box weak-box"><h2>★今できていない3つ</h2><ol><li>ヒアリングの縦掘り（2・3・4・6）</li><li>PFを欲しいと思わせる（8・9）</li><li>予定不調和「じゃあデザイナーさんに聞いちゃいますよ」（12・15）</li></ol></div>
-<div class="box"><h2>ヒアリングの着地点（全部埋まったら提案へ）</h2><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
-<div class="box"><h2>未来を思い描いてもらう材料（映像化）</h2><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></div>
+<div class="box" id="goalbox"><h2>ヒアリングの着地点（全部埋まったら提案へ）</h2><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
+<div class="box" id="visbox"><h2>未来を思い描いてもらう材料（映像化）</h2><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></div>
 <div class="box"><h2>杉山さんの聞き方 5つ</h2><ul id="patterns"></ul></div>
+<details class="box" id="fb"><summary><b>今までに言われてきたこと（FB）</b>（タップで開く）</summary><ul id="fblist"></ul></details>
+<details class="box" id="pfbox"><summary><b>PFを欲しいと思わせる杉山さんの言葉（全部）</b>（タップで開く）</summary><p><small>理解用。商談では場面9の8行だけ使い、相手がピンときていない時にここから1つ足す。</small></p><ul id="pflist"></ul></details>
 <div class="box ng"><h2>言わない言葉 → 杉山さんの言い方</h2><ul id="ng"></ul></div>
 <p class="lead">流れ：生活を知る → お金・理想 → 現在地 → 原因 → PFをサクッと → 自作の確認 → 相場 → デザイナーに聞く → 案件・FB → 金額 → いくらなら → 確認 → 内緒で</p>
 <nav class="toc" id="toc"></nav><div id="scenes"></div>
@@ -258,11 +325,14 @@ function hi(s){return e(s).replace(/【([^】]*)】/g,'<b>【$1】</b>')}
 document.getElementById('goal').innerHTML=D.hearingGoal.map(function(g,i){return '<div class="goal-row"><b>'+(i+1)+'. '+e(g.item)+'<span class="src">'+e(g.src)+'</span></b><div class="how">'+hi(g.how)+'</div><div class="use">提案で使う：'+e(g.use)+'</div></div>'}).join('');
 document.getElementById('patterns').innerHTML=D.askPatterns.map(function(p){return '<li><b>'+e(p.name)+'</b><br>「'+hi(p.ex)+'」<span class="src">'+e(p.src)+'</span></li>'}).join('');
 document.getElementById('vis').innerHTML=D.visualize.map(function(v){return '<li><b>'+e(v.item)+'</b><br>「'+hi(v.how)+'」<span class="src">'+e(v.src)+'</span></li>'}).join('');
+document.getElementById('fblist').innerHTML=D.pastFeedback.map(function(f){return '<li>'+e(f.fb)+'<br><small>→ '+e(f.fix)+'</small></li>'}).join('');
+document.getElementById('pflist').innerHTML=D.pfWords.map(function(w){return '<li>「'+hi(w.t)+'」<span class="src">'+e(w.src)+'</span></li>'}).join('');
 document.getElementById('ng').innerHTML=D.ngWords.map(function(w){return '<li><s>'+e(w.ng)+'</s><br>→「'+e(w.say)+'」<span class="src">'+e(w.src)+'</span></li>'}).join('');
 var toc='',out='';S.forEach(function(s){toc+='<a href="#s'+s.n+'"'+(s.weak?' class="weak"':'')+'>'+s.n+(s.weak?'★':'')+'</a>';out+='<section class="scene'+(s.weak?' weak':'')+'" id="s'+s.n+'"><h2>'+s.n+'｜'+e(s.title)+(s.weak?'<span class="tag">★'+e(s.weak)+'</span>':'')+'</h2><p class="goal">ゴール：'+e(s.goal)+(s.gets?'<span class="gets">聞けること：'+e(s.gets)+'</span>':'')+'</p>';
 s.items.forEach(function(i){var src=i.src?'<span class="src">'+e(i.src)+'</span>':'';if(i.k==='m')out+='<div class="m"><div class="who">緒方'+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else if(i.k==='c')out+='<div class="c"><div class="who">相手</div>'+hi(i.t)+'</div>';else if(i.k==='b')out+='<div class="b"><div class="if">もし：'+e(i.if)+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else out+='<div class="n">'+hi(i.t)+'</div>'});out+='</section>'});
 document.getElementById('toc').innerHTML=toc;document.getElementById('scenes').innerHTML=out;
 var b=document.body,keys={memory:'hide',weak:'only-weak',mine:'mine-only'};function get(k){try{return localStorage.getItem('ttp-'+k)==='1'}catch(x){return false}}function set(k,v){try{localStorage.setItem('ttp-'+k,v?'1':'0')}catch(x){}}
 Object.keys(keys).forEach(function(k){var btn=document.getElementById(k);function apply(v){b.classList.toggle(keys[k],v);btn.setAttribute('aria-pressed',String(v))}apply(get(k));btn.onclick=function(){var v=!b.classList.contains(keys[k]);apply(v);set(k,v)}});
+document.querySelectorAll('#ready a').forEach(function(a){a.addEventListener('click',function(){var d=document.querySelector(a.getAttribute('href'));if(d&&d.tagName==='DETAILS')d.open=true})});
 document.getElementById('scenes').addEventListener('click',function(ev){var t=ev.target.closest('.m,.b');if(t&&b.classList.contains('hide'))t.classList.toggle('shown')});})();
 </script></body></html>`;
