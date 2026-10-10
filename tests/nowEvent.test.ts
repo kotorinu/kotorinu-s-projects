@@ -41,11 +41,21 @@ test("予定の種類ごとに、その時間に開く画面を返す", async ()
   assert.deepEqual(hrefs("【日報】1日の振り返り→明日やること（30分）"), ["/pdca"]);
   assert.deepEqual(hrefs("【週次】今週の振り返り→来週の計画をCalendarへ（1時間）")[0], "/pdca?period=week");
   assert.deepEqual(hrefs("【月次】今月の振り返り→来月の目標を再設計（3時間）")[0], "/goals");
-  assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script"]);
+  assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script/ttp", "/sales-script"]);
   assert.deepEqual(hrefs("【RIALA】21:30 状況確認", "10"), ["/area/riala"]);
   assert.deepEqual(hrefs("【読書｜昼30分】鬼速PDCA", "5"), []);
-  assert.deepEqual(hrefs("【朝30分】ルーズリーフ読み上げ5分→スクリプト音読・暗唱", "9"), ["/declaration", "/sales-script"]);
+  assert.deepEqual(hrefs("【朝30分】ルーズリーフ読み上げ5分→スクリプト音読・暗唱", "9"), ["/declaration", "/sales-script/ttp"]);
   assert.deepEqual(hrefs("【水曜1時間】週間目標の判定→来週の進め方→野上さんへ進捗DM", "9")[0], "/sales-progress");
   assert.deepEqual(hrefs("【日曜1時間】水曜までに週間目標をやりきれるかの確認", "9")[0], "/sales-progress");
   assert.deepEqual(hrefs("【夜20分】良かった1つ・ダメだった1つ→深掘り→明日の改善", "8"), ["/pdca"]);
+});
+
+test("杉山さんTTP台本は全場面に自分のセリフがあり、できていない3つに印がある", async () => {
+  const { ttpScenes, ttpPage } = await import("../lib/sales-script/ttp-page");
+  assert.ok(ttpScenes.length >= 15);
+  for (const s of ttpScenes) assert.ok(s.items.some(i => i.k === "m"), s.title);
+  const weak = ttpScenes.filter(s => s.weak).map(s => s.n);
+  for (const n of [2, 3, 4, 6, 8, 9, 10, 12, 14]) assert.ok(weak.includes(n), `scene ${n}`);
+  assert.ok(ttpPage.includes("今なんで取れてないのかなっていうのが、逆に疑問すね"));
+  assert.ok(!/<\/script/i.test(JSON.stringify(ttpScenes).replace(/</g, "\\u003c")));
 });
