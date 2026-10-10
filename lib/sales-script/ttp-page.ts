@@ -17,16 +17,61 @@ type Item =
 
 interface Scene { n: number; title: string; goal: string; weak?: string; gets?: string; items: Item[] }
 
-/** ヒアリングの着地点: これが全部埋まって、要約して相手が「そうです」と言ったら提案へ進む。 */
-export const hearingGoal: { item: string; how: string; src: string; use: string }[] = [
-  { item: "仕事・働き方・生活リズム", how: "お休みですか？→何のお仕事？→何年？→（ベテランじゃないですか）→在宅？出社？→フルタイムで8〜9時間？", src: "②0:38–3:27", use: "使える時間・作業できる時間帯" },
-  { item: "家族構成・住まい", how: "（部屋を褒める）→お家建てたんですか？→誰かと一緒に住んでるんですか？／家族の仕事はいつ頃から止まってるんですか？", src: "②3:48–4:26／①6:52", use: "相談相手・お金の事情・決める人" },
-  { item: "意思決定のしかた（価値観）", how: "なんで【そこ】に行こうと思ったんですか？→（行動力すごいですね）", src: "②5:22–6:23", use: "最後に「決めたら動ける人」として返す" },
-  { item: "なぜ今・始めたきっかけ", how: "ライティング始めようと思ったきっかけって？／なんでライティングに落ち着いたんですか？", src: "①2:13／②9:30", use: "未来を欲しい理由" },
-  { item: "お金：収入・支払い・負担", how: "本業ぐらい稼ぎたい感じ？→（理由が出る）→それっていくらかかるんですか？→今回の分は払えそうなんですか？", src: "①4:49／②16:52–17:45", use: "予算感・一括か分割か・お金をかけたくない気持ち" },
-  { item: "理想・金額・期限", how: "目標どのぐらい稼ぎたいって金額、決まってます？→（最終と直近）→毎月10万が都度来てる状態が理想ですかね？", src: "①16:26／②17:55", use: "未来と今の差" },
-  { item: "現在地（期間・件数・金額）", how: "どのぐらい経ってます？→10件応募して何件返ってきてます？→10件で何円ぐらい？→え、安くないですか？", src: "①17:18–28:53", use: "このままでは届かない" },
-  { item: "本人が考える原因", how: "文章力は問題ないと思うんですよ。今なんで取れてないのかが逆に疑問ですね", src: "①29:30–29:42", use: "PFへ入る" },
+/**
+ * ヒアリングの着地点: これが全部埋まって、要約して相手が「そうです」と言ったら提案へ進む。
+ * 各項目は、知りたいこと（subs）ごとに「聞き方」と「次につなぐ一言」を持つ。聞いて終わりにしない。
+ * src が「補助」のものは杉山さんの原文に無い質問（杉山さんは相手が自分から話した）。
+ */
+export interface HearingSub { know: string; ask: string; src: string; next: string }
+export const hearingGoal: { item: string; src: string; use: string; subs: HearingSub[] }[] = [
+  { item: "仕事・働き方・生活リズム", src: "②0:38–3:41", use: "使える時間・作業できる時間帯・本業のしんどさ（ペイン）・PFに載せる強み", subs: [
+    { know: "休みの日", ask: "今日はお休みなんですか？ 土日休みですか？", src: "①0:33／②0:48", next: "（そのまま仕事の話へ）" },
+    { know: "仕事の内容", ask: "ちなみに、本業の方って何をされているんですか？", src: "②0:48", next: "【仕事】って、結構大変だなってイメージあるんですよ。（②2:04 → 相手がしんどさを話す）" },
+    { know: "年数（強み）", ask: "どのぐらいお勤めされてるんですか？", src: "②1:05", next: "え、もうベテランじゃないですか？（→ PFに載せる強み）" },
+    { know: "在宅か出社か", ask: "在宅でお仕事されてるみたいな感じなんですか？", src: "②2:47", next: "じゃあ月曜日から金曜日までは、ほぼほぼ出社でやって、って感じですか？" },
+    { know: "勤務時間", ask: "フルタイムで8時間とか9時間ぐらい、会社に縛られちゃう感じですか？", src: "②3:19", next: "「縛られちゃう」で共感して止める。休憩・空き時間の話が出たら覚えておく（②3:31）" },
+    { know: "1日の流れ（生活リズム）", ask: "お仕事が終わるのって、何時くらいなんですか？", src: "補助", next: "そこから夜は、どんな感じで過ごされてるんですか？（補助）" },
+    { know: "副業に使える時間（ここでは聞かない。きっかけを聞くと相手から出る：②9:44「今の部署がすごく暇で」）", ask: "その時間って、1日どれくらいあるんですか？", src: "②9:44の後・補助", next: "それだったら、その時間をお金に変えられたら、すごくいいですよね。（→ 映像化の材料）" },
+  ] },
+  { item: "家族構成・住まい", src: "②3:48–4:32／①6:52–8:53", use: "自分の時間・お金の事情・相談して決める人がいるか", subs: [
+    { know: "住まい", ask: "（部屋を褒めて）すごく綺麗ですね。お家建てたんですか？", src: "②3:58–4:11", next: "え、いいじゃないですか。" },
+    { know: "同居・家族", ask: "お住まい的に、誰かと一緒に住んでるみたいな感じなんですか？", src: "②4:18", next: "（一人なら）え、すごく贅沢じゃないですか？（②4:26）→ じゃあ、お家だと自分の時間って結構取れる感じですか？（補助）" },
+    { know: "家族の仕事・収入の状況", ask: "その仕事の方は、いつ頃からストップしちゃってるんですか？", src: "①6:52", next: "その本業の【家族】さんの方は、まだ継続的にやろうかなって思ってるんですか？（①8:53 → 収入が戻る見込み）" },
+    { know: "相談して決める人", ask: "こういうことって、ご家族に相談して決める感じですか？ それともご自身で決める感じですか？", src: "補助", next: "（最後に「家族に相談します」で止まらないように、ここで知っておく）" },
+  ] },
+  { item: "意思決定のしかた（価値観）", src: "②5:22–6:47", use: "最後に「決めたら動ける人」として返す", subs: [
+    { know: "大きな決断と理由", ask: "なんでそれこそ【そこ】に行こうと思ったんですか？", src: "②5:22", next: "すごいですね。行動力がありますね。慣れた地元から一歩踏み出すって、結構ハードル高いなって思うので。（②6:17）" },
+    { know: "大事にしていること", ask: "（理由の中の言葉をくり返す）【やったことないことをやりたい】って思われたんですね。", src: "②6:03の受け止め", next: "（覚えておき、クロージングで「本気でやっていきたい気持ちは伝わってきたので」に使う）" },
+  ] },
+  { item: "なぜ今・始めたきっかけ", src: "①2:13–4:42／②9:30–14:30", use: "未来を欲しい理由・お金をかけたくない気持ち", subs: [
+    { know: "きっかけ", ask: "ライティングをスタートしようかなと思ったきっかけって、あったんですか？", src: "①2:13", next: "そうなると、本業とは別の稼ぎ頭っていうか、柱が別に欲しくなってきますもんね。（①6:34）" },
+    { know: "本業がある中でなぜライティングか", ask: "本業で働きながら、このライティングってところに、なんで落ち着いたのかってところですよね。", src: "②9:30", next: "でもそれ、すごく頭いいなと思ってて。（②11:28）" },
+    { know: "いつから", ask: "ライティング自体は、いつ頃からスタートしたんでしたっけ？", src: "②12:33", next: "（→ 現在地へ）" },
+    { know: "なぜ今なのか（前はしなかった理由）", ask: "（相手が話したら受け止める）", src: "①3:32の後", next: "確かに、以前だとライティングっていう言葉自体も、みんなの共通認識としてあまりなかったですもんね。（①4:27）" },
+    { know: "学び方・お金をかけたか", ask: "AIのところで学んでるって、どこかで学んでるんですか？ スクールさんとかで。", src: "①13:52", next: "実質的に、別にお金をかけてやってるっていうか、そういうのでやってるみたいな感じですかね。（①14:50 → お金をかけたくない気持ちを知る）" },
+  ] },
+  { item: "お金：収入・支払い・負担", src: "①4:49–6:34／②15:42–17:45", use: "予算感・一括か分割か・「お金をかけたくない」への寄り添い", subs: [
+    { know: "稼ぎたい額と本業の収入", ask: "どのぐらい稼ぎたいとかってあります？ 本業ぐらい稼ぎたいよって感じなんですか？", src: "①4:49", next: "（本業の収入の話が出る）今ちなみに、本業の方にプラスアルファで5万、10万ぐらい、ってところですよね。（②15:42）" },
+    { know: "使い道・今の負担", ask: "（理由が出たら）え、それっていくらぐらいかかるんですか？", src: "②16:52", next: "現状すごくカツカツってわけじゃないけど、継続的に【理由】ってなった時に、ちょっと厳しいっていう。（②17:32）" },
+    { know: "収入が止まっている・貯金", ask: "（相手が話したら受け止める）", src: "①6:06の後", next: "そうなると、やっぱり他の収益になるところが、別に欲しくなってきますもんね。それこそ在宅でできる。（①6:34）" },
+    { know: "今の支払い状況", ask: "でも、今回の分は問題なく行けそうな感じあるんですか？", src: "②17:45", next: "あ、それは良かったです。" },
+    { know: "これからの収入の見込み", ask: "それこそ、お給料って月に入るんですか？（返事待ちの間などに）", src: "①49:28", next: "（分割・支払日の提案に使う）" },
+  ] },
+  { item: "理想・金額・期限", src: "①16:26–17:10／②17:55", use: "未来と今の差・映像化", subs: [
+    { know: "最終目標", ask: "目標、どのぐらい稼ぎたいよっていう金額って、決まってたりするんですか？", src: "①16:26", next: "（最終と直近が出る）" },
+    { know: "直近のステップ", ask: "（相手が「まず1万、3万、5万」と話したら受け止める）", src: "①16:58の後", next: "じゃあ現実的に、毎月【金額】ぐらいを稼げるぐらいの案件が、都度来てるような状態が理想的な感じですかね。（②17:55）" },
+    { know: "期限", ask: "いつ頃までに【金額】いけたら理想ですか？", src: "補助", next: "（→ 現在地との差を出す）" },
+  ] },
+  { item: "現在地（期間・件数・金額）", src: "①17:18–29:02", use: "このままでは届かない", subs: [
+    { know: "期間", ask: "クラウドワークスで稼働してみて、どのぐらい時間経ってるんですか？", src: "①17:18", next: "1ヶ月やってみて、やっていけそうだなってイメージあります？（①18:00）" },
+    { know: "応募と返信", ask: "案件10件応募して、何件ぐらい連絡返ってきてるみたいなイメージあります？", src: "①26:10", next: "（3件なら）体感的に10件中3件って言うと、ちょっと少ないなっていうイメージはあるんですよ。（②18:47）" },
+    { know: "案件の種類", ask: "その案件って、実際にアンケートとかも入ってます？", src: "①26:32", next: "" },
+    { know: "収入", ask: "10件やったら、何円ぐらい収益出てるんですか？ 今現状。", src: "①27:28", next: "200円とか400円とかっていう金額がちょくちょく出てきたと思うんですけど、え、安くないですか、それ？（①21:06）" },
+    { know: "オファーの数と金額", ask: "今現状オファーって何件来てて、そのオファーの記事もどのぐらいの金額感なのか、ってところで言うと、どんな感じです？", src: "①28:40", next: "ただ記事書いてくださいねっていう感覚なんですよ、そういう企業さんって。（①29:02）" },
+  ] },
+  { item: "本人が考える原因", src: "①29:30–29:51", use: "PFへ入る", subs: [
+    { know: "なぜ取れていないか", ask: "文章力は問題ないかなって感じはするんですよ。今なんで取れてないのかなっていうのが、逆に疑問ですね。", src: "①29:30–29:42", next: "企業さんが最初に案件を振りたいと思う人って、ポートフォリオを活用してるかしないか…そういったものって今現状使ったりします？（①29:51）" },
+  ] },
 ];
 
 /** PFがある未来を相手に思い描いてもらう（映像化）ための材料。 */
@@ -283,7 +328,7 @@ header .row{display:flex;gap:12px;align-items:center;overflow:auto;white-space:n
 main{max-width:760px;margin:auto;padding:20px 16px 90px}h1{font-size:26px;line-height:1.4;margin:0 0 6px}.lead{color:#5f6b63;margin:0 0 14px;font-size:15px}
 .box{background:#fff;border:1px solid #dcdcd2;border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:15px}.box h2{font-size:17px;margin:0 0 8px}.box ol,.box ul{margin:0;padding-left:20px}.box li{margin:6px 0}.box small{color:#6b766f}
 .weak-box{background:#fff4e5;border-color:#f0cf9c}.weak-box h2{color:#8a4b00}
-.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
+.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.subs{padding-left:18px;margin:6px 0}.subs li{margin:8px 0;font-size:14px}.next{color:#2f5f8a;font-size:14px}.goal-row summary{cursor:pointer;list-style:none}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
 .ng s{color:#a33}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}.toc a{background:#fff;border:1px solid #dcdcd2;border-radius:999px;padding:4px 10px;font-size:13px;color:#24302a}.toc a.weak{border-color:#f0cf9c;background:#fff4e5}
 section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;padding:16px;margin:0 0 16px}section.scene h2{font-size:19px;line-height:1.5;margin:0 0 4px}
 .goal{font-size:14px;color:#5f6b63;margin:0 0 10px}.tag{display:inline-block;font-size:12px;font-weight:700;color:#8a4b00;background:#fff4e5;border:1px solid #f0cf9c;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:middle}.gets{display:inline-block;font-size:12px;color:#2f5f8a;background:#eef3fb;border-radius:6px;padding:0 6px;margin-left:6px}
@@ -294,7 +339,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 .hide .say{filter:blur(7px);cursor:pointer;user-select:none}.hide .shown .say{filter:none}
 .only-weak section.scene:not(.weak){display:none}.mine-only .c{display:none}
 .note{margin-top:24px;font-size:13px;color:#5f6b63}
-@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}}
+@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}.next{color:#a9c7ea}}
 </style></head><body>
 <header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script">全文台本</a><a href="/sales-script/sugiyama-a">杉山さんA＋B</a><a href="/sales-script/phrases">言葉集</a></div>
 <div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="weak" aria-pressed="false">★できていない所だけ</button><button id="mine" aria-pressed="false">自分のセリフだけ</button></div></header>
@@ -309,7 +354,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <li><a href="#s12">予定不調和（デザイナーさんに聞いてみる）：場面12・15</a></li>
 </ol><p><small>あとは覚えるだけ。①★だけを暗記モードで → ②着地点8つを見ずに言う → ③全体を通しで → ④画面を見ずに。</small></p></div>
 <div class="box weak-box"><h2>★今できていない3つ</h2><ol><li>ヒアリングの縦掘り（2・3・4・6）</li><li>PFを欲しいと思わせる（8・9）</li><li>予定不調和「じゃあデザイナーさんに聞いちゃいますよ」（12・15）</li></ol></div>
-<div class="box" id="goalbox"><h2>ヒアリングの着地点（全部埋まったら提案へ）</h2><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
+<div class="box" id="goalbox"><h2>ヒアリングの着地点（全部埋まったら提案へ）</h2><p><small>タップで開くと、知りたいこと・聞き方・次につなぐ一言が出ます。聞いたら必ず「→」の一言で返して、聞いて終わりにしない。「補助」は杉山さんの原文に無い質問です。</small></p><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
 <div class="box" id="visbox"><h2>未来を思い描いてもらう材料（映像化）</h2><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></div>
 <div class="box"><h2>杉山さんの聞き方 5つ</h2><ul id="patterns"></ul></div>
 <details class="box" id="fb"><summary><b>今までに言われてきたこと（FB）</b>（タップで開く）</summary><ul id="fblist"></ul></details>
@@ -322,7 +367,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <script>
 (function(){var D=JSON.parse(document.getElementById('data').textContent),S=D.scenes;function e(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hi(s){return e(s).replace(/【([^】]*)】/g,'<b>【$1】</b>')}
-document.getElementById('goal').innerHTML=D.hearingGoal.map(function(g,i){return '<div class="goal-row"><b>'+(i+1)+'. '+e(g.item)+'<span class="src">'+e(g.src)+'</span></b><div class="how">'+hi(g.how)+'</div><div class="use">提案で使う：'+e(g.use)+'</div></div>'}).join('');
+document.getElementById('goal').innerHTML=D.hearingGoal.map(function(g,i){return '<details class="goal-row"><summary><b>'+(i+1)+'. '+e(g.item)+'</b><span class="src">'+e(g.src)+'</span><div class="use">提案で使う：'+e(g.use)+'</div></summary><ul class="subs">'+g.subs.map(function(x){return '<li><b>'+e(x.know)+'</b>'+(/補助/.test(x.src)?'<span class="tag">補助</span>':'')+'<br>「'+hi(x.ask)+'」<span class="src">'+e(x.src)+'</span>'+(x.next?'<div class="next">→ '+hi(x.next)+'</div>':'')+'</li>'}).join('')+'</ul></details>'}).join('');
 document.getElementById('patterns').innerHTML=D.askPatterns.map(function(p){return '<li><b>'+e(p.name)+'</b><br>「'+hi(p.ex)+'」<span class="src">'+e(p.src)+'</span></li>'}).join('');
 document.getElementById('vis').innerHTML=D.visualize.map(function(v){return '<li><b>'+e(v.item)+'</b><br>「'+hi(v.how)+'」<span class="src">'+e(v.src)+'</span></li>'}).join('');
 document.getElementById('fblist').innerHTML=D.pastFeedback.map(function(f){return '<li>'+e(f.fb)+'<br><small>→ '+e(f.fix)+'</small></li>'}).join('');
