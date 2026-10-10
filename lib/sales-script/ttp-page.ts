@@ -262,6 +262,19 @@ const scenes: Scene[] = [
   ] },
 ];
 
+/** 7つのファクト（顧客理解→現状→理想→問題→原因→示唆→課題）と、杉山さんの台本の対応。 */
+export const factMap: { n: number; name: string; scenes: number[]; did: string; src: string; done: string }[] = [
+  { n: 1, name: "顧客理解", scenes: [2, 3], did: "休み・仕事・年数・働き方・住まい →「なんでライティングを？」", src: "②0:38–12:33", done: "生活（時間・お金の余裕）と、副業を始めた理由を相手の言葉で聞けた" },
+  { n: 2, name: "現状", scenes: [5, 6], did: "期間・応募数・返信数・収入", src: "①17:18–27:28", done: "「いつから・何件・いくら」の数字が出た" },
+  { n: 3, name: "理想", scenes: [4], did: "「目標どのぐらい稼ぎたい？」→「毎月【金額】が都度来てる状態が理想ですかね？」", src: "①16:26／②17:55", done: "どうなっていきたいか（全体）→ 月いくらか（数字）と、生活がどう変わるかを相手が言った" },
+  { n: 4, name: "問題（理想−現状）", scenes: [6, 7], did: "「え、安くないですか、それ？」・慣れの話", src: "①21:06／①23:17", done: "相手が「このままじゃ厳しい」と自分で言った" },
+  { n: 5, name: "原因（なぜ？）", scenes: [8], did: "「文章力は問題ないのに、なんで取れてないのか逆に疑問ですね」", src: "①29:30–29:42", done: "相手が自分で考えた原因を言った（合っていなくていい）" },
+  { n: 6, name: "示唆（比べる情報）", scenes: [9, 10, 11], did: "企業はPFで選ぶ・150件・履歴書・実物のPF・相場", src: "①33:01–42:48", done: "比べる情報を見て「確かに」と言った →「どう感じます？」" },
+  { n: 7, name: "課題", scenes: [9], did: "「多分ここが一番今ボトルネックじゃないですか」", src: "①37:54", done: "「PFを作ってから動いた方がいい」と相手が認めた → 自作の確認 → 予定不調和（12〜）" },
+];
+
+const sceneFact: Record<number, string> = { 2: "1 顧客理解", 3: "1 顧客理解", 4: "3 理想", 5: "2 現状", 6: "2 現状 → 4 問題", 7: "4 問題", 8: "5 原因", 9: "6 示唆 → 7 課題", 10: "6 示唆", 11: "6 示唆", 12: "提案（予定不調和）", 13: "提案", 14: "提案（価格）", 15: "提案（価格・予定不調和）", 16: "締め" };
+
 export const ttpScenes = scenes;
 
 /** これまでに受けたFBと、この台本のどこで直しているか。 */
@@ -320,7 +333,7 @@ export const pfWords: { t: string; src: string }[] = [
   { t: "なので、これは作ってから稼働するのがいいかなと思うので。", src: "②28:10" },
 ];
 
-const data = JSON.stringify({ scenes, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
+const data = JSON.stringify({ scenes: scenes.map(x => ({ ...x, fact: sceneFact[x.n] ?? "" })), factMap, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
 
 export const ttpPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>杉山さんTTP台本｜緒方 Sales Script</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f5f0;color:#24302a;font:17px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
@@ -330,7 +343,7 @@ header .row{display:flex;gap:12px;align-items:center;overflow:auto;white-space:n
 main{max-width:760px;margin:auto;padding:20px 16px 90px}h1{font-size:26px;line-height:1.4;margin:0 0 6px}.lead{color:#5f6b63;margin:0 0 14px;font-size:15px}
 .box{background:#fff;border:1px solid #dcdcd2;border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:15px}.box h2{font-size:17px;margin:0 0 8px}.box ol,.box ul{margin:0;padding-left:20px}.box li{margin:6px 0}.box small{color:#6b766f}
 .weak-box{background:#fff4e5;border-color:#f0cf9c}.weak-box h2{color:#8a4b00}
-.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.subs{padding-left:18px;margin:6px 0}.subs li{margin:8px 0;font-size:14px}.next{color:#2f5f8a;font-size:14px}.goal-row summary{cursor:pointer;list-style:none}.three{background:#eef3fb;border-radius:10px;padding:10px 12px;margin:0 0 10px}.three ol{margin:4px 0}.three p{margin:4px 0;font-size:14px}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
+.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.subs{padding-left:18px;margin:6px 0}.subs li{margin:8px 0;font-size:14px}.next{color:#2f5f8a;font-size:14px}.goal-row summary{cursor:pointer;list-style:none}.three{background:#eef3fb;border-radius:10px;padding:10px 12px;margin:0 0 10px}.three ol{margin:4px 0}.three p{margin:4px 0;font-size:14px}.fact{border-top:1px solid #eceee8;padding:8px 0;font-size:14px}.fact:first-of-type{border-top:0}.fact b{font-size:15px}.scn a{font-size:12px;margin-left:4px;text-decoration:underline}.five li{margin:8px 0}h2.part{font-size:18px;margin:24px 0 10px}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
 .ng s{color:#a33}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}.toc a{background:#fff;border:1px solid #dcdcd2;border-radius:999px;padding:4px 10px;font-size:13px;color:#24302a}.toc a.weak{border-color:#f0cf9c;background:#fff4e5}
 section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;padding:16px;margin:0 0 16px}section.scene h2{font-size:19px;line-height:1.5;margin:0 0 4px}
 .goal{font-size:14px;color:#5f6b63;margin:0 0 10px}.tag{display:inline-block;font-size:12px;font-weight:700;color:#8a4b00;background:#fff4e5;border:1px solid #f0cf9c;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:middle}.gets{display:inline-block;font-size:12px;color:#2f5f8a;background:#eef3fb;border-radius:6px;padding:0 6px;margin-left:6px}
@@ -341,52 +354,46 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 .hide .say{filter:blur(7px);cursor:pointer;user-select:none}.hide .shown .say{filter:none}
 .only-weak section.scene:not(.weak){display:none}.mine-only .c{display:none}
 .note{margin-top:24px;font-size:13px;color:#5f6b63}
-@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}.next{color:#a9c7ea}.three{background:#1d2b3a}}
+@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}.next{color:#a9c7ea}.three{background:#1d2b3a}.fact{border-color:#353d38}}
 </style></head><body>
 <header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script">全文台本</a><a href="/sales-script/sugiyama-a">杉山さんA＋B</a><a href="/sales-script/phrases">言葉集</a></div>
 <div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="weak" aria-pressed="false">★できていない所だけ</button><button id="mine" aria-pressed="false">自分のセリフだけ</button></div></header>
-<main><h1>杉山さんTTP台本</h1><p class="lead">杉山さんの商談2本から、杉山さんの言葉をそのまま並べました。自分の色は入れていません（くだけた言葉づかいだけ丁寧にしています）。上から順に覚えれば、ロープレ1本を通しで話せます。目標は、画面を見ずに言えること。【 】は相手の言葉を入れる場所、右の小さい数字は文字起こしの位置です。</p>
-<div class="box" id="ready"><h2>ロープレ合格の準備（この台本で揃っているもの）</h2><ol>
-<li><a href="#mind">いつも大切にすること：当てはめない・共感する</a></li>
-<li><a href="#goalbox">ヒアリングの最終ゴール（着地点）</a></li>
-<li><a href="#fb">今までに言われてきたこと（FB）と、どこで直しているか</a></li>
-<li><a href="#visbox">PFにつながる未来を思い描いてもらうために、聞くこと・話すこと</a></li>
-<li><a href="#pfbox">PFを欲しいと思わせる杉山さんの言葉（全部）</a></li>
-<li><a href="#s2">ゴールに導く質問（時間・お金・生活をどう聞くか）：場面2〜7</a></li>
-<li><a href="#s9">訴求文（PFを欲しいと思わせる）：場面8〜11</a></li>
-<li><a href="#s12">予定不調和（デザイナーさんに聞いてみる）：場面12・15</a></li>
-</ol><p><small>あとは覚えるだけ。①★だけを暗記モードで → ②着地点8つを見ずに言う → ③全体を通しで → ④画面を見ずに。</small></p></div>
-<div class="box weak-box"><h2>★今できていない3つ</h2><ol><li>ヒアリングの縦掘り（2・3・4・6）</li><li>PFを欲しいと思わせる（8・9）</li><li>予定不調和「じゃあデザイナーさんに聞いちゃいますよ」（12・15）</li></ol></div>
-<div class="box" id="mind"><h2>いつも大切にすること：当てはめない・共感する</h2><ul>
-<li><b>当てはめない</b>：「〇〇ですよね？」と先に答えを言わない。相手の言葉で言ってもらう。<br>×「お金に困ってるってことですよね？」<br>○「それって、どういうところでそう思われたんですか？」「例えば、どんな感じですか？」</li>
-<li><b>まとめは相手の言葉で、最後に確認</b>：「〜って感じですかね？」「〜っていうことなんですか？」で終える。違ったら「あ、そうなんですね」と直してもらう。<span class="src">①24:52／②17:32</span></li>
-<li><b>共感は気持ちの言葉で</b>：「なるほど」だけで終わらない。相手のしんどさ・すごさに一言返す。<br>「仕事してるだけでも偉いと思いますけどね」<span class="src">①2:03</span>　「え、倍じゃないですか」<span class="src">②17:19</span>　「行動力がありますね」<span class="src">②6:17</span></li>
-<li><b>表情</b>：聞いている時はうなずいて、驚く時は顔でも驚く。画面ではなく相手を見る。</li>
-</ul></div>
-<div class="box" id="goalbox"><h2>ヒアリングの着地点（全部埋まったら提案へ）</h2><div class="three"><b>覚えるのはこの3つだけ（8つは中身）</b><ol><li><b>生活</b>：時間とお金にどれくらい余裕があるか（1・2）</li><li><b>理由</b>：なぜ副業・なぜ今・何のためのお金か（3・4・5）← ここで「なぜ？」を聞く</li><li><b>差</b>：目標の金額と今の金額の差、本人が思う原因（6・7・8）</li></ol><p>流れは1本の線：仕事 → 働き方・時間 →<b>なぜ</b>ライティング →<b>なぜ</b>そのお金 → 目標 → 今 → 差 → 原因。家・趣味は、相手から出た時だけ1〜2問。</p></div><p><small>タップで開くと、知りたいこと・聞き方・次につなぐ一言が出ます。聞いたら必ず「→」の一言で返して、聞いて終わりにしない。「補助」は杉山さんの原文に無い質問です。</small></p><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
-<div class="box" id="visbox"><h2>未来を思い描いてもらう材料（映像化）</h2><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></div>
-<div class="box"><h2>杉山さんの聞き方 5つ</h2><ul id="patterns"></ul></div>
-<details class="box" id="fb"><summary><b>今までに言われてきたこと（FB）</b>（タップで開く）</summary><ul id="fblist"></ul></details>
-<details class="box" id="pfbox"><summary><b>PFを欲しいと思わせる杉山さんの言葉（全部）</b>（タップで開く）</summary><p><small>理解用。商談では場面9の8行だけ使い、相手がピンときていない時にここから1つ足す。</small></p><ul id="pflist"></ul></details>
-<div class="box ng"><h2>言わない言葉 → 杉山さんの言い方</h2><ul id="ng"></ul></div>
-<p class="lead">流れ：生活を知る → お金・理想 → 現在地 → 原因 → PFをサクッと → 自作の確認 → 相場 → デザイナーに聞く → 案件・FB → 金額 → いくらなら → 確認 → 内緒で</p>
+<main><h1>杉山さんTTP台本</h1><p class="lead">杉山さんの商談2本から、杉山さんの言葉をそのまま並べました（くだけた言葉づかいだけ丁寧に）。上から <b>①地図 → ②大切にする5つ → ③着地点 → ④台本</b> の順。⑤参考は必要な時だけ開きます。【 】は相手の言葉、小さい数字は文字起こしの位置。</p>
+<div class="box" id="map"><h2>① 全体の地図：7つのファクト × 杉山さん</h2><p><small>この順番が崩れなければ、言葉が少しずれても商談は前に進む。各行の「次へ」が聞けたら、次の段階へ。</small></p><div id="facts"></div><p class="three">理想はいきなり聞かず、現状を少し聞いてから引き上げる。示唆は「比べる情報」だけ差し出して、大きなテーマ（PFが要る）は相手の言葉で言ってもらう。</p></div>
+<div class="box" id="mind"><h2>② ヒアリングで大切にする5つ</h2><ol class="five">
+<li><b>1本の線で聞く</b>：次の質問は、相手が今言った言葉から作る。横に飛ばない。家・趣味は相手から出た時だけ1〜2問。</li>
+<li><b>当てはめない</b>：「〇〇ですよね？」と先に答えを言わない。<br>「どう思いますか？」「どう感じますか？」「例えば、どんな感じですか？」で相手に言ってもらう。</li>
+<li><b>聞いたら一言返す（共感）</b>：「なるほど」だけで終えず、驚く・褒める・要約のどれか。表情とうなずきも。<br>「え、もうベテランじゃないですか？」<span class="src">②1:05</span>「仕事してるだけでも偉いと思いますけどね」<span class="src">①2:03</span>「え、倍じゃないですか」<span class="src">②17:19</span>「そうなると、別の柱が欲しくなってきますもんね」<span class="src">①6:34</span></li>
+<li><b>使い道のある質問だけ掘る</b>：「この答えは、PFかお金の話で使う？」使うなら掘る、使わないなら「そうなんですね」で次へ。一番深く掘るのは「なぜ副業？ → 何を変えたい？ → それっていくら？」。</li>
+<li><b>最後は相手の言葉でまとめて確認</b>：「〜って感じですかね？」「〜っていうことなんですか？」違ったら直してもらう。<span class="src">①24:52／②17:55</span></li>
+</ol></div>
+<div class="box" id="goalbox"><h2>③ ヒアリングの着地点（全部埋まったら提案へ）</h2><div class="three"><b>覚えるのはこの3つだけ（8つは中身）</b><ol><li><b>生活</b>：時間とお金にどれくらい余裕があるか（1・2）</li><li><b>理由</b>：なぜ副業・なぜ今・何のためのお金か（3・4・5）← ここで「なぜ？」を聞く</li><li><b>差</b>：目標の金額と今の金額の差、本人が思う原因（6・7・8）</li></ol><p>流れは1本の線：仕事 → 働き方・時間 →<b>なぜ</b>ライティング →<b>なぜ</b>そのお金 → 目標 → 今 → 差 → 原因。家・趣味は、相手から出た時だけ1〜2問。</p></div><p><small>タップで開くと、知りたいこと・聞き方・次につなぐ一言が出ます。聞いたら必ず「→」の一言で返して、聞いて終わりにしない。「補助」は杉山さんの原文に無い質問です。</small></p><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
+<h2 class="part">④ 台本（★は今できていない所）</h2>
 <nav class="toc" id="toc"></nav><div id="scenes"></div>
+<h2 class="part">⑤ 参考（必要な時だけ開く）</h2>
+<details class="box" id="visbox"><summary><b>未来を思い描いてもらう材料（映像化）</b></summary><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></details>
+<details class="box"><summary><b>杉山さんの聞き方 5つ</b></summary><ul id="patterns"></ul></details>
+<details class="box ng"><summary><b>言わない言葉 → 杉山さんの言い方</b></summary><ul id="ng"></ul></details>
+<details class="box" id="pfbox"><summary><b>PFを欲しいと思わせる杉山さんの言葉（全部）</b></summary><p><small>理解用。商談では場面9の8行だけ使い、相手がピンときていない時にここから1つ足す。</small></p><ul id="pflist"></ul></details>
+<details class="box" id="fb"><summary><b>今までに言われてきたこと（FB）と対応</b></summary><ul id="fblist"></ul></details>
+<details class="box"><summary><b>練習の順番</b></summary><ol><li>①地図と②5つを、見ずに言えるようにする</li><li>「★できていない所だけ」＋暗記モードで、場面2・3・4・6 → 8・9 → 12・15</li><li>③着地点の3つ（生活・理由・差）を見ずに言う</li><li>台本を通しで → 画面を見ずに</li></ol></details>
 <p class="note">暗記モード：自分のセリフがぼかされます。言ってからタップして答え合わせ。設定はこの端末だけに残ります。<br>関係性（仲がいい等）と特別価格は、実際にそうなっている時・確認した時だけ言います。金額は最新の正式条件で。</p></main>
 <script type="application/json" id="data">${data}</script>
 <script>
 (function(){var D=JSON.parse(document.getElementById('data').textContent),S=D.scenes;function e(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function hi(s){return e(s).replace(/【([^】]*)】/g,'<b>【$1】</b>')}
+document.getElementById('facts').innerHTML=D.factMap.map(function(f){return '<div class="fact"><b>'+f.n+'. '+e(f.name)+'</b> <span class="scn">'+f.scenes.map(function(n){return '<a href="#s'+n+'">場面'+n+'</a>'}).join(' ')+'</span><div>'+hi(f.did)+'<span class="src">'+e(f.src)+'</span></div><div class="use">次へ：'+e(f.done)+'</div></div>'}).join('');
 document.getElementById('goal').innerHTML=D.hearingGoal.map(function(g,i){return '<details class="goal-row"><summary><b>'+(i+1)+'. '+e(g.item)+'</b><span class="src">'+e(g.src)+'</span><div class="use">提案で使う：'+e(g.use)+'</div></summary><ul class="subs">'+g.subs.map(function(x){return '<li><b>'+e(x.know)+'</b>'+(/補助/.test(x.src)?'<span class="tag">補助</span>':'')+'<br>「'+hi(x.ask)+'」<span class="src">'+e(x.src)+'</span>'+(x.next?'<div class="next">→ '+hi(x.next)+'</div>':'')+'</li>'}).join('')+'</ul></details>'}).join('');
 document.getElementById('patterns').innerHTML=D.askPatterns.map(function(p){return '<li><b>'+e(p.name)+'</b><br>「'+hi(p.ex)+'」<span class="src">'+e(p.src)+'</span></li>'}).join('');
 document.getElementById('vis').innerHTML=D.visualize.map(function(v){return '<li><b>'+e(v.item)+'</b><br>「'+hi(v.how)+'」<span class="src">'+e(v.src)+'</span></li>'}).join('');
 document.getElementById('fblist').innerHTML=D.pastFeedback.map(function(f){return '<li>'+e(f.fb)+'<br><small>→ '+e(f.fix)+'</small></li>'}).join('');
 document.getElementById('pflist').innerHTML=D.pfWords.map(function(w){return '<li>「'+hi(w.t)+'」<span class="src">'+e(w.src)+'</span></li>'}).join('');
 document.getElementById('ng').innerHTML=D.ngWords.map(function(w){return '<li><s>'+e(w.ng)+'</s><br>→「'+e(w.say)+'」<span class="src">'+e(w.src)+'</span></li>'}).join('');
-var toc='',out='';S.forEach(function(s){toc+='<a href="#s'+s.n+'"'+(s.weak?' class="weak"':'')+'>'+s.n+(s.weak?'★':'')+'</a>';out+='<section class="scene'+(s.weak?' weak':'')+'" id="s'+s.n+'"><h2>'+s.n+'｜'+e(s.title)+(s.weak?'<span class="tag">★'+e(s.weak)+'</span>':'')+'</h2><p class="goal">ゴール：'+e(s.goal)+(s.gets?'<span class="gets">聞けること：'+e(s.gets)+'</span>':'')+'</p>';
+var toc='',out='';S.forEach(function(s){toc+='<a href="#s'+s.n+'"'+(s.weak?' class="weak"':'')+'>'+s.n+(s.weak?'★':'')+'</a>';out+='<section class="scene'+(s.weak?' weak':'')+'" id="s'+s.n+'"><h2>'+s.n+'｜'+e(s.title)+(s.weak?'<span class="tag">★'+e(s.weak)+'</span>':'')+'</h2><p class="goal">'+(s.fact?'<span class="gets">'+e(s.fact)+'</span> ':'')+'ゴール：'+e(s.goal)+(s.gets?'<span class="gets">聞けること：'+e(s.gets)+'</span>':'')+'</p>';
 s.items.forEach(function(i){var src=i.src?'<span class="src">'+e(i.src)+'</span>':'';if(i.k==='m')out+='<div class="m"><div class="who">緒方'+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else if(i.k==='c')out+='<div class="c"><div class="who">相手</div>'+hi(i.t)+'</div>';else if(i.k==='b')out+='<div class="b"><div class="if">もし：'+e(i.if)+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else out+='<div class="n">'+hi(i.t)+'</div>'});out+='</section>'});
 document.getElementById('toc').innerHTML=toc;document.getElementById('scenes').innerHTML=out;
 var b=document.body,keys={memory:'hide',weak:'only-weak',mine:'mine-only'};function get(k){try{return localStorage.getItem('ttp-'+k)==='1'}catch(x){return false}}function set(k,v){try{localStorage.setItem('ttp-'+k,v?'1':'0')}catch(x){}}
 Object.keys(keys).forEach(function(k){var btn=document.getElementById(k);function apply(v){b.classList.toggle(keys[k],v);btn.setAttribute('aria-pressed',String(v))}apply(get(k));btn.onclick=function(){var v=!b.classList.contains(keys[k]);apply(v);set(k,v)}});
-document.querySelectorAll('#ready a').forEach(function(a){a.addEventListener('click',function(){var d=document.querySelector(a.getAttribute('href'));if(d&&d.tagName==='DETAILS')d.open=true})});
+document.querySelectorAll('main a[href^="#"]').forEach(function(a){a.addEventListener('click',function(){var d=document.querySelector(a.getAttribute('href'));if(d&&d.tagName==='DETAILS')d.open=true})});
 document.getElementById('scenes').addEventListener('click',function(ev){var t=ev.target.closest('.m,.b');if(t&&b.classList.contains('hide'))t.classList.toggle('shown')});})();
 </script></body></html>`;
