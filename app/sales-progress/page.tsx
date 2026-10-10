@@ -73,7 +73,7 @@ export default function SalesProgressPage() {
         <Bar s={s} />
         <p className="mt-1 text-[13px] text-[#877e94]">{yen(s.achieved)} / {yen(s.milestone.target)}（{md(s.milestone.from)}〜の契約・報酬換算 {yen(reward(s.milestone.target))}）</p>
       </li>)}</ul>
-      <p className="mt-4 text-[13px] leading-6 text-[#877e94]">参考：2027年3月の「月30万円」は契約150万円／月、理想の「月50万円」は契約250万円／月（報酬率20%）。</p>
+      <p className="mt-4 text-[13px] leading-6 text-[#877e94]">2027年3月のゴール「月50万円」は契約250万円／月（報酬率20%）。12月10万→1月20万→2月35万→3月50万円で上げていきます。</p>
     </section>
 
     <section className="studio-card p-6" aria-labelledby="records">
