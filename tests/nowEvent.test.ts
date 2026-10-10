@@ -56,7 +56,7 @@ test("杉山さんTTP台本は全場面に自分のセリフがあり、でき�
   assert.ok(!/(っす|んすよ|なんすか)/.test(ttpPage));
   assert.ok(hearingGoal.every(g => g.subs.length > 0 && g.subs.every(x => x.know && x.ask && x.src)));
   assert.ok(hearingGoal.some(g => g.item.includes("家族")) && hearingGoal.some(g => g.item.includes("お金")));
-  assert.ok(!ttpPage.includes("将来的に目標を達成するために"));
+  assert.ok(ttpScenes[0].items.some(i => i.k === "b" && i.src === "②0:02"));
   assert.ok(ttpScenes.length >= 15);
   for (const s of ttpScenes) assert.ok(s.items.some(i => i.k === "m"), s.title);
   const weak = ttpScenes.filter(s => s.weak).map(s => s.n);
