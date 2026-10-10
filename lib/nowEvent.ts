@@ -52,6 +52,10 @@ export interface EventAction { label: string; href: string; external?: boolean; 
  */
 export function eventActions(e: CalendarEventDTO): EventAction[] {
   const s = e.summary;
+  // 2026-10-10: 朝の読み上げ、水曜・日曜の週間目標チェック
+  if (/読み上げ|ルーズリーフ/.test(s)) return [{ label: "ルーズリーフを読み上げる（5分）", href: "/declaration" }, { label: "営業スクリプトを開く", href: "/sales-script", fullNavigation: true }];
+  if (/水曜1時間|日曜1時間|週間目標/.test(s)) return [{ label: "契約と報酬の進み具合", href: "/sales-progress" }, { label: "7日間の振り返り", href: "/pdca?period=week" }];
+  if (/夜20分|深掘り|達成スケール/.test(s)) return [{ label: "振り返り画面を開く（○△×・明日変えること）", href: "/pdca" }];
   if (/月次|月の振り返り|目標を再設計/.test(s)) return [{ label: "目標画面で振り返る", href: "/goals" }, { label: "PDCAの点検", href: "/pdca" }];
   if (/週次|週の振り返り|来週の計画/.test(s)) return [{ label: "7日間の振り返りを開く", href: "/pdca?period=week" }, { label: "Google カレンダーを開く", href: "https://calendar.google.com/calendar/r/week", external: true }];
   if (/日報|1日の振り返り/.test(s)) return [{ label: "振り返り画面を開く（○△×・明日変えること）", href: "/pdca" }];

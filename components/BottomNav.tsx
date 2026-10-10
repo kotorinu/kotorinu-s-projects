@@ -7,6 +7,8 @@ import { useState } from "react";
 import StudioDialog from "./StudioDialog";
 const menuLinks = [
   { href: "/sales-script", label: "営業スクリプト", note: "読む・覚える・編集する" },
+  { href: "/sales-progress", label: "契約と報酬の進み具合", note: "記録・到達基準・あと何件" },
+  { href: "/declaration", label: "朝の読み上げ", note: "ルーズリーフ（目標・決まり事・理由）" },
   { href: "/pdca", label: "振り返り・PDCAの点検", note: "○△×・明日変えること・時間が入っているか" },
   { href: "/area/sales", label: "営業代行", note: "商談の準備と実行" },
   { href: "/area/riala", label: "RIALA", note: "会員・コミュニティ運営" },

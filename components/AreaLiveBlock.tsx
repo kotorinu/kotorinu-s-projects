@@ -11,6 +11,7 @@ import { findFreeSlot } from "@/lib/pdcaRhythm";
 import { googleCalendarCreateUrl } from "@/lib/googleCalendarLink";
 import { isTaskOpen } from "@/lib/taskState";
 import type { Area } from "@/lib/types";
+import SalesProgressLine from "./SalesProgressLine";
 
 // 領域ページの先頭: いまの実データ (2026-10-01)。
 // このページの下半分は9月上旬に固定で書いた計画（Outcome・Gap）で、期限が過ぎても
@@ -35,6 +36,7 @@ export default function AreaLiveBlock({ area }: { area: Area }) {
       <a className="studio-primary justify-center" href="/sales-script">営業スクリプトを開く（読む・覚える・編集）</a>
       <Link className="studio-secondary justify-center" href="/tasks">営業のタスクを見る（未完了 {work.connected ? open.length : "—"}件）</Link>
     </div>}
+    {area === "営業代行" && <div className="mt-3"><SalesProgressLine /></div>}
     <h3 className="mt-5 text-sm font-semibold">今後7日のCalendar（{md(today)}〜{md(end)}）</h3>
     {!read ? <p className="mt-1 text-sm leading-7 text-[#877e94]">Calendarを読めていません。TODAYの「予定を再確認」を押してください。</p>
       : events.length === 0 ? <div className="mt-2 rounded-xl bg-amber-50 p-3 text-sm leading-7 text-amber-900">

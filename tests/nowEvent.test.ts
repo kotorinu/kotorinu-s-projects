@@ -44,4 +44,8 @@ test("予定の種類ごとに、その時間に開く画面を返す", async ()
   assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script"]);
   assert.deepEqual(hrefs("【RIALA】21:30 状況確認", "10"), ["/area/riala"]);
   assert.deepEqual(hrefs("【読書｜昼30分】鬼速PDCA", "5"), []);
+  assert.deepEqual(hrefs("【朝30分】ルーズリーフ読み上げ5分→スクリプト音読・暗唱", "9"), ["/declaration", "/sales-script"]);
+  assert.deepEqual(hrefs("【水曜1時間】週間目標の判定→来週の進め方→野上さんへ進捗DM", "9")[0], "/sales-progress");
+  assert.deepEqual(hrefs("【日曜1時間】水曜までに週間目標をやりきれるかの確認", "9")[0], "/sales-progress");
+  assert.deepEqual(hrefs("【夜20分】良かった1つ・ダメだった1つ→深掘り→明日の改善", "8"), ["/pdca"]);
 });
