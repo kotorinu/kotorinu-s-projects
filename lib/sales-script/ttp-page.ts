@@ -9,6 +9,8 @@
 // 予算・負担）、なぜ今、理想、意思決定のしかたを、杉山さんの聞き方で間接的に深掘りし、
 // 要約して確認してから提案へ。PFの説明は短く（サクッと見せる）。PFが欲しい→案件→FB→金額の順。
 
+import { video1, video2 } from "./ttp-videos";
+
 type Item =
   | { k: "m"; t: string; src?: string } // 緒方が言う
   | { k: "c"; t: string } // 相手の返答（想定）
@@ -333,7 +335,7 @@ export const pfWords: { t: string; src: string }[] = [
   { t: "なので、これは作ってから稼働するのがいいかなと思うので。", src: "②28:10" },
 ];
 
-const data = JSON.stringify({ scenes: scenes.map(x => ({ ...x, fact: sceneFact[x.n] ?? "" })), factMap, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
+const data = JSON.stringify({ video1, video2, scenes: scenes.map(x => ({ ...x, fact: sceneFact[x.n] ?? "" })), factMap, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
 
 export const ttpPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>杉山さんTTP台本｜緒方 Sales Script</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f5f0;color:#24302a;font:17px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
@@ -343,7 +345,7 @@ header .row{display:flex;gap:12px;align-items:center;overflow:auto;white-space:n
 main{max-width:760px;margin:auto;padding:20px 16px 90px}h1{font-size:26px;line-height:1.4;margin:0 0 6px}.lead{color:#5f6b63;margin:0 0 14px;font-size:15px}
 .box{background:#fff;border:1px solid #dcdcd2;border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:15px}.box h2{font-size:17px;margin:0 0 8px}.box ol,.box ul{margin:0;padding-left:20px}.box li{margin:6px 0}.box small{color:#6b766f}
 .weak-box{background:#fff4e5;border-color:#f0cf9c}.weak-box h2{color:#8a4b00}
-.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.subs{padding-left:18px;margin:6px 0}.subs li{margin:8px 0;font-size:14px}.next{color:#2f5f8a;font-size:14px}.goal-row summary{cursor:pointer;list-style:none}.three{background:#eef3fb;border-radius:10px;padding:10px 12px;margin:0 0 10px}.three ol{margin:4px 0}.three p{margin:4px 0;font-size:14px}.fact{border-top:1px solid #eceee8;padding:8px 0;font-size:14px}.fact:first-of-type{border-top:0}.fact b{font-size:15px}.scn a{font-size:12px;margin-left:4px;text-decoration:underline}.five li{margin:8px 0}h2.part{font-size:18px;margin:24px 0 10px}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
+.box summary{cursor:pointer;font-size:16px}#ready a{text-decoration:underline}.subs{padding-left:18px;margin:6px 0}.subs li{margin:8px 0;font-size:14px}.next{color:#2f5f8a;font-size:14px}.goal-row summary{cursor:pointer;list-style:none}.three{background:#eef3fb;border-radius:10px;padding:10px 12px;margin:0 0 10px}.three ol{margin:4px 0}.three p{margin:4px 0;font-size:14px}.fact{border-top:1px solid #eceee8;padding:8px 0;font-size:14px}.fact:first-of-type{border-top:0}.fact b{font-size:15px}.scn a{font-size:12px;margin-left:4px;text-decoration:underline}.five li{margin:8px 0}h2.part{font-size:18px;margin:24px 0 10px}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.tabs button{min-height:40px;border:1px solid #cfd2c8;border-radius:10px;background:#fff;font:inherit;font-size:14px;padding:6px 12px;color:#24302a}.tabs button[aria-pressed=true]{background:#2f5f8a;color:#fff;border-color:#2f5f8a}.vh{font-size:15px;color:#2f5f8a;margin:18px 0 6px;border-top:1px solid #eceee8;padding-top:10px}.vh:first-child{border-top:0;margin-top:0;padding-top:0}.goal-row{border-top:1px solid #eceee8;padding:8px 0}.goal-row:first-of-type{border-top:0}.goal-row b{display:block}.goal-row .how{font-size:14px}.goal-row .use{font-size:13px;color:#5f6b63}
 .ng s{color:#a33}.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}.toc a{background:#fff;border:1px solid #dcdcd2;border-radius:999px;padding:4px 10px;font-size:13px;color:#24302a}.toc a.weak{border-color:#f0cf9c;background:#fff4e5}
 section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;padding:16px;margin:0 0 16px}section.scene h2{font-size:19px;line-height:1.5;margin:0 0 4px}
 .goal{font-size:14px;color:#5f6b63;margin:0 0 10px}.tag{display:inline-block;font-size:12px;font-weight:700;color:#8a4b00;background:#fff4e5;border:1px solid #f0cf9c;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:middle}.gets{display:inline-block;font-size:12px;color:#2f5f8a;background:#eef3fb;border-radius:6px;padding:0 6px;margin-left:6px}
@@ -352,9 +354,9 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 .b{background:#f7f3ea;border:1px dashed #d9c9a3;border-radius:10px;padding:10px 12px;margin:8px 0}.b .if{font-size:13px;font-weight:700;color:#7a5a12}
 .n{font-size:14px;color:#5f6b63;background:#f2f2ec;border-radius:8px;padding:6px 10px;margin:8px 0}
 .hide .say{filter:blur(7px);cursor:pointer;user-select:none}.hide .shown .say{filter:none}
-.only-weak section.scene:not(.weak){display:none}.mine-only .c{display:none}
+.only-weak #view-all section.scene:not(.weak){display:none}.mine-only .c{display:none}
 .note{margin-top:24px;font-size:13px;color:#5f6b63}
-@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}.next{color:#a9c7ea}.three{background:#1d2b3a}.fact{border-color:#353d38}}
+@media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.scene,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.m .who,.gets{color:#a9c7ea}.gets{background:#1d2b3a}a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.b .if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.weak-box,.tag,.toc a.weak{background:#3a2c17;border-color:#6b5124;color:#f0cf9c}.weak-box h2{color:#f0cf9c}.goal-row{border-color:#353d38}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}.goal,.lead,.note,.goal-row .use,.box small{color:#aab3ad}.ng s{color:#f19a9a}.next{color:#a9c7ea}.three{background:#1d2b3a}.tabs button{background:#1f2522;border-color:#353d38;color:#e8ece9}.tabs button[aria-pressed=true]{background:#a9c7ea;color:#151a18}.vh{color:#a9c7ea;border-color:#353d38}.fact{border-color:#353d38}}
 </style></head><body>
 <header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script">全文台本</a><a href="/sales-script/sugiyama-a">杉山さんA＋B</a><a href="/sales-script/phrases">言葉集</a></div>
 <div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="weak" aria-pressed="false">★できていない所だけ</button><button id="mine" aria-pressed="false">自分のセリフだけ</button></div></header>
@@ -375,8 +377,11 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <p><b>それでも迷ったら、この3つのどれか</b></p><ol><li>「ちなみに、お休みの日って何されてるんですか？」<span class="tag">補助</span>（趣味＝お金と気持ちの入口）</li><li>「それがあったら、何に使いたいとかあるんですか？」（未来を具体に）</li><li>「ご自身では、何が一番止まってる感じがしますか？」<span class="src">場面8</span></li></ol>
 <p><small>「どういう未来になりたいですか？」は大きすぎて答えにくい。未来は「何に使いたいか」で具体にする。</small></p></div>
 <div class="box" id="goalbox"><h2>③ ヒアリングの着地点（全部埋まったら提案へ）</h2><div class="three"><b>覚えるのはこの3つだけ（8つは中身）</b><ol><li><b>生活</b>：時間とお金にどれくらい余裕があるか（1・2）</li><li><b>理由</b>：なぜ副業・なぜ今・何のためのお金か（3・4・5）← ここで「なぜ？」を聞く</li><li><b>差</b>：目標の金額と今の金額の差、本人が思う原因（6・7・8）</li></ol><p>流れは1本の線：仕事 → 働き方・時間 →<b>なぜ</b>ライティング →<b>なぜ</b>そのお金 → 目標 → 今 → 差 → 原因。家・趣味は、相手から出た時だけ1〜2問。</p></div><p><small>タップで開くと、知りたいこと・聞き方・次につなぐ一言が出ます。聞いたら必ず「→」の一言で返して、聞いて終わりにしない。「補助」は杉山さんの原文に無い質問です。</small></p><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
-<h2 class="part">④ 台本（★は今できていない所）</h2>
-<nav class="toc" id="toc"></nav><div id="scenes"></div>
+<h2 class="part">④ 台本</h2>
+<div class="tabs" role="tablist"><button id="tab-all" aria-pressed="true">場面別（①②まとめ）</button><button id="tab-v1" aria-pressed="false">①1本目だけ（約59分）</button><button id="tab-v2" aria-pressed="false">②2本目だけ（約49分）</button></div>
+<div id="view-all"><p class="lead">①と②から、場面ごとに一番いい言葉を集めた版。★は今できていない所。</p><nav class="toc" id="toc"></nav><div id="scenes"></div></div>
+<div id="view-v1" hidden><p class="lead">1本目の商談を、最初から最後まで時間順に。相手の発言は要約。関係性（仲がいい等）・特別価格・「内緒で」は、実際にそうなっている時・確認した時だけ言う。</p><div id="v1"></div></div>
+<div id="view-v2" hidden><p class="lead">2本目の商談を、最初から最後まで時間順に。相手の発言は要約。関係性・金額は、実際にそうなっている時・最新の正式条件で言う。</p><div id="v2"></div></div>
 <h2 class="part">⑤ 参考（必要な時だけ開く）</h2>
 <details class="box" id="visbox"><summary><b>未来を思い描いてもらう材料（映像化）</b></summary><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></details>
 <details class="box"><summary><b>杉山さんの聞き方 5つ</b></summary><ul id="patterns"></ul></details>
@@ -398,9 +403,13 @@ document.getElementById('pflist').innerHTML=D.pfWords.map(function(w){return '<l
 document.getElementById('ng').innerHTML=D.ngWords.map(function(w){return '<li><s>'+e(w.ng)+'</s><br>→「'+e(w.say)+'」<span class="src">'+e(w.src)+'</span></li>'}).join('');
 var toc='',out='';S.forEach(function(s){toc+='<a href="#s'+s.n+'"'+(s.weak?' class="weak"':'')+'>'+s.n+(s.weak?'★':'')+'</a>';out+='<section class="scene'+(s.weak?' weak':'')+'" id="s'+s.n+'"><h2>'+s.n+'｜'+e(s.title)+(s.weak?'<span class="tag">★'+e(s.weak)+'</span>':'')+'</h2><p class="goal">'+(s.fact?'<span class="gets">'+e(s.fact)+'</span> ':'')+'ゴール：'+e(s.goal)+(s.gets?'<span class="gets">聞けること：'+e(s.gets)+'</span>':'')+'</p>';
 s.items.forEach(function(i){var src=i.src?'<span class="src">'+e(i.src)+'</span>':'';if(i.k==='m')out+='<div class="m"><div class="who">緒方'+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else if(i.k==='c')out+='<div class="c"><div class="who">相手</div>'+hi(i.t)+'</div>';else if(i.k==='b')out+='<div class="b"><div class="if">もし：'+e(i.if)+src+'</div><div class="say">'+hi(i.t)+'</div></div>';else out+='<div class="n">'+hi(i.t)+'</div>'});out+='</section>'});
-document.getElementById('toc').innerHTML=toc;document.getElementById('scenes').innerHTML=out;
+document.getElementById('toc').innerHTML=toc;
+function video(L){var o='';L.forEach(function(r){var t='<span class="src">'+e(r[0])+'</span>';if(r[1]==='h')o+='<h3 class="vh">'+e(r[2])+'</h3>';else if(r[1]==='m')o+='<div class="m"><div class="who">杉山さん'+t+'</div><div class="say">'+hi(r[2])+'</div></div>';else if(r[1]==='c')o+='<div class="c"><div class="who">相手（要約）'+t+'</div>'+hi(r[2])+'</div>';else o+='<div class="n">'+hi(r[2])+t+'</div>'});return '<section class="scene">'+o+'</section>'}
+document.getElementById('v1').innerHTML=video(D.video1);document.getElementById('v2').innerHTML=video(D.video2);
+var tabs={all:'view-all',v1:'view-v1',v2:'view-v2'};function show(k){Object.keys(tabs).forEach(function(x){document.getElementById(tabs[x]).hidden=x!==k;document.getElementById('tab-'+x).setAttribute('aria-pressed',String(x===k))});try{localStorage.setItem('ttp-tab',k)}catch(z){}}
+Object.keys(tabs).forEach(function(k){document.getElementById('tab-'+k).onclick=function(){show(k)}});var saved='all';try{saved=localStorage.getItem('ttp-tab')||'all'}catch(z){}show(tabs[saved]?saved:'all');document.getElementById('scenes').innerHTML=out;
 var b=document.body,keys={memory:'hide',weak:'only-weak',mine:'mine-only'};function get(k){try{return localStorage.getItem('ttp-'+k)==='1'}catch(x){return false}}function set(k,v){try{localStorage.setItem('ttp-'+k,v?'1':'0')}catch(x){}}
 Object.keys(keys).forEach(function(k){var btn=document.getElementById(k);function apply(v){b.classList.toggle(keys[k],v);btn.setAttribute('aria-pressed',String(v))}apply(get(k));btn.onclick=function(){var v=!b.classList.contains(keys[k]);apply(v);set(k,v)}});
 document.querySelectorAll('main a[href^="#"]').forEach(function(a){a.addEventListener('click',function(){var d=document.querySelector(a.getAttribute('href'));if(d&&d.tagName==='DETAILS')d.open=true})});
-document.getElementById('scenes').addEventListener('click',function(ev){var t=ev.target.closest('.m,.b');if(t&&b.classList.contains('hide'))t.classList.toggle('shown')});})();
+document.querySelector('main').addEventListener('click',function(ev){var t=ev.target.closest('.m,.b');if(t&&b.classList.contains('hide'))t.classList.toggle('shown')});})();
 </script></body></html>`;
