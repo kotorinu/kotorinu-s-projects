@@ -66,3 +66,13 @@ test("杉山さんTTP台本は全場面に自分のセリフがあり、でき�
   assert.ok(ttpPage.includes("今なんで取れてないのかなっていうのが、逆に疑問ですね"));
   assert.ok(!/<\/script/i.test(JSON.stringify(ttpScenes).replace(/</g, "\\u003c")));
 });
+
+test("杉山さんの商談は1本目・2本目をそれぞれ時間順で読める", async () => {
+  const { video1, video2 } = await import("../lib/sales-script/ttp-videos");
+  const sec = (t: string) => t.split(":").reduce((a, x) => a * 60 + Number(x), 0);
+  for (const v of [video1, video2]) {
+    assert.ok(v.length > 50);
+    for (let i = 1; i < v.length; i++) assert.ok(sec(v[i][0]) >= sec(v[i - 1][0]), `${v[i - 1][0]} -> ${v[i][0]}`);
+    assert.ok(!v.some(r => /っす|んすよ|なんすか|俺/.test(r[2])));
+  }
+});
