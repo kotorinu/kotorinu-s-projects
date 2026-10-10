@@ -39,9 +39,9 @@ export interface RhythmCheck {
   href?: string;
 }
 
-const WEEKLY_PLAN = /(週次|週の|今週の|来週の)(計画|振り返り|レビュー|見直し)|週次レビュー|Weekly/;
+const WEEKLY_PLAN = /(週次|週の|今週の|来週の)(計画|振り返り|レビュー|見直し)|週次レビュー|週間目標の判定|Weekly/;
 const MONTHLY_REVIEW = /(月次|月の|月末|今月の|来月の)(振り返り|レビュー|計画|見直し)|目標の再設計|月間レビュー/;
-const NIGHTLY = /日報|実行OS|振り返り|翌日Calendar/;
+const NIGHTLY = /日報|実行OS|振り返り|翌日Calendar|夜20分|深掘り|達成スケール|寝る前/;
 const FOCUS_AREAS: Area[] = ["営業代行", "RIALA", "GENESIS"];
 
 function minutes(hm: string) { const [h, m] = hm.split(":").map(Number); return h * 60 + m; }

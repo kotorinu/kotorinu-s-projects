@@ -14,6 +14,10 @@ import { bankedMinutesFor, endWorkOn, startWorkOn } from "./workSession";
 import { validSnapshot, executionReadDecision, type ExecutionAcknowledgement } from "./work/execution";
 import type { CalendarDayReview } from "./calendarReview";
 import type { GoalReview } from "./goalReview";
+import type { SaleRecord } from "./salesProgress";
+
+/** 朝の読み上げ（ルーズリーフ：長期目標・決まり事・やる理由）。本人が貼り付けた文章。 */
+export interface Declaration { text: string; updatedAt: string }
 import type {
   CarryoverDisposition,
   CarryoverRecord,
@@ -100,6 +104,10 @@ interface RolloverState {
   calendarReviews: Record<string, CalendarDayReview>;
   // 目標の期限の振り返り (2026-09-30)。key: goalId
   goalReviews: Record<string, GoalReview>;
+  // 営業代行の契約記録と、朝の読み上げ (2026-10-10)
+  salesRecords: Record<string, SaleRecord>;
+  salesCloseRate: number | null;
+  declaration: Declaration | null;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   // 自分版 (§5): the three own-version fields per Sales phase. The fixture is
   // immutable, so what the user writes lives here; coverage is always derived
@@ -169,6 +177,9 @@ function emptyRolloverState(): RolloverState {
     nextEstimates: {},
     calendarReviews: {},
     goalReviews: {},
+    salesRecords: {},
+    salesCloseRate: null,
+    declaration: null,
     phaseOwnVersions: {},
     replanFlags: {},
     timeBlockOverrides: {},
@@ -287,6 +298,13 @@ interface TodayExecutionApi {
   saveCalendarReview: (review: CalendarDayReview) => void;
   goalReviews: Record<string, GoalReview>;
   saveGoalReview: (review: GoalReview) => void;
+  salesRecords: Record<string, SaleRecord>;
+  /** null で削除。 */
+  saveSaleRecord: (record: SaleRecord | null, id: string) => void;
+  salesCloseRate: number | null;
+  setSalesCloseRate: (rate: number | null) => void;
+  declaration: Declaration | null;
+  saveDeclaration: (text: string) => void;
   manualActualTaskIds: Set<string>;
   // --- Execution Control Tower (2026-09-08 第4ラウンド) ---
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
@@ -340,6 +358,9 @@ interface PersistedShape {
   nextEstimates: Record<string, number>;
   calendarReviews?: Record<string, CalendarDayReview>;
   goalReviews?: Record<string, GoalReview>;
+  salesRecords?: Record<string, SaleRecord>;
+  salesCloseRate?: number | null;
+  declaration?: Declaration | null;
   phaseOwnVersions: Record<string, PhaseOwnVersion>;
   replanFlags: Record<string, ReplanFlag>;
   timeBlockOverrides: Record<string, TimeBlockOverride>;
@@ -370,6 +391,9 @@ function toPersisted(state: RolloverState): PersistedShape {
     nextEstimates: state.nextEstimates,
     calendarReviews: state.calendarReviews,
     goalReviews: state.goalReviews,
+    salesRecords: state.salesRecords,
+    salesCloseRate: state.salesCloseRate,
+    declaration: state.declaration,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -403,6 +427,9 @@ function fromPersisted(parsed: PersistedShape): RolloverState {
     nextEstimates: parsed.nextEstimates ?? {},
     calendarReviews: parsed.calendarReviews ?? {},
     goalReviews: parsed.goalReviews ?? {},
+    salesRecords: parsed.salesRecords ?? {},
+    salesCloseRate: parsed.salesCloseRate ?? null,
+    declaration: parsed.declaration ?? null,
     phaseOwnVersions: parsed.phaseOwnVersions ?? {},
     replanFlags: parsed.replanFlags ?? {},
     timeBlockOverrides: parsed.timeBlockOverrides ?? {},
@@ -599,6 +626,9 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
     nextEstimates: state.nextEstimates,
     calendarReviews: state.calendarReviews,
     goalReviews: state.goalReviews,
+    salesRecords: state.salesRecords,
+    salesCloseRate: state.salesCloseRate,
+    declaration: state.declaration,
     phaseOwnVersions: state.phaseOwnVersions,
     replanFlags: state.replanFlags,
     timeBlockOverrides: state.timeBlockOverrides,
@@ -792,6 +822,10 @@ export function TodayExecutionProvider({ children }: { children: ReactNode }) {
           completions,
         };
       }),
+    saveSaleRecord: (record, id) =>
+      setState((s) => { const next = { ...s.salesRecords }; if (record === null) delete next[id]; else next[id] = record; return { ...s, salesRecords: next }; }),
+    setSalesCloseRate: (rate) => setState((s) => ({ ...s, salesCloseRate: rate })),
+    saveDeclaration: (text) => setState((s) => ({ ...s, declaration: { text: text.slice(0, 5000), updatedAt: new Date().toISOString() } })),
     saveGoalReview: (review) =>
       setState((s) => ({ ...s, goalReviews: { ...s.goalReviews, [review.goalId]: review } })),
     saveCalendarReview: (review) =>

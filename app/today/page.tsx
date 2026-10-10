@@ -19,6 +19,7 @@ import TodayShortcuts from "@/components/TodayShortcuts";
 import DailyChecks from "@/components/DailyChecks";
 import CalendarHealthPanel from "@/components/CalendarHealthPanel";
 import NowCard from "@/components/NowCard";
+import SalesProgressLine from "@/components/SalesProgressLine";
 import TodaySchedule from "@/components/TodaySchedule";
 import { computeRhythm } from "@/components/PdcaRhythmPanel";
 import { nowAndNext } from "@/lib/nowEvent";
@@ -63,6 +64,7 @@ export default function TodayPage() {
       <section className="studio-card p-6 sm:p-8"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="text-base font-semibold">今日の予定</h2><button className="studio-secondary" disabled={calendar.loading} onClick={calendar.refresh}>{calendar.loading?"確認中…":"予定を再確認"}</button></div><p className="mb-2 text-[14px] leading-6 text-[#877e94]">{calendarFreshnessLabel(calendar)}{calendar.fallbackReason?" · "+calendar.fallbackReason:""}</p>{calendar.authRequired && <button className="studio-secondary mb-4" onClick={()=>startCalendarConnection()}>Calendarに接続</button>}{timeline.timed.length?<><p className="mb-2 text-[13px] leading-6 text-[#877e94]">終わった予定は、その場で ○(できた) △(一部) ×(できず) を押せます。</p><TodaySchedule date={date} nowHm={clock.nowHmValue} entries={timeline.timed} events={todayEvents} tasks={work.tasks} onOpenTask={setSelectedId} onOpenEvent={setEvent} /></>:<p className="py-8 text-sm leading-7 text-[#877e94]">{calendar.stale || calendar.authRequired?"最新の予定は未確認です。Calendarの接続を確認してください。":"この日の予定はありません。"}</p>}{timeline.deadlines.length>0 && <div className="mt-4 border-t border-[#eeeaf3] pt-4"><h3 className="mb-3 text-sm font-semibold">終日の予定・締切</h3>{timeline.deadlines.map(e=><button key={e.key} onClick={()=>setEvent(e)} className="block w-full py-2 text-left text-sm leading-7">{e.title}</button>)}</div>}</section>
       </div>
       <div className="space-y-6">
+        <SalesProgressLine />
         {store.startedTaskId && !day.active && <p role="alert" className="text-sm leading-7 text-amber-800">実行中の記録とタスクの状態が一致していません。計画・持ち越し画面で記録を確認してください。</p>}
         {clock.clockReady && clock.nowHmValue>="18:00" && pendingReview>0 && now.ended.length>0 && <Link href="/pdca" className="flex items-center justify-between gap-3 rounded-2xl border border-[#e4dfeb] bg-white p-5 text-sm leading-7"><span><span className="block font-semibold text-[#3b334b]">今日の振り返り（3分）</span><span className="text-[#877e94]">あと{pendingReview}件に ○△× を付けて、明日ひとつ変えることを決める</span></span><span aria-hidden="true" className="text-[#a599ba]">→</span></Link>}
         {(rhythm.issues.length>0 || healthIssues>0) && <section className="studio-card p-6" aria-labelledby="fix-title"><h2 id="fix-title" className="mb-2 text-base font-semibold">直しておくこと</h2><ul className="space-y-3 text-sm leading-7">
