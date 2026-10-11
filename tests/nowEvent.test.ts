@@ -76,3 +76,10 @@ test("杉山さんの商談は1本目・2本目をそれぞれ時間順で読め
     assert.ok(!v.some(r => /っす|んすよ|なんすか|俺/.test(r[2])));
   }
 });
+
+test("訴求文の引き出しは話題ごとに出典つきで並ぶ", async () => {
+  const { drawers } = await import("../lib/sales-script/ttp-drawers");
+  assert.ok(drawers.length >= 12);
+  for (const d of drawers) for (const l of d.lines) assert.ok(/^[①②]\d+:\d\d$|^本人メモ$/.test(l.src), `${d.trigger}: ${l.src}`);
+  assert.ok(drawers.some(d => /単価が低い/.test(d.trigger)) && drawers.some(d => /受注率/.test(d.trigger)));
+});
