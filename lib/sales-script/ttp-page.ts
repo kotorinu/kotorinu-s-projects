@@ -10,6 +10,7 @@
 // 要約して確認してから提案へ。PFの説明は短く（サクッと見せる）。PFが欲しい→案件→FB→金額の順。
 
 import { video1, video2 } from "./ttp-videos";
+import { drawers } from "./ttp-drawers";
 
 type Item =
   | { k: "m"; t: string; src?: string } // 緒方が言う
@@ -335,7 +336,7 @@ export const pfWords: { t: string; src: string }[] = [
   { t: "なので、これは作ってから稼働するのがいいかなと思うので。", src: "②28:10" },
 ];
 
-const data = JSON.stringify({ video1, video2, scenes: scenes.map(x => ({ ...x, fact: sceneFact[x.n] ?? "" })), factMap, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
+const data = JSON.stringify({ drawers, video1, video2, scenes: scenes.map(x => ({ ...x, fact: sceneFact[x.n] ?? "" })), factMap, hearingGoal, askPatterns, ngWords, visualize, pastFeedback, pfWords }).replace(/</g, "\\u003c");
 
 export const ttpPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>杉山さんTTP台本｜緒方 Sales Script</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f5f0;color:#24302a;font:17px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
@@ -389,7 +390,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <p><small>「どういう未来になりたいですか？」は大きすぎて答えにくい。未来は「何に使いたいか」で具体にする。</small></p></div>
 <div class="box" id="goalbox"><h2>③ ヒアリングの着地点（全部埋まったら提案へ）</h2><div class="three"><b>覚えるのはこの3つだけ（8つは中身）</b><ol><li><b>生活</b>：時間とお金にどれくらい余裕があるか（1・2）</li><li><b>理由</b>：なぜ副業・なぜ今・何のためのお金か（3・4・5）← ここで「なぜ？」を聞く</li><li><b>差</b>：目標の金額と今の金額の差、本人が思う原因（6・7・8）</li></ol><p>流れは1本の線：仕事 → 働き方・時間 →<b>なぜ</b>ライティング →<b>なぜ</b>そのお金 → 目標 → 今 → 差 → 原因。家・趣味は、相手から出た時だけ1〜2問。</p></div><p><small>タップで開くと、知りたいこと・聞き方・次につなぐ一言が出ます。聞いたら必ず「→」の一言で返して、聞いて終わりにしない。「補助」は杉山さんの原文に無い質問です。</small></p><div id="goal"></div><p><small>埋まったら、要約して「〜って感じですかね？」と確認する。相手が「そうです」と言ってから8へ。雑談も、この表のどれかを聞くためにする。</small></p></div>
 <h2 class="part">④ 台本</h2>
-<div class="tabs" role="tablist"><button id="tab-all" aria-pressed="true">場面別（①②まとめ）</button><button id="tab-v1" aria-pressed="false">①1本目だけ（約59分）</button><button id="tab-v2" aria-pressed="false">②2本目だけ（約49分）</button><button id="tab-boss" aria-pressed="false">上司のFBと言い回し</button></div>
+<div class="tabs" role="tablist"><button id="tab-all" aria-pressed="true">場面別（①②まとめ）</button><button id="tab-v1" aria-pressed="false">①1本目だけ（約59分）</button><button id="tab-v2" aria-pressed="false">②2本目だけ（約49分）</button><button id="tab-boss" aria-pressed="false">上司のFBと言い回し</button><button id="tab-drw" aria-pressed="false">訴求文の引き出し</button></div>
 <div id="view-all"><p class="lead">①と②から、場面ごとに一番いい言葉を集めた版。★は今できていない所。</p><nav class="toc" id="toc"></nav><div id="scenes"></div></div>
 <div id="view-v1" hidden><p class="lead">1本目の商談を、最初から最後まで時間順に。相手の発言は要約。関係性（仲がいい等）・特別価格・「内緒で」は、実際にそうなっている時・確認した時だけ言う。</p><div id="v1"></div></div>
 <div id="view-boss" hidden><section class="scene">
@@ -411,6 +412,7 @@ section.scene{background:#fff;border:1px solid #dcdcd2;border-radius:16px;paddin
 <div class="m"><div class="who">緒方</div><div class="say">あとは、これから本気で目標を達成していくなら、ここで二の足踏んで仕事が取れない期間を無駄に過ごすのは本当に避けた方がいいので、今日いい出会いだと思って進んでいきましょう！！</div></div>
 <p class="note">丁寧な言い方に整えた版は、場面別の13・14にあります。「本来外部に作成していない」「交渉した」は、実際にそうなっている時だけ言います。</p>
 </section></div>
+<div id="view-drw" hidden><p class="lead">相手がこう言ったら・この話題になったら、この杉山さんの言葉。全部言わずに1〜2文だけ選び、言ったら質問で相手に返す。</p><input id="drwq" type="search" placeholder="検索：単価、受注率、慣れ、実績、プロフィール、AI、お金…" style="width:100%;padding:12px;border:1px solid #cfd2c8;border-radius:10px;font:inherit;margin:0 0 10px"><div id="drw"></div></div>
 <div id="view-v2" hidden><p class="lead">2本目の商談を、最初から最後まで時間順に。相手の発言は要約。関係性・金額は、実際にそうなっている時・最新の正式条件で言う。</p><div id="v2"></div></div>
 <h2 class="part">⑤ 参考（必要な時だけ開く）</h2>
 <details class="box" id="visbox"><summary><b>未来を思い描いてもらう材料（映像化）</b></summary><ul id="vis"></ul><p><b>映像の言い方は1〜2文だけ</b>。相手が言った時間・金額・使い道を入れて、最後は「〜って感じですかね？」で相手に話してもらいます。自分で未来を話し続けない。</p><p class="m"><span class="who">例（杉山さんの言葉の組み合わせ）</span><br>「【空き時間】に『○○さんにお願いしたい』ってオファーが来て、1件1万円とかになったら、もう10万稼げるじゃないですか。そうなったら【使い道】も、もっとできそうな感じですかね？」<span class="src">①36:49＋①28:02＋②17:55</span></p></details>
@@ -436,7 +438,9 @@ s.items.forEach(function(i){var src=i.src?'<span class="src">'+e(i.src)+'</span>
 document.getElementById('toc').innerHTML=toc;
 function video(L){var o='';L.forEach(function(r){var t='<span class="src">'+e(r[0])+'</span>';if(r[1]==='h')o+='<h3 class="vh">'+e(r[2])+'</h3>';else if(r[1]==='m')o+='<div class="m"><div class="who">杉山さん'+t+'</div><div class="say">'+hi(r[2])+'</div></div>';else if(r[1]==='c')o+='<div class="c"><div class="who">相手（要約）'+t+'</div>'+hi(r[2])+'</div>';else o+='<div class="n">'+hi(r[2])+t+'</div>'});return '<section class="scene">'+o+'</section>'}
 document.getElementById('v1').innerHTML=video(D.video1);document.getElementById('v2').innerHTML=video(D.video2);
-var tabs={all:'view-all',v1:'view-v1',v2:'view-v2',boss:'view-boss'};function show(k){Object.keys(tabs).forEach(function(x){document.getElementById(tabs[x]).hidden=x!==k;document.getElementById('tab-'+x).setAttribute('aria-pressed',String(x===k))});try{localStorage.setItem('ttp-tab',k)}catch(z){}}
+document.getElementById('drw').innerHTML=D.drawers.map(function(d){return '<section class="scene drw" data-q="'+e(d.trigger+' '+d.aim+' '+d.lines.map(function(l){return l.t}).join(' '))+'"><h3 class="vh">もし：'+e(d.trigger)+'</h3><p class="goal">ねらい：'+e(d.aim)+'</p>'+d.lines.map(function(l){return /本人メモ/.test(l.src)?'<div class="n">'+hi(l.t)+'<span class="src">'+e(l.src)+'</span></div>':'<div class="m"><div class="who">杉山さん<span class="src">'+e(l.src)+'</span></div><div class="say">'+hi(l.t)+'</div></div>'}).join('')+'</section>'}).join('');
+document.getElementById('drwq').oninput=function(){var q=this.value.trim().toLowerCase();document.querySelectorAll('#drw .drw').forEach(function(x){x.hidden=!!q&&x.dataset.q.toLowerCase().indexOf(q)<0})};
+var tabs={all:'view-all',v1:'view-v1',v2:'view-v2',boss:'view-boss',drw:'view-drw'};function show(k){Object.keys(tabs).forEach(function(x){document.getElementById(tabs[x]).hidden=x!==k;document.getElementById('tab-'+x).setAttribute('aria-pressed',String(x===k))});try{localStorage.setItem('ttp-tab',k)}catch(z){}}
 Object.keys(tabs).forEach(function(k){document.getElementById('tab-'+k).onclick=function(){show(k)}});var saved='all';try{saved=localStorage.getItem('ttp-tab')||'all'}catch(z){}show(tabs[saved]?saved:'all');document.getElementById('scenes').innerHTML=out;
 var b=document.body,keys={memory:'hide',weak:'only-weak',mine:'mine-only'};function get(k){try{return localStorage.getItem('ttp-'+k)==='1'}catch(x){return false}}function set(k,v){try{localStorage.setItem('ttp-'+k,v?'1':'0')}catch(x){}}
 Object.keys(keys).forEach(function(k){var btn=document.getElementById(k);function apply(v){b.classList.toggle(keys[k],v);btn.setAttribute('aria-pressed',String(v))}apply(get(k));btn.onclick=function(){var v=!b.classList.contains(keys[k]);apply(v);set(k,v)}});
