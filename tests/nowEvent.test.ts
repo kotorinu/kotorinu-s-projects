@@ -99,6 +99,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("最初の壁") && energyPage.includes("3ヶ月遅れたら"));
   for (const s of energySteps) assert.ok(s.items.some(i => i.k === "m" && i.must), "must: " + s.title);
   assert.ok(energyPage.includes("★だけ表示"));
+  assert.ok(energyPage.includes("5つの関所"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
