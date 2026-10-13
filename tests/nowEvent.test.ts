@@ -92,6 +92,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   for (const s of energySteps) { assert.ok(s.why.length > 0 && s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
   assert.ok(energyPage.includes("認識合ってますかね") && energyPage.includes("相手のタイプ別") && energyPage.includes("言い当てが外れた時"));
+  assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("本気度でいうと何%"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
