@@ -90,5 +90,6 @@ test("エネルギー型台本は10ステップで、全ステップに次へ進
   assert.ok(energyPage.includes("作品の返し") && energyPage.includes("一緒に叶えたい") && energyPage.includes("訴求の組み立て"));
   for (const s of energySteps) { assert.ok(s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
+  assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
