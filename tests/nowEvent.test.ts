@@ -94,6 +94,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("認識合ってますかね") && energyPage.includes("相手のタイプ別") && energyPage.includes("言い当てが外れた時"));
   assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("本気度でいうと何%"));
   assert.ok(energyPage.includes("思ってもみなかった課題") && energyPage.includes("たった1社の企業さんに出会う"));
+  assert.ok(energyPage.includes("今一番邪魔になりそうなこと") && energyPage.includes("始めたばかりで、数字がまだない"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
