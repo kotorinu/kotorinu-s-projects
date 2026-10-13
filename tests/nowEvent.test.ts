@@ -84,11 +84,12 @@ test("訴求文の引き出しは話題ごとに出典つきで並ぶ", async ()
   assert.ok(drawers.some(d => /単価が低い/.test(d.trigger)) && drawers.some(d => /受注率/.test(d.trigger)));
 });
 
-test("エネルギー型台本は10ステップで、全ステップに次へ進む基準がある", async () => {
+test("エネルギー型台本は11ステップで、全ステップになぜ聞くかと次へ進む基準がある", async () => {
   const { energySteps, energyPage } = await import("../lib/sales-script/energy-page");
-  assert.deepEqual(energySteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(energySteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   assert.ok(energyPage.includes("作品の返し") && energyPage.includes("一緒に叶えたい") && energyPage.includes("訴求の組み立て"));
-  for (const s of energySteps) { assert.ok(s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
+  assert.equal(energySteps[1].title.startsWith("相手を知る"), true);
+  for (const s of energySteps) { assert.ok(s.why.length > 0 && s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
   assert.ok(energyPage.includes("認識合ってますかね") && energyPage.includes("相手のタイプ別") && energyPage.includes("言い当てが外れた時"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
