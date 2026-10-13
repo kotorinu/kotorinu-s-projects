@@ -33,7 +33,8 @@ export default function AreaLiveBlock({ area }: { area: Area }) {
   return <section className="studio-card mx-5 mb-4 p-5" aria-labelledby="area-live-title">
     <h2 id="area-live-title" className="text-base font-semibold">{area}のいま</h2>
     {area === "営業代行" && <div className="mt-3 grid gap-2 sm:grid-cols-2">
-      <a className="studio-primary justify-center" href="/sales-script/ttp">杉山さんTTP台本（ロープレ合格用）</a>
+      <a className="studio-primary justify-center" href="/sales-script/energy">エネルギー型トーク台本（10/12〜の方針）</a>
+      <a className="studio-secondary justify-center" href="/sales-script/ttp">杉山さんTTP台本</a>
       <a className="studio-secondary justify-center" href="/sales-script">営業スクリプト全文（読む・覚える・編集）</a>
       <Link className="studio-secondary justify-center" href="/tasks">営業のタスクを見る（未完了 {work.connected ? open.length : "—"}件）</Link>
     </div>}

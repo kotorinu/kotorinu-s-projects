@@ -41,10 +41,10 @@ test("予定の種類ごとに、その時間に開く画面を返す", async ()
   assert.deepEqual(hrefs("【日報】1日の振り返り→明日やること（30分）"), ["/pdca"]);
   assert.deepEqual(hrefs("【週次】今週の振り返り→来週の計画をCalendarへ（1時間）")[0], "/pdca?period=week");
   assert.deepEqual(hrefs("【月次】今月の振り返り→来月の目標を再設計（3時間）")[0], "/goals");
-  assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script/ttp", "/sales-script"]);
+  assert.deepEqual(hrefs("【営業代行｜夜1時間】弱点1つを直す", "9"), ["/sales-script/energy", "/sales-script/ttp"]);
   assert.deepEqual(hrefs("【RIALA】21:30 状況確認", "10"), ["/area/riala"]);
   assert.deepEqual(hrefs("【読書｜昼30分】鬼速PDCA", "5"), []);
-  assert.deepEqual(hrefs("【朝30分】ルーズリーフ読み上げ5分→スクリプト音読・暗唱", "9"), ["/declaration", "/sales-script/ttp"]);
+  assert.deepEqual(hrefs("【朝30分】ルーズリーフ読み上げ5分→スクリプト音読・暗唱", "9"), ["/declaration", "/sales-script/energy"]);
   assert.deepEqual(hrefs("【水曜1時間】週間目標の判定→来週の進め方→野上さんへ進捗DM", "9")[0], "/sales-progress");
   assert.deepEqual(hrefs("【日曜1時間】水曜までに週間目標をやりきれるかの確認", "9")[0], "/sales-progress");
   assert.deepEqual(hrefs("【夜20分】良かった1つ・ダメだった1つ→深掘り→明日の改善", "8"), ["/pdca"]);
@@ -82,4 +82,12 @@ test("訴求文の引き出しは話題ごとに出典つきで並ぶ", async ()
   assert.ok(drawers.length >= 12);
   for (const d of drawers) for (const l of d.lines) assert.ok(/^[①②]\d+:\d\d$|^本人メモ$/.test(l.src), `${d.trigger}: ${l.src}`);
   assert.ok(drawers.some(d => /単価が低い/.test(d.trigger)) && drawers.some(d => /受注率/.test(d.trigger)));
+});
+
+test("エネルギー型台本は8ステップで、全ステップに次へ進む基準がある", async () => {
+  const { energySteps, energyPage } = await import("../lib/sales-script/energy-page");
+  assert.deepEqual(energySteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8]);
+  for (const s of energySteps) { assert.ok(s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
+  assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
+  assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
