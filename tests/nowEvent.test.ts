@@ -84,9 +84,10 @@ test("訴求文の引き出しは話題ごとに出典つきで並ぶ", async ()
   assert.ok(drawers.some(d => /単価が低い/.test(d.trigger)) && drawers.some(d => /受注率/.test(d.trigger)));
 });
 
-test("エネルギー型台本は8ステップで、全ステップに次へ進む基準がある", async () => {
+test("エネルギー型台本は10ステップで、全ステップに次へ進む基準がある", async () => {
   const { energySteps, energyPage } = await import("../lib/sales-script/energy-page");
-  assert.deepEqual(energySteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(energySteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.ok(energyPage.includes("作品の返し") && energyPage.includes("一緒に叶えたい"));
   for (const s of energySteps) { assert.ok(s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
