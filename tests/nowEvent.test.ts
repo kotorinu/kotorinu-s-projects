@@ -102,6 +102,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("5つの関所"));
   assert.ok(energyPage.includes("自己開示（権威・好意・人徳）"));
   assert.ok(energySteps[0].title.startsWith("ラポール") && energyPage.includes("今日はお休みだったんですか"));
+  assert.ok(energyPage.includes("ちょうど良かったです") && energyPage.includes("切り返しの引き出し"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
