@@ -92,7 +92,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   for (const s of energySteps) { assert.ok(s.why.length > 0 && s.done.length > 0, s.title); assert.ok(s.items.some(i => i.k === "m"), s.title); }
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
   assert.ok(energyPage.includes("認識合ってますかね") && energyPage.includes("相手のタイプ別") && energyPage.includes("言い当てが外れた時"));
-  assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("本気度でいうと何%"));
+  assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("100%でいうと"));
   assert.ok(energyPage.includes("思ってもみなかった課題") && energyPage.includes("たった1社の企業さんに出会う"));
   assert.ok(energyPage.includes("今一番邪魔になりそうなこと") && energyPage.includes("始めたばかりで、数字がまだない"));
   assert.ok(energyPage.includes("資金も大事な材料"));
@@ -104,6 +104,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energySteps[0].title.startsWith("ラポール") && energyPage.includes("今日はお休みだったんですか"));
   assert.ok(energyPage.includes("ちょうど良かったです") && energyPage.includes("切り返しの引き出し"));
   assert.ok(energyPage.includes("第三者話法を使う場所"));
+  assert.ok(energyPage.includes("AIも使われたんですね") && energyPage.includes("足りないものって、何だと思います") && energyPage.includes("何十人、何百人の応募") && energyPage.includes("この後の流れをお伝えしますね") && !energyPage.includes("応募しても返信が来ない理由って、何だと思います"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });

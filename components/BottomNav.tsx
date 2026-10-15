@@ -6,7 +6,7 @@ import NavIcon from "./NavIcon";
 import { useState } from "react";
 import StudioDialog from "./StudioDialog";
 const menuLinks = [
-  { href: "/sales-script", label: "営業スクリプト", note: "読む・覚える・編集する" },
+  { href: "/sales-script/energy", label: "営業スクリプト", note: "読む・覚える・編集する" },
   { href: "/sales-progress", label: "契約と報酬の進み具合", note: "記録・到達基準・あと何件" },
   { href: "/declaration", label: "朝の読み上げ", note: "ルーズリーフ（目標・決まり事・理由）" },
   { href: "/pdca", label: "振り返り・PDCAの点検", note: "○△×・明日変えること・時間が入っているか" },
@@ -30,6 +30,6 @@ export default function BottomNav() {
         <button type="button" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)} className={"flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl text-sm font-semibold " + (menuActive ? "bg-accent-soft text-accent-dark" : "text-slate-500")}><span className="text-xl leading-6" aria-hidden="true">☰</span>メニュー</button>
       </div>
     </nav>
-    {menuOpen && <StudioDialog title="どこを開きますか？" onClose={() => setMenuOpen(false)}><nav aria-label="すべての機能" className="work-menu-links">{menuLinks.map(item => item.href === "/sales-script" ? <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}><strong>{item.label}</strong><span>{item.note}</span></a> : <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} aria-current={path === item.href ? "page" : undefined}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</nav></StudioDialog>}
+    {menuOpen && <StudioDialog title="どこを開きますか？" onClose={() => setMenuOpen(false)}><nav aria-label="すべての機能" className="work-menu-links">{menuLinks.map(item => item.href === "/sales-script/energy" ? <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}><strong>{item.label}</strong><span>{item.note}</span></a> : <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} aria-current={path === item.href ? "page" : undefined}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</nav></StudioDialog>}
   </>;
 }
