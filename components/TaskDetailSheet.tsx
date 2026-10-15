@@ -42,7 +42,7 @@ export default function TaskDetailSheet(props: ComponentProps<typeof AdvancedVie
     {work.connected && store.executionReady && <ManualActualEntry task={task} actualMinutes={actual} isManual={store.manualActualTaskIds.has(task.id)} onSave={m=>store.setManualActualMinutes(task.id,m)} onClear={()=>store.setManualActualMinutes(task.id,null)} />}</div>
     <TaskWorkActions task={task} />
     {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- The script reader requires a full document navigation, not an RSC transition. */}
-    {task.area==="営業代行" && <a className="flex items-center justify-between rounded-xl border border-[#e4dfeb] p-4 text-sm font-semibold text-accent-dark" href="/sales-script">営業スクリプトを開く（読む・覚える・編集）<span aria-hidden="true">→</span></a>}
+    {task.area==="営業代行" && <a className="flex items-center justify-between rounded-xl border border-[#e4dfeb] p-4 text-sm font-semibold text-accent-dark" href="/sales-script/energy">営業スクリプトを開く（読む・覚える・編集）<span aria-hidden="true">→</span></a>}
     {!done && !next && !(task.contextTags??[]).some(t=>t.startsWith("calendar:")) && <TaskCalendarLink task={task} today={store.currentDate} />}
     {goal && <Link className="block rounded-xl border border-[#eee9f6] p-4 text-sm leading-7 text-accent-dark" href={"/goals?focus="+encodeURIComponent(goal.id)}>つながる目標：{goal.title} →</Link>}
     <TaskAgentWork key={task.id} task={task} />
