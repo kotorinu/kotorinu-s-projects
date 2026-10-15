@@ -95,7 +95,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("100%でいうと"));
   assert.ok(energyPage.includes("思ってもみなかった課題") && energyPage.includes("たった1社の企業さんに出会う"));
   assert.ok(energyPage.includes("今一番邪魔になりそうなこと") && energyPage.includes("始めたばかりで、数字がまだない"));
-  assert.ok(energyPage.includes("資金も大事な材料"));
+  assert.ok(!energyPage.includes("毎月のお金の流れ") && energyPage.includes("一緒にお仕事できたら") && energyPage.includes("目標がなかったんです"));
   assert.ok(energyPage.includes("最初の壁") && energyPage.includes("どこが一番いいなと思っていただけましたか") && !energyPage.includes("3ヶ月遅れたら"));
   for (const s of energySteps) assert.ok(s.items.some(i => i.k === "m" && i.must), "must: " + s.title);
   assert.ok(energyPage.includes("★だけ表示"));
