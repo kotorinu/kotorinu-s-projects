@@ -107,6 +107,7 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("AIも使われたんですね") && energyPage.includes("足りないものって、何だと思います") && energyPage.includes("何十人、何百人の応募") && energyPage.includes("この後の流れをお伝えしますね") && !energyPage.includes("応募しても返信が来ない理由って、何だと思います"));
   assert.ok(energyPage.includes("お願いする側から見ても") && energyPage.includes("料金は一旦置いておいて") && energyPage.includes("単発の案件と継続の案件"));
   assert.ok(energyPage.includes("背骨：スキルプラスの流れ") && energyPage.includes("一緒に仕事がしたい」と思われやすい人物像"));
+  assert.ok(energyPage.includes("写真の一コマ") && energyPage.includes("たった一つ共通して持っているもの") && energyPage.includes("「とりあえずやってみましょう」と言う"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
   assert.ok(!/280|っす|んすよ/.test(energyPage));
 });
