@@ -93,10 +93,10 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energyPage.includes("月数千円で止まってしまう人がほとんど"));
   assert.ok(energyPage.includes("認識合ってますかね") && energyPage.includes("相手のタイプ別") && energyPage.includes("言い当てが外れた時"));
   assert.ok(energyPage.includes("最終的には、どのくらいまで行けたら最高ですか") && energyPage.includes("100%でいうと"));
-  assert.ok(energyPage.includes("思ってもみなかった課題") && energyPage.includes("たった1社の企業さんに出会う"));
+  assert.ok(energyPage.includes("思ってもみなかった課題") && energyPage.includes("継続してくれる1社"));
   assert.ok(energyPage.includes("今一番邪魔になりそうなこと") && energyPage.includes("始めたばかりで、数字がまだない"));
   assert.ok(!energyPage.includes("毎月のお金の流れ") && energyPage.includes("一緒にお仕事できたら") && energyPage.includes("目標がなかったんです"));
-  assert.ok(energyPage.includes("最初の壁") && energyPage.includes("どこが一番いいなと思っていただけましたか") && !energyPage.includes("3ヶ月遅れたら"));
+  assert.ok(energyPage.includes("最初の壁") && energyPage.includes("虹色の履歴書") && !energyPage.includes("3ヶ月遅れたら"));
   for (const s of energySteps) assert.ok(s.items.some(i => i.k === "m" && i.must), "must: " + s.title);
   assert.ok(energyPage.includes("★だけ表示"));
   assert.ok(energyPage.includes("5つの関所"));
@@ -104,8 +104,8 @@ test("エネルギー型台本は11ステップで、全ステップになぜ聞
   assert.ok(energySteps[0].title.startsWith("ラポール") && energyPage.includes("今日はお休みだったんですか"));
   assert.ok(energyPage.includes("ちょうど良かったです") && energyPage.includes("切り返しの引き出し"));
   assert.ok(energyPage.includes("第三者話法を使う場所"));
-  assert.ok(energyPage.includes("AIも使われたんですね") && energyPage.includes("足りないものって、何だと思います") && energyPage.includes("何十人、何百人の応募") && energyPage.includes("この後の流れをお伝えしますね") && !energyPage.includes("応募しても返信が来ない理由って、何だと思います"));
-  assert.ok(energyPage.includes("お願いする側から見ても") && energyPage.includes("料金は一旦置いておいて") && energyPage.includes("単発の案件と継続の案件"));
+  assert.ok(energyPage.includes("AIも使われたんですね") && energyPage.includes("足りないものって、何だと思います") && energyPage.includes("全員にお伝えしているわけではない") && energyPage.includes("この後の流れをお伝えしますね") && !energyPage.includes("応募しても返信が来ない理由って、何だと思います"));
+  assert.ok(energyPage.includes("お願いする側から見ても") && energyPage.includes("そっちに進みたいと思います") && energyPage.includes("張るところには張る") && energyPage.includes("ヒアリングで絶対に聞く3つ"));
   assert.ok(energyPage.includes("背骨：スキルプラスの流れ") && energyPage.includes("一緒に仕事がしたい」と思われやすい人物像"));
   assert.ok(energyPage.includes("写真の一コマ") && energyPage.includes("たった一つ共通して持っているもの") && energyPage.includes("「とりあえずやってみましょう」と言う"));
   assert.ok(energyPage.includes("聞き方の3つのコツ") && !energyPage.includes("どうなっていたら最高ですか"));
