@@ -6,13 +6,13 @@
 // 各ステップに「どこまで具体化できたら次へ進むか」と「言わない・やらないこと」を置く。
 // 自分の体験談の中身は非公開のメモ（Notion）に置き、ここでは【 】にする。
 
-type Item =
+export type Item =
   | { k: "m"; t: string; must?: boolean }
   | { k: "c"; t: string }
   | { k: "b"; if: string; t: string }
   | { k: "n"; t: string };
 
-interface Step { n: number; title: string; time: string; why: string; goal: string; done: string[]; avoid?: string[]; items: Item[] }
+export interface Step { n: number; title: string; time: string; why: string; goal: string; done: string[]; avoid?: string[]; items: Item[] }
 
 const steps: Step[] = [
   { n: 1, title: "ラポール → 自己紹介 → 記事の感想", time: "0〜4分", why: "「この人になら本音を話していい」と思えないと、この後は浅い答えしか出ない。同じ道を通った人（権威）と、話しやすさ（好意）を最初に置く。", goal: "話していい場だと感じてもらい、記事の感想から自然に相手の話が始まる。", done: ["自己紹介の前に、雑談で相手が一度笑った・表情がゆるんだ", "記事の感想と、書くことが好きかどうかが出た"], items: [
@@ -228,9 +228,28 @@ const steps: Step[] = [
 
 export const energySteps = steps;
 
-const data = JSON.stringify(steps).replace(/</g, "\\u003c");
+export const energyHeader = `<header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script/owned-media"><b>オウンドメディア版</b></a><a href="/sales-script/ttp">参考：杉山さんTTP</a><a href="/sales-script">旧：全文台本（9/26）</a></div><div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="must" aria-pressed="false">★だけ表示</button></div></header>`;
+export const energyIntro = `<h1>トーク台本（最新）</h1><p class="lead">ヒアリングで相手の未来を映像にしてエネルギーを上げ、現実との差に本人が気づいたら、手段としてPFを提案する。【 】は相手・自分の言葉に置き換える。</p>
+`;
+export const energyBoxes = `<div class="box"><h2>背骨：スキルプラスの流れ（理想 → 現状 → 必要なもの → 決断 → 手段）</h2><b>入り</b>：① ラポール → 自己紹介 → 記事の感想<br><b>パート1 目標</b>：② 相手を知る（価値観・副業のきっかけ）→ ③ 将来と目標 → ④ <b>映像化</b>（一本の映画・原動力）→ ⑤ 覚悟（なれると思うか）<br><b>パート2 現状</b>：⑥ 副業の現状（数字・時間・決め方・邪魔なもの）<br><b>パート3 必要なもの</b>：⑦ 文章のFB（持っているもの）→ ⑧ 現実と最初の壁（足りないもの）<br><b>パート4 決断</b>：⑨ あなただから一緒に → 本気の確認<br><b>パート5 手段・金額</b>：⑩ 手段としてPF → 格安で聞いてみる → いくらなら → ⑪ 宣言と次の流れ<br><small>迷ったらこの順番に戻る。テクニックは引き出しで、背骨はこの5つ。各ステップの黄色が「なぜ聞くか」、緑が「次へ進む基準」、赤は言わない・やらないこと。</small></div>
+<div class="box"><h2>ヒアリングで絶対に聞く3つ（上司FB 10/22）</h2><b>①お金</b>（仕事・収入・お金の使い方）<b>②家族</b>（構成・副業への理解）<b>③目標</b>（何のために・いくら・いつまで）。最後のクロージングで相手が引っかかる所に、先に手を打つために聞く。趣味・過去・現状の細かい所は聞けたらでいい。ルールに縛られて質問攻めにしない。<br><b>相手のタイプで長さを変える</b>：感情タイプ（よく話す・反応が大きい）→ 仲良くなりながら長めに。論理タイプ（言葉が少ない・結論を急ぐ）→ 褒める時は根拠を添えて、短く進める。</div>
+<div class="box"><h2>5つの関所（ここまで出たら次へ・越えたら戻らない）</h2><b>関所1（〜15分・②）</b>：今の困りごとが、相手の言葉で1つ出た。<br><b>関所2（〜27分・③④）</b>：月いくら・いつまでが相手の口から出て、叶った日が「いつ・どこで・誰と・何を・気持ち」まで映像になり、「その日、見たいです」が出た。<br><b>関所3（〜43分・⑥⑧）</b>：邪魔になるものを相手が自分で言い、「このままだと届かない」と相手が言った。<br><b>関所4（〜46分・⑨）</b>：「やります」と週◯時間が、相手の口から出た。<br><b>関所5（〜55分・⑩⑪）</b>：金額が相手から出て、④の言葉で宣言し、次の日時が決まった。<br><small>関所を越えていないのに次へ進まない（特に関所2を越えずに⑧の直球を言わない）。越えた関所には戻らない。エネルギーが下がった時は、④で出た相手の言葉を1回だけ引用して進む（戻って聞き直さない）。</small></div>
+<div class="box"><h2>自己開示（権威・好意・人徳）の置き場所</h2>自己開示は必ずやる。ただし「短く・本当のことだけ・最後は相手への質問で終える」。<br><b>①自己紹介（30秒）＝権威＋人徳</b>：今の立場（【企業とライターをつなぐ仕事・担当している内容】）＋「私も遠回りしてきたので」。<br><b>②〜④の途中（1文）＝好意</b>：相手と同じ所が出たら「私もそこ一緒です」と1文だけ → すぐ「◯◯さんは？」に戻す。<br><b>⑧現実（1分）＝人徳＋権威</b>：失敗談（クラウドワークスで半年・スクールで遠回り）→ 変わったきっかけ（PF）→「私の場合なので保証はできないんですけど」→「だから◯◯さんには」。<br><small>やらないこと：自分の話が相手の話より長くなる／「必ず」「絶対」で保証する／確かめられない数字を言う。自己開示のあとは、必ず相手に話を返す。</small></div>
+<div class="box"><h2>相手が思ってもみなかった課題を見つける</h2>売れるヒアリングの芯は、相手が気づいていない本当の課題を、相手自身に気づいてもらうこと。言い当てるのではなく「何が原因だと思います？」と聞いてから返す。<br>「文章力が足りない」→ 文章は問題ない。企業さんに見てもらう場所がない（履歴書なしで面接に行っている状態）。<br>「経験を積んでから」→ 単発を何十件書いても、次の単価につながらない。必要なのは継続してくれる1社。<br>「応募数を増やせば」→ 応募するほど疲れる。向こうから声がかかる状態をつくる。<br>「実績がないからPFはまだ早い」→ 順番が逆。PFが先で、実績は一緒に作る。</div>
+<div class="box"><h2>切り返しの引き出し（こういう方法もある）</h2>① 感謝 → 検討に必要な情報：「ありがとうございます。こういう情報があればもっと考えやすい、っていうのはどんな情報ですか？」<br>② ちょうど良かった：「ちょうど良かったです」→ 相手の「え？」を待つ →「◯◯な方こそ、今日やっておいた方がいいんです」<br>③ Yes-If：「もしこれをやったら、【相手の名前】さんの毎日ってどう変わりそうですか？」（イメージしてもらう）<br>④ 今出ている損：「今やっていないから、毎月これだけ取りこぼしている」（暗い未来で脅さない）<br>⑤ 本人に理由を言ってもらう：「どこが一番いいと思いました？」「なぜそこが？」→ 最後はその言葉で訴求<br><small>反論されたら、まず受け止める（「そうですよね」）。押し返さない。</small></div>
+<div class="box"><h2>第三者話法を使う場所</h2>①記事の感想（難しかった方と簡単だった方と分かれる）／②きっかけ・困りごと／③目標の金額／④叶った日の場面／⑤なれると思うか（半信半疑の方も多い）／⑥応募の数字・時間・家族への相談／⑨やってみたい方と迷っている方／⑩支払い方法。<br>型：「【AさんはX】という方もいれば、【Y】という方もいるんですけど、【相手の名前】さんはどちらに近いですか？」。2つ以上並べて、相手に選んでもらう。<br><small>「私がお話しした方で」と言うのは実際にいた人の話だけ。人数や割合は本当の数字だけ（分からなければ「けっこういらっしゃる」まで）。</small></div>
+<div class="box"><h2>聞き方の基本：オウム返しと第三者話法</h2>オウム返し：相手の大事な言葉を、そのまま1回返してから次の質問へ（「21時に帰ってくるんですね」）。<br>第三者話法：「これまで【実際の人数】人くらいの方とお話ししてきて、【よくある悩み】という方が多いんですけど、【相手の名前】さんはどうですか？」。人数は本当の数字だけ。<br>「こういう悩みないですか？」と直接聞かない（売り込まれそうで答えにくい）。</div>
+<div class="box"><h2>聞き方の3つのコツ（上司FB 10/13）</h2>① <b>そのまま聞かない</b>：「理想の未来は？」ではなく「いつ・どんな時に・どんなふうに」で聞く。<br>② <b>なぜは言い当てる</b>：「なぜですか？」を続けず、「もしかして【◯◯】だからですか？」とこちらから当てにいく。外れても「違ったらすみません」で、相手が言い直してくれる。<br>③ <b>第三者の例を先に出す</b>：「私がお話しした方で【例】という方がいたんですけど、【相手の名前】さんはどうですか？」。例は実際にいた人の話だけ（作らない）。</div>
+<div class="box"><h2>相手のタイプ別（つまずく所と返し）</h2>口数が少ない（②③）→「AとBなら、どっちに近いですか？」と選んでもらう。<br>目標がふわっとしている（③）→「逆に、今の生活で一番嫌なことって何ですか？」から入る。<br>お金がない（⑩）→ 気持ちを受け止める →「1件【時間】で【金額】」の時給の話に戻る → 金額は相手から。<br>家族に相談したい（⑩）→ ⑥で決める人を先に聞いておく。家族に説明できる材料を一緒に整理する。<br>経験者・少し稼げている（⑧）→ 強みを認めてから、次の段階（単価・オファー）を映像にする。<br>警戒している（①⑧）→ 自分の遠回りの話で共感。売り込まない。</div>
+<div class="box"><h2>訴求の組み立て（相手の言葉を入れるだけ）</h2>①「【作品の場面】の日、来たら最高ですよね」（夢）<br>②「でも今は【期間】で【収入】。このままだと、その日は来ない」（現実・相手の数字）<br>③「私も同じでした。【自分の経験】」（共感・私も）<br>④「変わったのは【きっかけ】から」（見つけたこと）<br>⑤「【相手の名前】さんは【今日聞いた具体1・2】。だから一緒に叶えたい」（あなただから）<br>⑥「本気でいきますか？」（決断）<br><small>どの相手でも、この6つの【 】を今日聞いた言葉で埋めれば訴求になる。違うのは掘り方だけ。</small></div>
+<div class="box"><h2>エネルギーの見方</h2>上がっているサイン：声が大きく・速くなる／笑う／話す量が増える／「〜したい」「絶対」が出る／自分から質問してくる。<br>下がっているサイン：返事が短い／「まあ」「とりあえず」が増える／目線が外れる。<br><b>下がったら④の映像に戻る</b>：「さっきの【作品の場面】の話、もう少し聞かせてください」。<b>⑧の落差は、④で山を作れた時にだけ効く。</b></div>
+`;
 
-export const energyPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>トーク台本（最新）｜緒方 Sales Script</title><style>
+export interface TalkPageOptions { steps: Step[]; title: string; header: string; intro: string; boxes: string; storageKey: string }
+
+export function renderTalkPage({ steps: list, title, header, intro, boxes, storageKey }: TalkPageOptions): string {
+  const data = JSON.stringify(list).replace(/</g, "\\u003c");
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>${title}</title><style>
 *{box-sizing:border-box}body{margin:0;background:#f6f5f0;color:#24302a;font:17px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
 header{position:sticky;top:0;z-index:5;background:#fffdf9f0;backdrop-filter:blur(8px);border-bottom:1px solid #dcdcd2;padding:10px 16px}
 header .row{display:flex;gap:12px;overflow:auto;white-space:nowrap;font-size:14px}a{color:#2f5f8a;text-decoration:none}
@@ -247,21 +266,8 @@ section.step{background:#fff;border:1px solid #dcdcd2;border-radius:16px;padding
 .hide .say{filter:blur(7px);cursor:pointer}.hide .shown .say{filter:none}
 @media(prefers-color-scheme:dark){body{background:#151a18;color:#e8ece9}header{background:#1d2320f0;border-color:#323a35}section.step,.box,.toc a,.tools button{background:#1f2522;border-color:#353d38;color:#e8ece9}.m{background:#1d2b3a}.who,.time,a{color:#a9c7ea}.c{color:#c1c9c4}.b{background:#2a261c;border-color:#5a4a26}.if{color:#e5c77d}.n{background:#262c29;color:#c1c9c4}.done{background:#1c2b21}.done b{color:#8fd1a2}.avoid{background:#2e1e1d}.avoid b{color:#f19a9a}.goal,.lead{color:#aab3ad}.why{background:#352d1b;color:#f3e7c6}.why b{color:#f0c96a}.m.must{border-left-color:#a9c7ea}.tools button[aria-pressed=true]{background:#e8ece9;color:#151a18}}
 </style></head><body>
-<header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script/ttp">参考：杉山さんTTP</a><a href="/sales-script">旧：全文台本（9/26）</a></div><div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="must" aria-pressed="false">★だけ表示</button></div></header>
-<main><h1>トーク台本（最新）</h1><p class="lead">ヒアリングで相手の未来を映像にしてエネルギーを上げ、現実との差に本人が気づいたら、手段としてPFを提案する。【 】は相手・自分の言葉に置き換える。</p>
-<div class="box"><h2>背骨：スキルプラスの流れ（理想 → 現状 → 必要なもの → 決断 → 手段）</h2><b>入り</b>：① ラポール → 自己紹介 → 記事の感想<br><b>パート1 目標</b>：② 相手を知る（価値観・副業のきっかけ）→ ③ 将来と目標 → ④ <b>映像化</b>（一本の映画・原動力）→ ⑤ 覚悟（なれると思うか）<br><b>パート2 現状</b>：⑥ 副業の現状（数字・時間・決め方・邪魔なもの）<br><b>パート3 必要なもの</b>：⑦ 文章のFB（持っているもの）→ ⑧ 現実と最初の壁（足りないもの）<br><b>パート4 決断</b>：⑨ あなただから一緒に → 本気の確認<br><b>パート5 手段・金額</b>：⑩ 手段としてPF → 格安で聞いてみる → いくらなら → ⑪ 宣言と次の流れ<br><small>迷ったらこの順番に戻る。テクニックは引き出しで、背骨はこの5つ。各ステップの黄色が「なぜ聞くか」、緑が「次へ進む基準」、赤は言わない・やらないこと。</small></div>
-<div class="box"><h2>ヒアリングで絶対に聞く3つ（上司FB 10/22）</h2><b>①お金</b>（仕事・収入・お金の使い方）<b>②家族</b>（構成・副業への理解）<b>③目標</b>（何のために・いくら・いつまで）。最後のクロージングで相手が引っかかる所に、先に手を打つために聞く。趣味・過去・現状の細かい所は聞けたらでいい。ルールに縛られて質問攻めにしない。<br><b>相手のタイプで長さを変える</b>：感情タイプ（よく話す・反応が大きい）→ 仲良くなりながら長めに。論理タイプ（言葉が少ない・結論を急ぐ）→ 褒める時は根拠を添えて、短く進める。</div>
-<div class="box"><h2>5つの関所（ここまで出たら次へ・越えたら戻らない）</h2><b>関所1（〜15分・②）</b>：今の困りごとが、相手の言葉で1つ出た。<br><b>関所2（〜27分・③④）</b>：月いくら・いつまでが相手の口から出て、叶った日が「いつ・どこで・誰と・何を・気持ち」まで映像になり、「その日、見たいです」が出た。<br><b>関所3（〜43分・⑥⑧）</b>：邪魔になるものを相手が自分で言い、「このままだと届かない」と相手が言った。<br><b>関所4（〜46分・⑨）</b>：「やります」と週◯時間が、相手の口から出た。<br><b>関所5（〜55分・⑩⑪）</b>：金額が相手から出て、④の言葉で宣言し、次の日時が決まった。<br><small>関所を越えていないのに次へ進まない（特に関所2を越えずに⑧の直球を言わない）。越えた関所には戻らない。エネルギーが下がった時は、④で出た相手の言葉を1回だけ引用して進む（戻って聞き直さない）。</small></div>
-<div class="box"><h2>自己開示（権威・好意・人徳）の置き場所</h2>自己開示は必ずやる。ただし「短く・本当のことだけ・最後は相手への質問で終える」。<br><b>①自己紹介（30秒）＝権威＋人徳</b>：今の立場（【企業とライターをつなぐ仕事・担当している内容】）＋「私も遠回りしてきたので」。<br><b>②〜④の途中（1文）＝好意</b>：相手と同じ所が出たら「私もそこ一緒です」と1文だけ → すぐ「◯◯さんは？」に戻す。<br><b>⑧現実（1分）＝人徳＋権威</b>：失敗談（クラウドワークスで半年・スクールで遠回り）→ 変わったきっかけ（PF）→「私の場合なので保証はできないんですけど」→「だから◯◯さんには」。<br><small>やらないこと：自分の話が相手の話より長くなる／「必ず」「絶対」で保証する／確かめられない数字を言う。自己開示のあとは、必ず相手に話を返す。</small></div>
-<div class="box"><h2>相手が思ってもみなかった課題を見つける</h2>売れるヒアリングの芯は、相手が気づいていない本当の課題を、相手自身に気づいてもらうこと。言い当てるのではなく「何が原因だと思います？」と聞いてから返す。<br>「文章力が足りない」→ 文章は問題ない。企業さんに見てもらう場所がない（履歴書なしで面接に行っている状態）。<br>「経験を積んでから」→ 単発を何十件書いても、次の単価につながらない。必要なのは継続してくれる1社。<br>「応募数を増やせば」→ 応募するほど疲れる。向こうから声がかかる状態をつくる。<br>「実績がないからPFはまだ早い」→ 順番が逆。PFが先で、実績は一緒に作る。</div>
-<div class="box"><h2>切り返しの引き出し（こういう方法もある）</h2>① 感謝 → 検討に必要な情報：「ありがとうございます。こういう情報があればもっと考えやすい、っていうのはどんな情報ですか？」<br>② ちょうど良かった：「ちょうど良かったです」→ 相手の「え？」を待つ →「◯◯な方こそ、今日やっておいた方がいいんです」<br>③ Yes-If：「もしこれをやったら、【相手の名前】さんの毎日ってどう変わりそうですか？」（イメージしてもらう）<br>④ 今出ている損：「今やっていないから、毎月これだけ取りこぼしている」（暗い未来で脅さない）<br>⑤ 本人に理由を言ってもらう：「どこが一番いいと思いました？」「なぜそこが？」→ 最後はその言葉で訴求<br><small>反論されたら、まず受け止める（「そうですよね」）。押し返さない。</small></div>
-<div class="box"><h2>第三者話法を使う場所</h2>①記事の感想（難しかった方と簡単だった方と分かれる）／②きっかけ・困りごと／③目標の金額／④叶った日の場面／⑤なれると思うか（半信半疑の方も多い）／⑥応募の数字・時間・家族への相談／⑨やってみたい方と迷っている方／⑩支払い方法。<br>型：「【AさんはX】という方もいれば、【Y】という方もいるんですけど、【相手の名前】さんはどちらに近いですか？」。2つ以上並べて、相手に選んでもらう。<br><small>「私がお話しした方で」と言うのは実際にいた人の話だけ。人数や割合は本当の数字だけ（分からなければ「けっこういらっしゃる」まで）。</small></div>
-<div class="box"><h2>聞き方の基本：オウム返しと第三者話法</h2>オウム返し：相手の大事な言葉を、そのまま1回返してから次の質問へ（「21時に帰ってくるんですね」）。<br>第三者話法：「これまで【実際の人数】人くらいの方とお話ししてきて、【よくある悩み】という方が多いんですけど、【相手の名前】さんはどうですか？」。人数は本当の数字だけ。<br>「こういう悩みないですか？」と直接聞かない（売り込まれそうで答えにくい）。</div>
-<div class="box"><h2>聞き方の3つのコツ（上司FB 10/13）</h2>① <b>そのまま聞かない</b>：「理想の未来は？」ではなく「いつ・どんな時に・どんなふうに」で聞く。<br>② <b>なぜは言い当てる</b>：「なぜですか？」を続けず、「もしかして【◯◯】だからですか？」とこちらから当てにいく。外れても「違ったらすみません」で、相手が言い直してくれる。<br>③ <b>第三者の例を先に出す</b>：「私がお話しした方で【例】という方がいたんですけど、【相手の名前】さんはどうですか？」。例は実際にいた人の話だけ（作らない）。</div>
-<div class="box"><h2>相手のタイプ別（つまずく所と返し）</h2>口数が少ない（②③）→「AとBなら、どっちに近いですか？」と選んでもらう。<br>目標がふわっとしている（③）→「逆に、今の生活で一番嫌なことって何ですか？」から入る。<br>お金がない（⑩）→ 気持ちを受け止める →「1件【時間】で【金額】」の時給の話に戻る → 金額は相手から。<br>家族に相談したい（⑩）→ ⑥で決める人を先に聞いておく。家族に説明できる材料を一緒に整理する。<br>経験者・少し稼げている（⑧）→ 強みを認めてから、次の段階（単価・オファー）を映像にする。<br>警戒している（①⑧）→ 自分の遠回りの話で共感。売り込まない。</div>
-<div class="box"><h2>訴求の組み立て（相手の言葉を入れるだけ）</h2>①「【作品の場面】の日、来たら最高ですよね」（夢）<br>②「でも今は【期間】で【収入】。このままだと、その日は来ない」（現実・相手の数字）<br>③「私も同じでした。【自分の経験】」（共感・私も）<br>④「変わったのは【きっかけ】から」（見つけたこと）<br>⑤「【相手の名前】さんは【今日聞いた具体1・2】。だから一緒に叶えたい」（あなただから）<br>⑥「本気でいきますか？」（決断）<br><small>どの相手でも、この6つの【 】を今日聞いた言葉で埋めれば訴求になる。違うのは掘り方だけ。</small></div>
-<div class="box"><h2>エネルギーの見方</h2>上がっているサイン：声が大きく・速くなる／笑う／話す量が増える／「〜したい」「絶対」が出る／自分から質問してくる。<br>下がっているサイン：返事が短い／「まあ」「とりあえず」が増える／目線が外れる。<br><b>下がったら④の映像に戻る</b>：「さっきの【作品の場面】の話、もう少し聞かせてください」。<b>⑧の落差は、④で山を作れた時にだけ効く。</b></div>
-<nav class="toc" id="toc"></nav><div id="steps"></div></main>
+${header}
+<main>${intro}${boxes}<nav class="toc" id="toc"></nav><div id="steps"></div></main>
 <script type="application/json" id="data">${data}</script>
 <script>
 (function(){var S=JSON.parse(document.getElementById('data').textContent);function e(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}function hi(s){return e(s).replace(/【([^】]*)】/g,'<b>【$1】</b>')}
@@ -269,7 +275,10 @@ document.getElementById('toc').innerHTML=S.map(function(s){return '<a href="#e'+
 document.getElementById('steps').innerHTML=S.map(function(s){var o='<section class="step" id="e'+s.n+'"><div class="time">'+e(s.time)+'</div><h2>'+s.n+'｜'+e(s.title)+'</h2><p class="why"><b>なぜ聞くか</b>：'+e(s.why)+'</p><p class="goal">ゴール：'+e(s.goal)+'</p>';
 o+='<div class="done"><b>次へ進む基準</b><ul>'+s.done.map(function(d){return '<li>'+hi(d)+'</li>'}).join('')+'</ul></div>';if(s.avoid)o+='<div class="avoid"><b>言わない・やらない</b><ul>'+s.avoid.map(function(d){return '<li>'+hi(d)+'</li>'}).join('')+'</ul></div>';
 s.items.forEach(function(i){if(i.k==='m')o+='<div class="m'+(i.must?' must':'')+'"><div class="who">'+(i.must?'★ ':'')+'緒方</div><div class="say">'+hi(i.t)+'</div></div>';else if(i.k==='c')o+='<div class="c">相手：'+hi(i.t)+'</div>';else if(i.k==='b')o+='<div class="b"><div class="if">もし：'+e(i.if)+'</div><div class="say">'+hi(i.t)+'</div></div>';else o+='<div class="n">'+hi(i.t)+'</div>'});return o+'</section>'}).join('');
-var b=document.body,btn=document.getElementById('memory');function ap(v){b.classList.toggle('hide',v);btn.setAttribute('aria-pressed',String(v))}try{ap(localStorage.getItem('energy-memory')==='1')}catch(x){}btn.onclick=function(){var v=!b.classList.contains('hide');ap(v);try{localStorage.setItem('energy-memory',v?'1':'0')}catch(x){}};
-var mb=document.getElementById('must');function am(v){b.classList.toggle('only-must',v);mb.setAttribute('aria-pressed',String(v))}try{am(localStorage.getItem('energy-must')==='1')}catch(x){}mb.onclick=function(){var v=!b.classList.contains('only-must');am(v);try{localStorage.setItem('energy-must',v?'1':'0')}catch(x){}};
+var b=document.body,btn=document.getElementById('memory');function ap(v){b.classList.toggle('hide',v);btn.setAttribute('aria-pressed',String(v))}try{ap(localStorage.getItem('${storageKey}-memory')==='1')}catch(x){}btn.onclick=function(){var v=!b.classList.contains('hide');ap(v);try{localStorage.setItem('${storageKey}-memory',v?'1':'0')}catch(x){}};
+var mb=document.getElementById('must');function am(v){b.classList.toggle('only-must',v);mb.setAttribute('aria-pressed',String(v))}try{am(localStorage.getItem('${storageKey}-must')==='1')}catch(x){}mb.onclick=function(){var v=!b.classList.contains('only-must');am(v);try{localStorage.setItem('${storageKey}-must',v?'1':'0')}catch(x){}};
 document.getElementById('steps').addEventListener('click',function(ev){var t=ev.target.closest('.m,.b');if(t&&b.classList.contains('hide'))t.classList.toggle('shown')});})();
 </script></body></html>`;
+}
+
+export const energyPage = renderTalkPage({ steps, title: "トーク台本（最新）｜緒方 Sales Script", header: energyHeader, intro: energyIntro, boxes: energyBoxes, storageKey: "energy" });
