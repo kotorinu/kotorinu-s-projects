@@ -30,3 +30,14 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   // 元のポートフォリオ版は変えない
   assert.ok(energySteps[9].title.includes("PF") && energySteps[9].items.some(i => i.t.includes("虹色の履歴書")));
 });
+
+test("オウンドメディア理解度テストは5分類すべてに問題があり、要点と模範解答がある", async () => {
+  const { quizItems, quizCategories, ownedMediaQuizPage } = await import("../lib/sales-script/owned-media-quiz");
+  const ids = new Set(quizItems.map(i => i.id));
+  assert.equal(ids.size, quizItems.length);
+  for (const c of quizCategories) assert.ok(quizItems.filter(i => i.cat === c.id).length >= 5, c.label);
+  for (const i of quizItems) assert.ok(i.q && i.a && i.points.length > 0, i.id);
+  assert.ok(quizItems.some(i => i.cat === "ng" && i.q.includes("お仕事を紹介するので")));
+  assert.ok(ownedMediaQuizPage.includes("10問テスト") && ownedMediaQuizPage.includes("owned-media-quiz-v1"));
+  assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaQuizPage));
+});

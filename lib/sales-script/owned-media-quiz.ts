@@ -1,0 +1,130 @@
+// オウンドメディア版の理解度テスト・問題集 (2026-10-24)。
+//
+// 基礎（OMとは）→ 仕組み → 台本の流れ → 訴求・反論 → 言っていいか の順に積み上がる。
+// 問題を見て、声に出して答えてから「答えを見る」。要点にいくつ触れられたかで ○△× を自分で付ける。
+// 数字・事例・価格は、会社の資料で確認できたものだけ。確定前のものは【 】のまま。
+
+export interface QuizItem { id: string; cat: Cat; q: string; a: string; points: string[]; hint?: string }
+export type Cat = "basic" | "mechanism" | "flow" | "appeal" | "ng";
+
+export const quizCategories: { id: Cat; label: string; note: string }[] = [
+  { id: "basic", label: "1 基礎", note: "オウンドメディアとは・なぜ必要か" },
+  { id: "mechanism", label: "2 仕組み", note: "Amazon・ASP・セルフバック・最初の一歩" },
+  { id: "flow", label: "3 台本の流れ", note: "どこで何を聞くか・どの順で話すか" },
+  { id: "appeal", label: "4 訴求・反論", note: "こう言われたら、こう返す" },
+  { id: "ng", label: "5 言っていい？", note: "言っていいか・ダメならなぜか" },
+];
+
+export const quizItems: QuizItem[] = [
+  // 1 基礎
+  { id: "b1", cat: "basic", q: "お客さんに「オウンドメディアって何ですか？」と聞かれました。30秒で答えてください。", a: "自分で持っていて、自分で記事を出していくメディア、自分専用のサイトのことです。ポートフォリオと同じように実績を見せて仕事を取るのに使えて、さらに書いた記事が残って、読まれるとお金も生んでくれる場所なんです。", points: ["自分のもの（自分専用のサイト）", "実績を見せて仕事を取れる", "書いた記事が残る", "記事からお金が生まれる"] },
+  { id: "b2", cat: "basic", q: "ポートフォリオとオウンドメディアの違いを、一言ずつで。", a: "ポートフォリオは、仕事を取るために自分を「見せるもの」で、見せたらそこで終わり。オウンドメディアは、見せる役割に加えて、記事が残って、読まれた数で力を証明できて、記事そのものがお金も生む。", points: ["PF＝見せるもの・そこで終わる", "OM＝見せる＋記事が残る", "読まれた数で証明できる", "お金も生む"] },
+  { id: "b3", cat: "basic", q: "なぜ案件を取るのに、ポートフォリオがほぼ必須なんですか？（企業さんの目線で）", a: "企業さんは文章だけじゃなくて「この人に任せて大丈夫か」を見ているからです。名前と一言しか分からない人より、どんな人で何が得意か、どんな記事を書くかが分かる人に頼みたい。会社の資料だと、PFがない時の受注率は5%くらい、ある時は40%くらいで、8倍くらい変わります。", points: ["企業は「任せて大丈夫か」を見ている", "どんな人・何が得意か・どんな記事かが分かる", "会社の資料：5%→40%（出典を添える）"], hint: "⑩では、説明する前に「なんで企業さんはPFを見たがると思います？」と本人に聞く。" },
+  { id: "b4", cat: "basic", q: "「ポートフォリオだけじゃもったいない」のは、なぜですか？", a: "ポートフォリオは見せるためのものなので、仕事を取ったらそこで終わりで、書いた記事も納品したら残らないからです。月【金額】を目指すなら、案件だけだと毎月ずっと書き続けないといけない。書いた記事が残っていく場所を持った方が、目標に近づけます。", points: ["見せるもので終わる", "納品した記事は残らない", "案件だけだと毎月書き続けないといけない", "相手の目標金額とつなげる"] },
+  { id: "b5", cat: "basic", q: "オウンドメディアがあると、受注率がさらに上がりやすいのはなぜ？", a: "どれくらい読まれたかが数字で分かるので、「この人の記事は読まれる」と見せられるからです。今はAIで誰でも文章が書けるので、企業さんが欲しいのは「読まれる記事を書ける人」。文章が書けるだけの人と、ここで差がつきます。", points: ["読まれた数を見せられる", "AIで誰でも書ける時代", "企業が欲しいのは「読まれる記事を書ける人」"] },
+  { id: "b6", cat: "basic", q: "「日記みたいなブログと何が違うの？」と聞かれたら？", a: "日記は自分のために書くものですが、オウンドメディアは、読む人の役に立って、収益を狙って作るものです。使って良かった物を比べて紹介したり、同じ悩みの人に向けて書いたりします。", points: ["日記ではない", "読む人の役に立つ", "収益を狙って作る・運用する"] },
+  { id: "b7", cat: "basic", q: "「案件だけが収入の手段じゃない」とは、どういう意味ですか？ 案件を否定していますか？", a: "否定していません。フリーランスとして伸びるには、企業さんから高い単価で継続のお仕事をもらうのが一番の柱です。ただ、オウンドメディアがあると、それに加えて、Amazonやセルフバックで、自分の頑張りで書いた記事をお金にできる。案件を待つだけじゃなくなる、という意味です。", points: ["案件は一番の柱（否定しない）", "それに加えて自分で収益を作れる", "案件を待つだけじゃなくなる"] },
+  { id: "b8", cat: "basic", q: "なぜ「早く始めた方がいい」と言えるのですか？", a: "記事は書いた分だけ残って積み上がるので、始めるのが半年遅れると、積み上がる記事も半年分遅れるからです。読まれるようになるまで時間もかかるので、早く始めた方が早く届きます。", points: ["記事は積み上がる", "遅れた分だけ積み上がりも遅れる", "読まれるまで時間がかかる"] },
+
+  // 2 仕組み
+  { id: "m1", cat: "mechanism", q: "Amazonアソシエイトの仕組みを、知らない人に説明してください。", a: "Amazonに登録すると、商品ごとに自分専用の紹介リンクが作れます。そのリンクから誰かが買うと、売上の一部が紹介料として入ります。買う人の値段は変わらないので、誰も損をしません。", points: ["登録すると専用リンクが作れる", "リンクから買われると紹介料", "買う人の値段は変わらない"] },
+  { id: "m2", cat: "mechanism", q: "2,380円の日傘で紹介料率8%だと、1個売れたらいくら？ 月10個なら？（動画の時点の例）", a: "2,380円×8%で約190円。月10個なら約1,900円。それが1つの記事から毎月入る可能性がある、ということです。※紹介料率は変わるので、面談では「動画の時点では」と添える。", points: ["約190円", "月10個で約1,900円", "1つの記事から毎月入る可能性", "料率は変わる（言い切らない）"] },
+  { id: "m3", cat: "mechanism", q: "ASPとは何ですか？ 例を1つ挙げて。", a: "紹介してほしい商品やサービスを持っている企業と、メディアを持っている人をつなぐサービスです。A8.netが大手です。紹介リンクを記事に載せて、申し込みや購入があると、条件に応じて報酬が入ります。", points: ["企業とメディア運営者をつなぐ", "A8.netなど", "条件を満たすと報酬"] },
+  { id: "m4", cat: "mechanism", q: "セルフバックとは？ 説明する時に必ず添えることは？", a: "ASPを通して、自分で商品やサービスを申し込むと報酬がもらえる仕組みです。必ず添えるのは、1件ごとの1回きりだということ。毎月続く収入ではなく、最初の報酬を体験して、それを記事にする入り口です。", points: ["自分で申し込むと報酬", "1件ごとの1回きり", "最初の報酬の体験＋記事のネタ"] },
+  { id: "m5", cat: "mechanism", q: "オウンドメディアを作ったら、最初に何をどの順でやりますか？", a: "①Amazonアソシエイト・ASPに登録 → ②本当に使いたいサービスをセルフバックで1件申し込んで、最初の報酬を体験 → ③使った感想を記事にして載せる → ④好きなことや本業の経験から記事を積み上げていく。並行して、案件で実績と収入を作る。", points: ["登録", "セルフバック1件", "体験を記事に", "積み上げる", "並行して案件"] },
+  { id: "m6", cat: "mechanism", q: "なぜセルフバックから始めるのがいいのですか？", a: "アクセスがまだなくても、最初の報酬を体験できるからです。報酬が入ると「これでいけるかも」とやる気が変わりますし、使った体験がそのまま記事のネタになります。", points: ["アクセスなしでも報酬", "やる気・自信", "体験が記事のネタ"] },
+  { id: "m7", cat: "mechanism", q: "毎月続く収入は、どこから生まれますか？", a: "記事を積み上げて、検索などで読まれるようになってからです。紹介した商品が読者に買われたり申し込まれたりすると、書いた後も報酬が入ります。読まれるまでには数ヶ月かかることも普通です。", points: ["記事の積み上げ", "読まれるようになってから", "数ヶ月かかることもある"] },
+  { id: "m8", cat: "mechanism", q: "記事を書く時のAIの使い方は？", a: "タイトル案、構成、下書き、文章の整理はAIで速くしていい。ただ、AIの文章をそのまま出すと他の記事と同じになって読まれにくいので、自分が使った感想や経験を足して仕上げます。", points: ["下書きはAIでOK", "そのまま出さない", "自分の体験・意見を足す"] },
+
+  // 3 台本の流れ
+  { id: "f1", cat: "flow", q: "台本の全体の流れ（①〜⑪）を、5つのパートで言ってください。", a: "入り：①ラポール→自己紹介→動画3本の感想。パート1 目標：②相手を知る→③将来と目標→④映像化→⑤覚悟となぜ今か。パート2 現状：⑥副業の現状。パート3 必要なもの：⑦感想のFB→⑧現実と最初の壁。パート4 決断：⑨あなただから→本気の確認。パート5 手段・金額：⑩手段としてオウンドメディア→⑪宣言と次の流れ。", points: ["理想", "現状", "必要なもの", "決断", "手段（OMは最後）"] },
+  { id: "f2", cat: "flow", q: "①で動画3本の感想から聞き出したい3つは？ 出た「不安」はどうする？", a: "一番印象に残ったこと、自分でもやってみたいと思ったこと、まだ不安・分からないこと。不安はメモして、ここでは答えない。⑩の最後に「最初に言っていた〇〇、今どうですか？」とそのまま返す。", points: ["印象に残ったこと", "やってみたいこと", "不安なこと", "メモして⑩で返す"] },
+  { id: "f3", cat: "flow", q: "③で相手が「月5,000円〜1万円くらい」と言いました。どう聞き直しますか？", a: "「今の状況から考えるんじゃなくて、将来から考えるとしたら、『これだけあったら余裕だわ』って自信を持って言える金額って、いくらですか？」。ただし大きい数字を言わせない。出た数字が小さいままなら、それを受け止める。", points: ["今の状況ではなく将来から", "余裕だと言える金額", "言わせない・受け止める"] },
+  { id: "f4", cat: "flow", q: "⑤で「なぜ今か」を確かめる質問を2つ。", a: "「それって『いつかできたらいいな』ですか？　それとも『今、本気で変えたい』ですか？」「もし1年後も、今と同じ状態だったとしたら、正直どうですか？」", points: ["いつかか、今か", "1年後も同じだったら", "緊急性はこちらが作らない"] },
+  { id: "f5", cat: "flow", q: "⑦で、提出された感想の「良い点」はどこから選びますか？", a: "動画の話を自分の言葉や生活に置き換えているか、読み手に伝わる順番か、具体的か、から1つ選んで具体的に言う。「上手ですね」だけで終わらない。最後に「書く力は問題ない。だからこそ」で⑧につなぐ。", points: ["自分の言葉・生活に置き換え", "伝わる順番", "具体的", "「だからこそ」で⑧へ"] },
+  { id: "f6", cat: "flow", q: "⑩でオウンドメディアを説明する順番を、言ってください。", a: "①足りないものを本人に聞く →②PFはほぼ必須（なぜ必要か本人に聞く）→③でもPFは見せるもので終わる →④OMはその一段上（読まれた数で証明・案件以外の収入）→⑤まず個人で収益化、セルフバックは1回きり →⑥相手の記事テーマを1つ出す →⑦小さなイエス →⑧本気の条件（時間）→⑨外注相場 →⑩直球の提案 →⑪金額 → 黙る。", points: ["PFは必須（本人に聞く）", "PFは見せるもので終わる", "OMは一段上", "セルフバックは1回きり", "本気の条件", "金額の後は黙る"] },
+  { id: "f7", cat: "flow", q: "⑩で、PFの説明をする前に、まず本人に何を聞きますか？ なぜ？", a: "「なんで企業さんがポートフォリオを見たがると思います？」。こちらが説明するより、本人が自分で答えた方が、必要性が本人のものになるから。答えをオウム返しして、足りない所だけ足す。", points: ["なぜPFが必要だと思うか聞く", "本人の答えが先", "オウム返し→足りない所だけ足す"] },
+  { id: "f8", cat: "flow", q: "「本気の条件」として、何をどう伝えますか？", a: "事例（例：最初の月に案件とセルフバックで7万円）を出したうえで、「その方たちは週に20時間以上、月80時間くらい取り組んでいる。だから正直、本気でやる気がないならおすすめしない」と伝えて、「さっきの週【時間】、本気で【期限】まで続けられそうですか？」と聞く。数字は会社で確認できた本当のものだけ。", points: ["事例は本当の数字だけ・保証なし", "週20時間・月80時間", "本気でないならおすすめしない", "⑨の時間と期限で確かめる"] },
+  { id: "f9", cat: "flow", q: "「数日考えたい」と言われ、理由は「自分が本気でやれるか」でした。どう返しますか？", a: "「正直にお伝えすると、一人で考える時間を取った方って、元の生活のペースに戻って、そのままやめてしまうことが多いんです。だから、今ここで一緒に整理させてください。一番の不安って何ですか？」。家族やお金で本当に時間が必要な人には、期限を決めて待つ。", points: ["責めない", "やめてしまう方が多いという事実", "今、一番の不安を聞く", "本当に必要なら期限を決めて待つ"] },
+  { id: "f10", cat: "flow", q: "金額を伝えた直後に、やることとやらないことは？", a: "やること：黙って相手の反応を待つ。やらないこと：説明や言い訳を重ねる、自分から値引きする。悩んでいたら「悩むお気持ち、分かります。大事な決断ですもんね」と受け止める。", points: ["黙る", "説明を重ねない", "自分から値引きしない", "悩みを受け止める"] },
+
+  // 4 訴求・反論
+  { id: "a1", cat: "appeal", q: "「動画で、オウンドメディアは無料で持てるって言ってましたよね？」", a: "「そうなんです、自分で作ることもできます。ただ、動画でも話していたとおり、一番やめてしまうのが立ち上げなんです。今回は、そこをこちらで完成させて、仕事を取れる状態と、記事を積み上げられる状態でお渡しするところまでがセットなんです。」", points: ["認める（自分でも作れる）", "立ち上げで止まる人が多い", "完成させて渡すのがセット"] },
+  { id: "a2", cat: "appeal", q: "「ChatGPTで書いて貼るだけでいいんですよね？」", a: "「下書きはAIで早く作れます。ただ、それだけだと他の記事と同じになって、読まれにくいんです。〇〇さんが使ってみた感想や、【本業・好きなこと】の経験を足すから、読まれる記事になるんです。そこも一緒にやっていきます。」", points: ["AIの下書きはOK", "そのままだと読まれない", "相手の経験を足す"] },
+  { id: "a3", cat: "appeal", q: "「セルフバックで毎月3万円入るんですか？」", a: "「セルフバックは1件ごとの1回きりなんです。最初の報酬を早く体験して、それを記事にするための入り口です。毎月続く収入は、記事を積み上げて読まれるようになってからなので、そこは一緒に積み上げていきましょう。」", points: ["1回きり", "入り口・記事のネタ", "続く収入は積み上げてから"] },
+  { id: "a4", cat: "appeal", q: "「ポートフォリオだけでいいです」", a: "「仕事を取るだけなら、ポートフォリオでも大丈夫です。ただ、〇〇さんの【期限】に月【金額】を考えると、案件だけだと毎月ずっと書き続けないといけないんです。書いた記事が残っていく場所を最初から持っておいた方が、【作品の場面】に近いと思うんです。」", points: ["否定しない", "相手の目標金額・期限", "案件だけだと書き続け", "④の場面につなぐ"] },
+  { id: "a5", cat: "appeal", q: "「パソコンが苦手で、サイトなんて作れないです」", a: "「大丈夫です。一番大変なのが立ち上げ（サーバー・初期設定・デザイン）なので、そこはこちらで完成させてお渡しします。〇〇さんがやるのは、記事を書いて追加するところからです。」", points: ["立ち上げはこちら", "本人は記事を書くところから"] },
+  { id: "a6", cat: "appeal", q: "「趣味もないし、何を書けばいいか分からない」", a: "「そういう方、すごく多いんです。でも今日お話を聞いていて、【②で出た本業・毎日のこと・最近買ったもの】って、まさに記事になるんです。最初の記事のテーマは、一緒に決めましょう。」", points: ["多いと受け止める", "今日聞いた具体から1つ出す", "一緒に決める"] },
+  { id: "a7", cat: "appeal", q: "「どれくらいで読まれるようになりますか？」", a: "「正直、検索で読まれるまでには時間がかかります。数ヶ月かかることも普通です。だから、最初はセルフバックで報酬を体験して、その間に案件で実績と収入を作りながら、記事を積み上げていく、という順番なんです。」", points: ["正直に時間がかかる", "数ヶ月は普通", "セルフバック＋案件で並行"] },
+  { id: "a8", cat: "appeal", q: "「本当に稼げるんですか？ ちょっと怪しい…」", a: "「そう思いますよね。正直、全員が稼げるとは言えないです。記事を書かなければ何も起きないので。だからこそ、さっき週【時間】使えるかを確認させてもらったんです。仕組みとしては、Amazonやセルフバックは大手の会社の公式の仕組みなので、そこは安心してください。」", points: ["受け止める", "全員が稼げるとは言わない", "本気の条件に戻す", "仕組みは公式"] },
+  { id: "a9", cat: "appeal", q: "「AIで記事が書けるなら、ライターの仕事ってなくなりません？」", a: "「まさにそこが、オウンドメディアを持ってほしい理由なんです。文章を書くだけならAIでもできるので、企業さんが欲しいのは『読まれる記事を書ける人』なんですよね。それを数字で見せられるのがオウンドメディアなんです。」", points: ["だからこそOM", "企業が欲しいのは読まれる記事を書ける人", "数字で見せられる"] },
+  { id: "a10", cat: "appeal", q: "「noteやブログと何が違うんですか？」", a: "「noteは、いろんな人の記事が並んでいるので、読みに来た人が他の人の記事に流れていきやすいんです。自分のメディアは全部〇〇さんの記事なので、読んだ人がそのまま〇〇さんの記事を読んでくれて、紹介リンクや広告も自分で置けるんです。」", points: ["noteは他人の記事に流れる", "自分のメディアは全部自分の記事", "リンク・広告を自分で置ける"] },
+  { id: "a11", cat: "appeal", q: "「続けられるか不安です」", a: "「案件だと、興味のないテーマも書かないといけないことがあるんです。オウンドメディアは、【好きなこと・使って良かったもの】を書けるので、続けやすいんです。それに、一人でやるわけじゃないので。」", points: ["案件は興味のないテーマも", "OMは好きなことを書ける", "一人じゃない"] },
+  { id: "a12", cat: "appeal", q: "「時間がないんです」（ちょうど良かった）", a: "「ちょうど良かったです。」（相手の「え？」を待つ）「時間がない方こそ、書いた記事が残る形が向いているんです。毎月書き続けないと収入が止まる形から、積み上がっていく形に変えられるので。」", points: ["ちょうど良かった→間を置く", "時間がない方こそ", "積み上がる形に変える"] },
+  { id: "a13", cat: "appeal", q: "「高いです」「お金がないです」", a: "「そうですよね、すぐに出せる金額じゃないですよね。ただ、正直すごくもったいないなと思っていて。今も時給にすると【時給】円で書いていて、書いた記事も納品したら残らない状態なので、毎月取りこぼしてしまっているんです。」 払うと生活が苦しくなる人には、今は勧めない。", points: ["受け止める", "今の時給と取りこぼし", "生活が苦しくなる人には勧めない"] },
+  { id: "a14", cat: "appeal", q: "「月1万円くらいしか出せません」", a: "「教えてくださってありがとうございます。無理して生活が苦しくなるのは、私もおすすめしないです。【会社で決まっている分割・プランの範囲】なら、月【金額】くらいで始められます。その金額でも、本気で【期限】まで走りきれそうですか？」 下げられる範囲は事前に上司と決めたものだけ。", points: ["お礼", "無理は勧めない", "会社で決まった範囲だけ", "本気で走りきれるか確認"] },
+  { id: "a15", cat: "appeal", q: "「安すぎて逆に不安です」「連絡が取れなくなったりしませんか？」", a: "「そう思いますよね。この後の流れを先にお見せしますね。【契約書・制作アンケート・連絡のグループ・代表や担当の名前】で進めていて、困った時はグループでいつでも聞けます。」", points: ["受け止める", "この後の流れを具体的に見せる", "相談できる場所"] },
+  { id: "a16", cat: "appeal", q: "「デザインや動画編集の方がいいのかな、と迷っています」", a: "「どれもできるようになれば仕事になります。ただ、〇〇さんが【②で出た好きなこと・経験】を持っているなら、それをそのまま記事にできるライティングは、始めやすいと思うんです。経験を足した文章は、AIだけでは書けないので。」 ほかの副業を下げて比べない。", points: ["他の副業を否定しない", "相手の経験を活かせる", "経験はAIで書けない"] },
+
+  // 5 言っていい？
+  { id: "n1", cat: "ng", q: "言っていい？「あと2名で締め切りです。明後日から15万円になります」", a: "会社で本当に決まっている時だけ。決まっていない残り枠や期限で急がせるのは、お客さんをだますことになり、不当表示の問題にもなる。言わない。", points: ["本当に決まっている時だけ", "作った期限・枠はNG"] },
+  { id: "n2", cat: "ng", q: "言っていい？「1〜3万円は余裕でいけます」", a: "ダメ。成果は人によるので保証できない。言うなら「こういう方もいます。もちろん人によるので保証はできないんですけど」まで。", points: ["NG", "事例止まり・保証なし"] },
+  { id: "n3", cat: "ng", q: "言っていい？「お仕事を紹介するので、このメディアを買ってください」", a: "ダメ。仕事の紹介を理由に商品を買ってもらう形は、特定商取引法の「業務提供誘引販売取引」にあたる可能性があり、書面やクーリングオフなどの決まりがかかる。会社の確認が済むまで、仕事の紹介を買う理由として話さない。お仕事は「実績を一緒に作る中身の1つ」として話す。", points: ["NG", "業務提供誘引販売取引の可能性", "実績を作る中身の1つとして話す"] },
+  { id: "n4", cat: "ng", q: "言っていい？「このメディアは一生使えます」", a: "維持費・ドメイン代を誰が負担するかが確定するまでは言わない。確定したら、その内容を正確に伝える。", points: ["維持費が確定するまでNG", "確定したら正確に"] },
+  { id: "n5", cat: "ng", q: "言っていい？「本気なら、食費を削れば月1万くらい出せますよね」", a: "ダメ。生活費を削って払うよう勧めない。払うと生活が苦しくなる人には、今は勧めない。", points: ["NG", "生活を削らせない"] },
+  { id: "n6", cat: "ng", q: "言っていい？「A8のランキング7位の人でも月180万円稼いでいます」", a: "ダメ。上位の人の数字を、相手の目安のように見せない。誤解を生む。", points: ["NG", "上位の数字を目安にしない"] },
+  { id: "n7", cat: "ng", q: "言っていい？「初月7万円いけます」", a: "言い切りはダメ。「最初の月に7万円まで行った方もいます。ただ、その方は週20時間以上やっていて、人によるので保証はできないんですけど」と、本当の事例として条件と一緒に言う。", points: ["言い切りNG", "事例＋条件（時間）＋保証なし"] },
+  { id: "n8", cat: "ng", q: "言っていい？「通常価格99,800円のところ、今日は79,800円です」", a: "通常価格で実際に売った実績がないと言えない（二重価格表示）。会社で確定した価格と条件だけを言う。", points: ["通常価格の実績が必要", "確定した価格だけ"] },
+  { id: "n9", cat: "ng", q: "言っていい？「セルフバックだけで2〜3万円は全然いけます」", a: "言い切りはダメ。セルフバックは1回きりで、条件や審査がある。「最初の報酬を体験できます。案件によって金額や条件は違います」と言う。", points: ["言い切りNG", "1回きり・条件や審査あり"] },
+  { id: "n10", cat: "ng", q: "相手は、働く目的がまだはっきりしないと自分で言っています。商品の説明に進んでいい？", a: "進まない。目的が本人の口から出るまで③④に戻って聞く。目的がないまま売ると、続かず、不満や返金になりやすい。それでも出なければ、今日は売らない。", points: ["進まない", "③④に戻る", "出なければ今日は売らない"] },
+];
+
+const data = JSON.stringify({ cats: quizCategories, items: quizItems }).replace(/</g, "\\u003c");
+
+export const ownedMediaQuizPage = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f5f0"><title>オウンドメディア理解度テスト｜緒方 Sales Script</title><style>
+:root{--bg:#f6f5f0;--card:#fff;--ink:#24302a;--muted:#5f6b63;--line:#dcdcd2;--accent:#2f5f8a;--soft:#eef3fb;--ok:#2b6a3f;--okbg:#eef6ef;--mid:#7a5a12;--midbg:#fbf3df;--ng:#a33;--ngbg:#fbefee}
+@media(prefers-color-scheme:dark){:root{--bg:#151a18;--card:#1f2522;--ink:#e8ece9;--muted:#aab3ad;--line:#353d38;--accent:#a9c7ea;--soft:#1d2b3a;--ok:#8fd1a2;--okbg:#1c2b21;--mid:#e5c77d;--midbg:#2a261c;--ng:#f19a9a;--ngbg:#2e1e1d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.8 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}header .row{display:flex;gap:12px;overflow:auto;white-space:nowrap;font-size:14px}a{color:var(--accent);text-decoration:none}
+main{max-width:760px;margin:auto;padding:20px 16px 90px}h1{font-size:24px;margin:0 0 6px}.lead{color:var(--muted);font-size:15px;margin:0 0 14px}
+.score{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:15px}.bars{display:grid;gap:6px;margin-top:8px}.bar{display:grid;grid-template-columns:7.5em 1fr 4.5em;gap:8px;align-items:center;font-size:13px}.track{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.fill{height:100%;background:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;min-height:40px;font-size:14px;cursor:pointer}button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:0 0 14px}.cat{font-size:12px;font-weight:700;color:var(--accent)}.q{font-size:18px;font-weight:700;margin:4px 0 10px}
+.ans{display:none;border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}.open .ans{display:block}.model{background:var(--soft);border-radius:10px;padding:10px 12px;margin:0 0 8px}.hint{font-size:14px;color:var(--muted);margin:6px 0}
+.points{margin:0 0 8px;padding:0;list-style:none}.points li{margin:4px 0}.points label{display:flex;gap:8px;align-items:flex-start;font-size:15px}.points input{width:20px;height:20px;margin-top:4px;flex:none}
+.grade{display:flex;gap:8px;flex-wrap:wrap}.grade button[data-g=ok][aria-pressed=true]{background:var(--ok);color:#fff;border-color:var(--ok)}.grade button[data-g=mid][aria-pressed=true]{background:var(--mid);color:#fff;border-color:var(--mid)}.grade button[data-g=ng][aria-pressed=true]{background:var(--ng);color:#fff;border-color:var(--ng)}
+.mark{float:right;font-size:13px;font-weight:700;border-radius:999px;padding:0 10px}.mark.ok{background:var(--okbg);color:var(--ok)}.mark.mid{background:var(--midbg);color:var(--mid)}.mark.ng{background:var(--ngbg);color:var(--ng)}
+.reveal{background:var(--accent);color:var(--bg);border-color:var(--accent)}.empty{color:var(--muted);text-align:center;padding:30px 0}
+</style></head><body>
+<header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script/owned-media">トーク台本（オウンドメディア版）</a><a href="/sales-script/energy">ポートフォリオ版</a></div></header>
+<main><h1>オウンドメディア理解度テスト</h1><p class="lead">問題を見たら、まず声に出して答える。それから「答えを見る」を押して、要点にいくつ触れられたかチェックし、○△×を付ける。基礎（1）から順に積み上げる。【 】は会社で確認できた数字・内容に置き換える。</p>
+<div class="score" id="score"></div>
+<div class="chips" id="cats"></div>
+<div class="chips"><button id="weak" aria-pressed="false">△×と未回答だけ</button><button id="shuffle">シャッフル</button><button id="test">10問テスト</button><button id="reset">採点をリセット</button></div>
+<div id="list"></div></main>
+<script type="application/json" id="data">${data}</script>
+<script>
+(function(){var D=JSON.parse(document.getElementById('data').textContent),KEY='owned-media-quiz-v1',G={};try{G=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){G={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}}
+function e(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}function hi(s){return e(s).replace(/【([^】]*)】/g,'<b>【$1】</b>')}
+var cat='all',weak=false,order=D.items.slice(),testIds=null,label={ok:'○',mid:'△',ng:'×'};
+var cats=document.getElementById('cats');cats.innerHTML='<button data-c="all" aria-pressed="true">すべて</button>'+D.cats.map(function(c){return '<button data-c="'+c.id+'" aria-pressed="false">'+e(c.label)+'</button>'}).join('');
+cats.onclick=function(ev){var b=ev.target.closest('button');if(!b)return;cat=b.dataset.c;testIds=null;cats.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});draw()};
+document.getElementById('weak').onclick=function(){weak=!weak;this.setAttribute('aria-pressed',String(weak));testIds=null;draw()};
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+document.getElementById('shuffle').onclick=function(){order=shuffle(D.items);testIds=null;draw()};
+document.getElementById('test').onclick=function(){var pool=D.items.filter(function(x){return cat==='all'||x.cat===cat});testIds=shuffle(pool).slice(0,10).map(function(x){return x.id});testIds.forEach(function(id){delete G[id]});save();draw();window.scrollTo(0,0)};
+document.getElementById('reset').onclick=function(){if(confirm('採点をすべて消しますか？')){G={};save();draw()}};
+function catLabel(id){var c=D.cats.find(function(x){return x.id===id});return c?c.label+'｜'+c.note:''}
+function card(x,n){var g=G[x.id];return '<article class="card" id="'+x.id+'"><div class="cat">'+e(catLabel(x.cat))+(g?'<span class="mark '+g+'">'+label[g]+'</span>':'')+'</div><div class="q">Q'+n+'. '+hi(x.q)+'</div><button class="reveal" data-act="open">答えを見る</button><div class="ans"><div class="model">'+hi(x.a)+'</div>'+(x.hint?'<p class="hint">'+hi(x.hint)+'</p>':'')+'<b>要点（言えたらチェック）</b><ul class="points">'+x.points.map(function(p,i){return '<li><label><input type="checkbox" data-act="pt">'+hi(p)+'</label></li>'}).join('')+'</ul><div class="grade">'+['ok','mid','ng'].map(function(k){return '<button data-g="'+k+'" aria-pressed="'+(g===k)+'">'+label[k]+(k==='ok'?' 言えた':k==='mid'?' 半分':' 言えない')+'</button>'}).join('')+'</div></div></article>'}
+function draw(){var items=testIds?testIds.map(function(id){return D.items.find(function(x){return x.id===id})}):order.filter(function(x){return(cat==='all'||x.cat===cat)&&(!weak||G[x.id]!=='ok')});
+document.getElementById('list').innerHTML=items.length?items.map(function(x,i){return card(x,i+1)}).join(''):'<p class="empty">この条件の問題はありません。全部○です。</p>';score(items)}
+function score(items){var all=D.items,ok=all.filter(function(x){return G[x.id]==='ok'}).length,s='<b>全体：○ '+ok+' / '+all.length+'問</b>（△ '+all.filter(function(x){return G[x.id]==='mid'}).length+'・× '+all.filter(function(x){return G[x.id]==='ng'}).length+'）';
+if(testIds){var t=testIds.filter(function(id){return G[id]==='ok'}).length,done=testIds.filter(function(id){return G[id]}).length;s+='<br><b>10問テスト：○ '+t+' / 10</b>（採点済み '+done+'問）'+(done===10?(t>=8?'　説明する力、ついてます。':t>=5?'　あと少し。△×を復習。':'　まず基礎から順に。'):'')}
+s+='<div class="bars">'+D.cats.map(function(c){var xs=all.filter(function(x){return x.cat===c.id}),o=xs.filter(function(x){return G[x.id]==='ok'}).length;return '<div class="bar"><span>'+e(c.label)+'</span><span class="track"><span class="fill" style="width:'+Math.round(o/xs.length*100)+'%;display:block"></span></span><span>'+o+'/'+xs.length+'</span></div>'}).join('')+'</div>';
+document.getElementById('score').innerHTML=s}
+document.getElementById('list').addEventListener('click',function(ev){var c=ev.target.closest('.card');if(!c)return;var b=ev.target.closest('button');if(!b)return;
+if(b.dataset.act==='open'){c.classList.add('open');b.remove();return}
+if(b.dataset.g){G[c.id]=b.dataset.g;save();c.querySelectorAll('.grade button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});var m=c.querySelector('.mark');if(!m){m=document.createElement('span');c.querySelector('.cat').appendChild(m)}m.className='mark '+b.dataset.g;m.textContent=label[b.dataset.g];score([])}});
+draw()})();
+</script></body></html>`;
