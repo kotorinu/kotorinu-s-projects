@@ -5,7 +5,7 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   const { energySteps } = await import("../lib/sales-script/energy-page");
   const { ownedMediaSteps, ownedMediaPage } = await import("../lib/sales-script/owned-media-page");
   assert.deepEqual(ownedMediaSteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-  for (const n of [1, 2, 3, 4, 6]) assert.deepEqual(ownedMediaSteps[n - 1], energySteps[n - 1], `step ${n}`);
+  for (const n of [2, 3, 4, 6]) assert.deepEqual(ownedMediaSteps[n - 1], energySteps[n - 1], `step ${n}`);
   for (const s of ownedMediaSteps) assert.ok(s.items.some(i => i.k === "m" && i.must), "must: " + s.title);
   const s10 = ownedMediaSteps[9];
   const says = s10.items.map(i => i.t).join("\n");
@@ -18,6 +18,10 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   assert.ok(s10.avoid?.some(a => a.includes("お仕事を紹介するので、メディアを買ってください")));
   assert.ok(ownedMediaPage.includes("ポートフォリオ版から変わったところ") && ownedMediaPage.includes("動画を見た人が持っている誤解"));
   assert.ok(ownedMediaPage.includes("owned-media-memory") && !ownedMediaPage.includes("energy-memory"));
+  const s1 = ownedMediaSteps[0].items.map(i => i.t).join("\n");
+  assert.ok(s1.includes("動画を3本見ていただいたと思うんですけど") && s1.includes("200文字の記事"));
+  for (const k of ["パソコンが苦手", "何を書けばいいか分からない", "本当に稼げるんですか", "もうブログを持っている", "維持費"]) assert.ok(s10.items.some(i => i.k === "b" && i.if.includes(k)), k);
+  assert.ok(ownedMediaPage.includes("事前動画3本の要点") && ownedMediaPage.includes("サービス内容（スライドの叩き台"));
   // 元のポートフォリオ版は変えない
   assert.ok(energySteps[9].title.includes("PF") && energySteps[9].items.some(i => i.t.includes("虹色の履歴書")));
 });
