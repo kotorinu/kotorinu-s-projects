@@ -51,6 +51,7 @@ test("オウンドメディア理解度テストは5分類すべてに問題が�
 
 test("オウンドメディアの教科書は6章あり、PVと計算式と弱点を含む", async () => {
   const { learnSections, ownedMediaLearnPage } = await import("../lib/sales-script/owned-media-learn");
-  assert.equal(learnSections.length, 6);
+  assert.equal(learnSections.length, 7);
+  assert.ok(ownedMediaLearnPage.includes("半年くらい見ておくのが普通") && ownedMediaLearnPage.includes("約80万円"));
   assert.ok(ownedMediaLearnPage.includes("PV（ページビュー）") && ownedMediaLearnPage.includes("PV × クリック率 × 成約率 × 1件の報酬") && ownedMediaLearnPage.includes("弱点"));
 });
