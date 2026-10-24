@@ -38,6 +38,8 @@ test("オウンドメディア理解度テストは5分類すべてに問題が�
   for (const c of quizCategories) assert.ok(quizItems.filter(i => i.cat === c.id).length >= 5, c.label);
   for (const i of quizItems) assert.ok(i.q && i.a && i.points.length > 0, i.id);
   assert.ok(quizItems.some(i => i.cat === "ng" && i.q.includes("お仕事を紹介するので")));
+  for (const i of quizItems.filter(i => i.cat === "appeal")) assert.ok(i.sell && i.sell.why && i.sell.next, "sell: " + i.id);
+  assert.ok(quizItems.filter(i => i.cat === "age").length >= 5 && ownedMediaQuizPage.includes("この返しで売れる"));
   assert.ok(ownedMediaQuizPage.includes("10問テスト") && ownedMediaQuizPage.includes("owned-media-quiz-v1"));
   assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaQuizPage));
 });
