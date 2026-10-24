@@ -19,9 +19,10 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   assert.ok(ownedMediaPage.includes("ポートフォリオ版から変わったところ") && ownedMediaPage.includes("動画を見た人が持っている誤解"));
   assert.ok(ownedMediaPage.includes("owned-media-memory") && !ownedMediaPage.includes("energy-memory"));
   const s1 = ownedMediaSteps[0].items.map(i => i.t).join("\n");
-  assert.ok(s1.includes("動画を3本見ていただいたと思うんですけど") && s1.includes("200文字の記事"));
+  assert.ok(s1.includes("3本見てみて") && !s1.includes("200文字"));
   for (const k of ["パソコンが苦手", "何を書けばいいか分からない", "本当に稼げるんですか", "もうブログを持っている", "維持費"]) assert.ok(s10.items.some(i => i.k === "b" && i.if.includes(k)), k);
   assert.ok(ownedMediaPage.includes("事前動画3本の要点") && ownedMediaPage.includes("サービス内容（スライドの叩き台"));
+  assert.ok(!/200文字|記事の感想|提出いただいた文章/.test(JSON.stringify(ownedMediaSteps)) && !ownedMediaPage.includes("自己紹介 → 記事の感想") && !ownedMediaPage.includes("①記事の感想") && ownedMediaPage.includes("⑦ 感想のFB"));
   // 元のポートフォリオ版は変えない
   assert.ok(energySteps[9].title.includes("PF") && energySteps[9].items.some(i => i.t.includes("虹色の履歴書")));
 });
