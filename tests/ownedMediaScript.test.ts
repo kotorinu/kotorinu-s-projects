@@ -5,7 +5,7 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   const { energySteps } = await import("../lib/sales-script/energy-page");
   const { ownedMediaSteps, ownedMediaPage } = await import("../lib/sales-script/owned-media-page");
   assert.deepEqual(ownedMediaSteps.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-  for (const n of [2, 4, 6]) assert.deepEqual(ownedMediaSteps[n - 1], energySteps[n - 1], `step ${n}`);
+  for (const n of [2, 4]) assert.deepEqual(ownedMediaSteps[n - 1], energySteps[n - 1], `step ${n}`);
   for (const s of ownedMediaSteps) assert.ok(s.items.some(i => i.k === "m" && i.must), "must: " + s.title);
   const s10 = ownedMediaSteps[9];
   const says = s10.items.map(i => i.t).join("\n");
@@ -28,6 +28,8 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   assert.ok(s10.avoid?.some(a => a.includes("本当ではない残り枠")) && s10.avoid?.some(a => a.includes("生活費を削って")));
   assert.ok(ownedMediaPage.includes("2本の商談から"));
   assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaPage));
+  assert.ok(ownedMediaPage.includes("失注・保留の理由と返し") && says.includes("39,800円〜99,800円"));
+  assert.ok(ownedMediaSteps[5].items.some(i => i.t.includes("ポートフォリオって、もう持たれてたりします")));
   // 元のポートフォリオ版は変えない
   assert.ok(energySteps[9].title.includes("PF") && energySteps[9].items.some(i => i.t.includes("虹色の履歴書")));
 });
@@ -40,6 +42,7 @@ test("オウンドメディア理解度テストは5分類すべてに問題が�
   for (const i of quizItems) assert.ok(i.q && i.a && i.points.length > 0, i.id);
   assert.ok(quizItems.some(i => i.cat === "ng" && i.q.includes("お仕事を紹介するので")));
   for (const i of quizItems.filter(i => i.cat === "appeal")) assert.ok(i.sell && i.sell.why && i.sell.next, "sell: " + i.id);
+  for (const i of quizItems.filter(i => i.cat === "lost")) assert.ok(i.sell, "lost sell: " + i.id);
   assert.ok(quizItems.filter(i => i.cat === "age").length >= 5 && ownedMediaQuizPage.includes("この返しで売れる"));
   assert.ok(ownedMediaQuizPage.includes("10問テスト") && ownedMediaQuizPage.includes("owned-media-quiz-v1"));
   assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaQuizPage));
