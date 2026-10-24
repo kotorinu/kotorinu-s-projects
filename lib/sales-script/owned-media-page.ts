@@ -259,7 +259,7 @@ const sharedBoxes = energyBoxes
   .replace("「実績がないからPFはまだ早い」→ 順番が逆。PFが先で、実績は一緒に作る。", "「実績がないからPFはまだ早い」→ 順番が逆。見せる場所が先で、実績は一緒に作る。<br>「案件を取るしか稼ぐ方法はない」→ 書いた記事が残ってお金になる場所を持つと、自分の頑張りでも伸ばせる。")
   .replace("パート5 手段・金額</b>：⑩ 手段としてPF → 格安で聞いてみる → いくらなら", "パート5 手段・金額</b>：⑩ 手段としてオウンドメディア（PFは必須 → その一段上 → 本気の条件）→ 外注相場 → 金額");
 
-const header = `<header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script/owned-media/quiz"><b>理解度テスト</b></a><a href="/sales-script/energy">ポートフォリオ版</a><a href="/sales-script/ttp">参考：杉山さんTTP</a></div><div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="must" aria-pressed="false">★だけ表示</button></div></header>`;
+const header = `<header><div class="row"><a href="/today">← WorkOS</a><a href="/sales-script/owned-media/quiz"><b>理解度テスト</b></a><a href="/sales-script/owned-media/learn"><b>教科書</b></a><a href="/sales-script/energy">ポートフォリオ版</a><a href="/sales-script/ttp">参考：杉山さんTTP</a></div><div class="tools"><button id="memory" aria-pressed="false">暗記モード</button><button id="must" aria-pressed="false">★だけ表示</button></div></header>`;
 const intro = `<h1>トーク台本（オウンドメディア版）</h1><p class="lead">ヒアリングで相手の未来を映像にしてエネルギーを上げ、現実との差に本人が気づいたら、手段としてオウンドメディアを提案する。PFは必須、その一段上としてオウンドメディア。【 】は相手・自分の言葉と、会社で確認できた数字に置き換える。</p>`;
 
 export const ownedMediaPage = renderTalkPage({

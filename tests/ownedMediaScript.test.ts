@@ -48,3 +48,9 @@ test("オウンドメディア理解度テストは5分類すべてに問題が�
   assert.ok(ownedMediaQuizPage.includes("10問テスト") && ownedMediaQuizPage.includes("owned-media-quiz-v1"));
   assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaQuizPage));
 });
+
+test("オウンドメディアの教科書は6章あり、PVと計算式と弱点を含む", async () => {
+  const { learnSections, ownedMediaLearnPage } = await import("../lib/sales-script/owned-media-learn");
+  assert.equal(learnSections.length, 6);
+  assert.ok(ownedMediaLearnPage.includes("PV（ページビュー）") && ownedMediaLearnPage.includes("PV × クリック率 × 成約率 × 1件の報酬") && ownedMediaLearnPage.includes("弱点"));
+});
