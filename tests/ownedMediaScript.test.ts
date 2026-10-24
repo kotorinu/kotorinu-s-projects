@@ -10,10 +10,11 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   const s10 = ownedMediaSteps[9];
   const says = s10.items.map(i => i.t).join("\n");
   assert.ok(says.includes("なんで企業さんがポートフォリオを見たがると思います"));
-  assert.ok(says.includes("見せるためのものなので、そこで終わってしまう"));
-  assert.ok(says.includes("案件だけが収入の手段じゃなくなる"));
+  assert.ok(says.includes("結論、ほぼポートフォリオなんです") && says.includes("虹色の履歴書") && says.includes("イメージ湧きました"));
+  assert.ok(says.includes("見せたらそこで終わり") && says.includes("仮に、もっと格安で作れて"));
   assert.ok(says.includes("1件ごとの1回きり"));
-  assert.ok(says.includes("本気でやる気がないなら、おすすめはしない"));
+  assert.ok(says.includes("本気でやる気がないなら、正直おすすめはしない") && s10.avoid!.some(a => a.includes("資料（スライド）を見せる")));
+  assert.ok(ownedMediaPage.includes("入江さんFB（最優先") && ownedMediaPage.includes("入江さんFB 10/22"));
   assert.ok(!/必ず稼げ|絶対に稼げ/.test(says));
   assert.ok(s10.avoid?.some(a => a.includes("お仕事を紹介するので、メディアを買ってください")));
   assert.ok(ownedMediaPage.includes("ポートフォリオ版から変わったところ") && ownedMediaPage.includes("動画を見た人が持っている誤解"));
