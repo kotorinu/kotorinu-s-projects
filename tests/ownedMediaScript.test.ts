@@ -30,6 +30,7 @@ test("オウンドメディア版台本はヒアリングを共有し、⑩だ�
   assert.ok(!/080\d|川端|山本さん|松本さん/.test(ownedMediaPage));
   assert.ok(ownedMediaPage.includes("失注・保留の理由と返し") && says.includes("39,800円〜99,800円"));
   assert.ok(ownedMediaSteps[5].items.some(i => i.t.includes("ポートフォリオって、もう持たれてたりします")));
+  assert.ok(s10.items.some(i => i.k === "b" && i.if.includes("特典を出す時")) && s10.items.some(i => i.k === "b" && i.if.includes("オウンドメディアがいい」まで持っていく")));
   // 元のポートフォリオ版は変えない
   assert.ok(energySteps[9].title.includes("PF") && energySteps[9].items.some(i => i.t.includes("虹色の履歴書")));
 });
